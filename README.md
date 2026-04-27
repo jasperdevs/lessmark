@@ -2,7 +2,7 @@
   <img src="./lessmarklogowhitebackground.svg" alt="Lessmark" width="180" />
 </p>
 
-<h1 align="center">Lessmark</h1>
+<h1 align="center">lessmark</h1>
 
 <p align="center">A strict, agent-readable document format for project context.</p>
 
