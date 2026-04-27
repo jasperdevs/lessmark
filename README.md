@@ -6,7 +6,7 @@
 
 <p align="center">A strict, agent-readable document format for project context.</p>
 
-Lessmark is Markdown-inspired, but it is not Markdown 2. It is a small plain-text format for agent-era documents: typed blocks, deterministic parsing, a stable JSON AST, validation, formatting, and no raw HTML or JSX.
+Lessmark is Markdown-inspired and can be thought of as a stricter Markdown 2 for agent context, not a drop-in Markdown renderer. It is a small plain-text format for agent-era documents: typed blocks, deterministic parsing, a stable JSON AST, validation, formatting, and no raw HTML or JSX.
 
 V0 is intentionally narrow: project context, agent instructions, decisions, tasks, constraints, examples, API notes, links, warnings, and file references.
 
@@ -113,12 +113,16 @@ Lessmark v0 rejects:
 - Long-form fallback extension: `.lessmark`
 - V0 spec: [`spec/lessmark-v0.md`](./spec/lessmark-v0.md)
 - AST schema: [`spec/ast-v0.schema.json`](./spec/ast-v0.schema.json)
+- Design comparison: [`docs/design-comparison.md`](./docs/design-comparison.md)
 
 ## Package Scope
 
-Lessmark uses one npm package: `lessmark`.
+Lessmark uses the unscoped package name `lessmark`.
 
-PyPI and crates.io packages are optional later, only when Lessmark has official Python or Rust implementations. They are not required for the format itself.
+- npm: `lessmark` is published.
+- PyPI: `lessmark` source is ready in `packages/python`; publishing requires a PyPI API token.
+
+crates.io is optional later, only if Lessmark gets an official Rust implementation.
 
 ## License
 

@@ -3,3 +3,7 @@ node_modules/
 .DS_Store
 .env
 coverage/
+
+packages/python/build/
+packages/python/dist/
+packages/python/src/*.egg-info/

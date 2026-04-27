@@ -4,7 +4,7 @@ Status: draft v0
 
 Lessmark is a strict, agent-readable document format for project context, agent instructions, decisions, tasks, constraints, examples, API notes, links, warnings, and file references.
 
-Lessmark is Markdown-inspired, but it is not Markdown-compatible and is not a Markdown replacement. V0 is a small language with deterministic parsing and one syntax per concept.
+Lessmark is Markdown-inspired and may be positioned as a stricter Markdown 2 for agent context, but it is not Markdown-compatible and is not a drop-in renderer for existing Markdown documents. V0 is a small language with deterministic parsing and one syntax per concept.
 
 ## Goals
 
@@ -14,6 +14,7 @@ Lessmark is Markdown-inspired, but it is not Markdown-compatible and is not a Ma
 - Deterministic validation and formatting.
 - No raw HTML, JSX, embedded scripts, or arbitrary code execution.
 - Small conformance fixture set from day one.
+- Schema-bound extension model before any custom blocks are accepted.
 
 ## Non-Goals
 
@@ -22,6 +23,7 @@ Lessmark is Markdown-inspired, but it is not Markdown-compatible and is not a Ma
 - Markdown compatibility.
 - MDX-style component execution.
 - Multiple equivalent syntaxes for the same feature.
+- Preprocessor includes, remote transclusion, or document-time code evaluation.
 
 ## Files
 

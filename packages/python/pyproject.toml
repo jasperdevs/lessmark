@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lessmark"
+version = "0.1.0"
+description = "Strict agent-readable document format parser, validator, formatter, and CLI."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [{ name = "Jasper" }]
+keywords = ["lessmark", "markdown", "ast", "agent", "parser", "cli"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Text Processing :: Markup"
+]
+
+[project.scripts]
+lessmark = "lessmark.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/jasperdevs/lessmark"
+Repository = "https://github.com/jasperdevs/lessmark"
+Issues = "https://github.com/jasperdevs/lessmark/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
