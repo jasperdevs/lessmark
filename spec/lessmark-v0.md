@@ -43,6 +43,14 @@ Blank lines separate nodes and have no AST representation.
 
 Loose paragraphs outside typed blocks are invalid in v0.
 
+Lessmark deliberately uses a different methodology than Markdown:
+
+```text
+source text -> parser -> typed AST -> validator -> formatter -> consumer
+```
+
+Rendering is not part of the core language contract. The AST and validation result are the contract.
+
 ## Headings
 
 Headings use ATX syntax only:
@@ -149,3 +157,14 @@ Parser errors include:
 ## Stability
 
 The JSON AST is the conformance target for v0. Fixtures in `fixtures/valid` pair `.lmk` inputs with `.ast.json` snapshots.
+
+## Methodology
+
+Every future syntax addition must satisfy these rules:
+
+- It produces a clear typed AST node.
+- It has exactly one spelling.
+- It can be validated without executing code.
+- It can be formatted deterministically.
+- It does not require remote IO, local file reads, imports, includes, plugins, or renderer-specific passthrough.
+- It improves agent-readable context rather than visual presentation.

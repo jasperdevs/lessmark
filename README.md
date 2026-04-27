@@ -113,6 +113,8 @@ Lessmark v0 rejects:
 - Long-form fallback extension: `.lessmark`
 - V0 spec: [`spec/lessmark-v0.md`](./spec/lessmark-v0.md)
 - AST schema: [`spec/ast-v0.schema.json`](./spec/ast-v0.schema.json)
+- Methodology: [`docs/lessmark-methodology.md`](./docs/lessmark-methodology.md)
+- Markdown research notes: [`docs/markdown-research.md`](./docs/markdown-research.md)
 - Design comparison: [`docs/design-comparison.md`](./docs/design-comparison.md)
 
 ## Package Scope
