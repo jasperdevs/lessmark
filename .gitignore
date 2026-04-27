@@ -4,6 +4,9 @@ node_modules/
 .env
 coverage/
 
+__pycache__/
+*.py[cod]
+
 packages/python/build/
 packages/python/dist/
 packages/python/src/*.egg-info/
