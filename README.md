@@ -106,16 +106,17 @@ Lessmark v0 rejects:
 
 ## Name Status
 
-As of 2026-04-27, local availability checks showed:
+As of 2026-04-27, availability checks showed:
 
-- GitHub `jasprcodess/lessmark`: not found.
-- GitHub `jasperdevs/lessmark`: not found.
+- GitHub `jasperdevs/lessmark`: created as the public repo for this project.
 - npm `lessmark`: not found.
 - npm `@jasperdevs/lessmark`: not found.
 - PyPI `lessmark`: HTTP 404.
 - crates.io `lessmark`: HTTP 404.
 - RDAP/DNS `lessmark.dev`: no registration found.
 - RDAP/DNS `lessmark.org`: no registration found.
+
+No npm, PyPI, or crates.io package has been published yet. Name reservation on those registries generally requires publishing a real or placeholder package. A placeholder reserves the name early, but it also creates a public package history before the package shape is reviewed.
 
 Domain availability is only final at registrar checkout. The best primary domain is `lessmark.dev`: it is short, obvious, and fits a developer-facing format. `lessmark.org` is the best defensive/open-source fallback. I would avoid novelty TLDs for the canonical domain because the format should feel stable, not gimmicky.
 
