@@ -120,7 +120,7 @@ Lessmark v0 rejects:
 Lessmark uses the unscoped package name `lessmark`.
 
 - npm: `lessmark` is published.
-- PyPI: `lessmark` source is ready in `packages/python`; publishing requires a PyPI API token.
+- PyPI: `lessmark` is published.
 
 crates.io is optional later, only if Lessmark gets an official Rust implementation.
 
