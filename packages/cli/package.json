@@ -1,0 +1,40 @@
+{
+  "name": "@jasperdevs/lessmark-cli",
+  "version": "0.1.0",
+  "description": "Command-line tools for Lessmark files.",
+  "type": "module",
+  "bin": {
+    "lessmark": "bin/lessmark.js"
+  },
+  "files": [
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node --check bin/lessmark.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "lessmark": "0.1.0"
+  },
+  "keywords": [
+    "lessmark",
+    "cli",
+    "parser",
+    "agent"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasperdevs/lessmark.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/jasperdevs/lessmark/issues"
+  },
+  "homepage": "https://github.com/jasperdevs/lessmark#readme",
+  "engines": {
+    "node": ">=20"
+  }
+}

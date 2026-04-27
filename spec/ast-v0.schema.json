@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lessmark.dev/schemas/ast-v0.schema.json",
+  "title": "Lessmark AST v0",
+  "type": "object",
+  "required": ["type", "children"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "document" },
+    "children": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "level", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "const": "heading" },
+              "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+              "text": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "name", "attrs", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "const": "block" },
+              "name": {
+                "enum": ["summary", "decision", "constraint", "task", "file", "example", "note", "warning", "api", "link"]
+              },
+              "attrs": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              },
+              "text": { "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

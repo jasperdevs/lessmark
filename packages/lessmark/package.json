@@ -1,0 +1,39 @@
+{
+  "name": "lessmark",
+  "version": "0.1.0",
+  "description": "Strict agent-readable document format parser, validator, and formatter.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node --check src/index.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "lessmark",
+    "markdown",
+    "ast",
+    "agent",
+    "parser"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasperdevs/lessmark.git",
+    "directory": "packages/lessmark"
+  },
+  "bugs": {
+    "url": "https://github.com/jasperdevs/lessmark/issues"
+  },
+  "homepage": "https://github.com/jasperdevs/lessmark#readme",
+  "engines": {
+    "node": ">=20"
+  }
+}
