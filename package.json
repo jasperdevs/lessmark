@@ -5,13 +5,11 @@
   "description": "Workspace for Lessmark, a strict agent-readable document format.",
   "license": "MIT",
   "workspaces": [
-    "packages/lessmark",
-    "packages/scoped-lessmark",
-    "packages/cli"
+    "packages/lessmark"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspace lessmark",
+    "test": "npm run test --workspace lessmark",
     "check": "npm run build && npm test"
   }
 }

@@ -1,10 +1,14 @@
-# Lessmark
+<p align="center">
+  <img src="./lessmarklogowhitebackground.svg" alt="Lessmark" width="180" />
+</p>
 
-Lessmark is a strict, agent-readable document format inspired by Markdown.
+<h1 align="center">Lessmark</h1>
 
-It is human-readable plain text, but designed for the agent era: typed blocks, deterministic parsing, a stable JSON AST, validation, formatting, and no raw inline HTML/JSX execution.
+<p align="center">A strict, agent-readable document format for project context.</p>
 
-Lessmark is not Markdown 2. It is not a general blogging engine, docs platform, MDX replacement, or HTML shortcut layer. The v0 scope is deliberately narrow: project context, agent instructions, decisions, tasks, constraints, examples, API notes, links, warnings, and file references.
+Lessmark is Markdown-inspired, but it is not Markdown 2. It is a small plain-text format for agent-era documents: typed blocks, deterministic parsing, a stable JSON AST, validation, formatting, and no raw HTML or JSX.
+
+V0 is intentionally narrow: project context, agent instructions, decisions, tasks, constraints, examples, API notes, links, warnings, and file references.
 
 ## Example
 
@@ -27,23 +31,33 @@ Add export settings.
 Owns stitching and capture state.
 ```
 
-## Install Locally
+## Use
 
 ```sh
 npm install
-npm test
-npm run build
+npm run check
 ```
 
-Run the CLI from the workspace:
+Parse a file:
 
 ```sh
 npm exec lessmark parse examples/project-context.lmk
-npm exec lessmark check examples/project-context.lmk
-npm exec lessmark format examples/project-context.lmk
+```
+
+Use the library:
+
+```js
+import { parseLessmark, validateSource, formatLessmark } from "lessmark";
+
+const source = "@summary\nTyped context for humans and agents.\n";
+const ast = parseLessmark(source);
+const errors = validateSource(source);
+const formatted = formatLessmark(source);
 ```
 
 ## CLI
+
+The `lessmark` npm package provides the `lessmark` command:
 
 ```sh
 lessmark parse file.lmk
@@ -52,20 +66,15 @@ lessmark format file.lmk
 lessmark format --write file.lmk
 ```
 
-- `parse` prints the JSON AST.
-- `check` validates syntax and v0 semantic rules.
-- `format` prints deterministic Lessmark.
-- `format --write` updates the file in place.
-
 ## V0 Rules
 
 Lessmark v0 supports:
 
 - ATX headings: `#` through `######`
 - Typed blocks: `@summary`, `@decision`, `@constraint`, `@task`, `@file`, `@example`, `@note`, `@warning`, `@api`, `@link`
-- Double-quoted attributes on block headers
+- Double-quoted attributes
 - Plain text block bodies
-- Deterministic JSON AST output
+- Stable JSON AST output
 - Deterministic formatting
 
 Lessmark v0 rejects:
@@ -74,11 +83,10 @@ Lessmark v0 rejects:
 - JSX
 - Arbitrary code execution
 - Loose paragraphs outside typed blocks
-- Multiple spellings for the same concept
 - Unknown block names
 - Unquoted attributes
 
-## AST Shape
+## AST
 
 ```json
 {
@@ -99,30 +107,18 @@ Lessmark v0 rejects:
 }
 ```
 
-## Packages
+## Spec
 
-- `packages/lessmark`: reference parser, validator, formatter, and AST helpers.
-- `packages/scoped-lessmark`: scoped npm re-export for `@jasperdevs/lessmark`.
-- `packages/cli`: `lessmark` command-line interface.
-- `packages/python`: PyPI `lessmark` reservation package.
-- `crates/lessmark`: crates.io `lessmark` reservation crate.
+- Preferred extension: `.lmk`
+- Long-form fallback extension: `.lessmark`
+- V0 spec: [`spec/lessmark-v0.md`](./spec/lessmark-v0.md)
+- AST schema: [`spec/ast-v0.schema.json`](./spec/ast-v0.schema.json)
 
-## Name Status
+## Package Scope
 
-As of 2026-04-27, availability checks showed:
+Lessmark uses one npm package: `lessmark`.
 
-- GitHub `jasperdevs/lessmark`: created as the public repo for this project.
-- npm `lessmark`: not found; package metadata is prepared.
-- npm `@jasperdevs/lessmark`: not found; package metadata is prepared.
-- npm `@jasperdevs/lessmark-cli`: package metadata is prepared.
-- PyPI `lessmark`: HTTP 404; package metadata is prepared.
-- crates.io `lessmark`: HTTP 404; crate metadata is prepared.
-- RDAP/DNS `lessmark.dev`: no registration found.
-- RDAP/DNS `lessmark.org`: no registration found.
-
-No npm, PyPI, or crates.io package has been published yet. Publishing was attempted and blocked by missing or invalid local registry credentials. See `PUBLISHING.md` for the exact commands.
-
-Domain availability is only final at registrar checkout. The best primary domain is `lessmark.dev`: it is short, obvious, and fits a developer-facing format. `lessmark.org` is the best defensive/open-source fallback. I would avoid novelty TLDs for the canonical domain because the format should feel stable, not gimmicky.
+PyPI and crates.io packages are optional later, only when Lessmark has official Python or Rust implementations. They are not required for the format itself.
 
 ## License
 
