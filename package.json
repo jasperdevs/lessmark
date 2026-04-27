@@ -6,6 +6,7 @@
   "license": "MIT",
   "workspaces": [
     "packages/lessmark",
+    "packages/scoped-lessmark",
     "packages/cli"
   ],
   "scripts": {

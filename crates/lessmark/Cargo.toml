@@ -1,0 +1,16 @@
+[package]
+name = "lessmark"
+version = "0.1.0"
+edition = "2021"
+description = "Reserved Rust crate for Lessmark, a strict agent-readable document format."
+license = "MIT"
+repository = "https://github.com/jasperdevs/lessmark"
+homepage = "https://github.com/jasperdevs/lessmark"
+readme = "README.md"
+keywords = ["lessmark", "markup", "parser", "ast", "agent"]
+categories = ["parser-implementations", "text-processing"]
+include = ["src/**", "README.md", "LICENSE", "Cargo.toml"]
+
+[lib]
+name = "lessmark"
+path = "src/lib.rs"

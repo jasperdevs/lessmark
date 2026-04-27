@@ -3,3 +3,12 @@ node_modules/
 .DS_Store
 .env
 coverage/
+
+# Python build outputs
+packages/python/build/
+packages/python/dist/
+packages/python/src/*.egg-info/
+
+# Rust build outputs
+crates/*/target/
+crates/*/Cargo.lock
