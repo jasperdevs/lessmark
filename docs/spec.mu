@@ -124,7 +124,7 @@ Parsers must fail on:
 - unquoted attributes
 - unsupported escapes in attribute values
 - nested or indented @list items
-- body text on bodyless @page, @nav, @image, or @toc blocks
+- body text on bodyless @page, @nav, @image, @separator, or @toc blocks
 - @table body rows whose cell count does not match columns
 - raw HTML or JSX-like tags in headings, block text, or attributes
 - absolute paths, URI paths, or .. segments in @file path
@@ -148,6 +148,7 @@ Lessmark is not a Markdown dialect. Markdown import/export is intentionally loss
 - standard blockquotes
 - GFM note, tip, warning, and caution callouts
 - well-formed GFM tables with non-empty cells
+- standalone Markdown separators, such as ---
 
 @paragraph
 Unsupported Markdown features should degrade to @note text or require manual conversion.
@@ -172,6 +173,7 @@ callout|kind required, title optional|Explicit note, tip, warning, or caution.
 list|kind required|Ordered or unordered flat list. Each item starts with - .
 table|columns required|Pipe-separated table columns and rows. Body cells may escape a literal pipe as \|.
 image|src required, alt required, caption optional|Safe image or figure.
+separator|none|Bodyless horizontal separator for docs and rendered pages.
 toc|none|Rendered table of contents from local headings.
 footnote|id required|Named footnote content referenced by inline text.
 definition|term required|Definition-list entry for glossaries and docs.
@@ -215,7 +217,7 @@ lessmark build docs public
 lessmark build --strict docs public
 
 @paragraph
-Rendering escapes text, rejects unknown inline functions, supports nested explicit inline functions, rejects executable link schemes, and never passes raw source text through as HTML. Rust and Python expose the shared parser, formatter, validator, and Markdown conversion surfaces; they do not advertise HTML rendering or static-site builds in info --json. Heading IDs are generated from heading text. Duplicate heading IDs receive numeric suffixes, such as build-system-2, so rendered HTML does not emit duplicate heading anchors. Generated heading IDs, @decision id values, @footnote id values, and rendered footnote anchors like fn-strict-syntax share one local target namespace and must not collide. @reference target must point at a target in that namespace; broken local references are parser errors. @nav blocks render as grouped primary or footer navigation. Navigation blocks are bodyless so site chrome stays renderer-controlled instead of becoming a layout or component DSL. build --strict parses and render-checks every page before writing output. It rejects unsafe inline render links, duplicate @page output values, page/static output collisions, case-insensitive output collisions, nested output roots, duplicate static asset outputs, @nav links without built page targets, relative @link asset/page misses, and missing local @image assets.
+Rendering escapes text, rejects unknown inline functions, supports nested explicit inline functions, rejects executable link schemes, and never passes raw source text through as HTML. Rust and Python expose the shared parser, formatter, validator, and Markdown conversion surfaces; they do not advertise HTML rendering or static-site builds in info --json. Heading IDs are generated from heading text. Duplicate heading IDs receive numeric suffixes, such as build-system-2, so rendered HTML does not emit duplicate heading anchors. Generated heading IDs, @decision id values, @footnote id values, and rendered footnote anchors like fn-strict-syntax share one local target namespace and must not collide. @reference target must point at a target in that namespace; broken local references are parser errors. @nav blocks render as grouped primary or footer navigation. @separator renders as a horizontal rule. Navigation, page metadata, images, separators, and TOCs are bodyless so site chrome and visual breaks stay renderer-controlled instead of becoming a layout or component DSL. build --strict parses and render-checks every page before writing output. It rejects unsafe inline render links, duplicate @page output values, page/static output collisions, case-insensitive output collisions, nested output roots, duplicate static asset outputs, @nav links without built page targets, relative @link asset/page misses, and missing local @image assets.
 
 ## Formatting
 

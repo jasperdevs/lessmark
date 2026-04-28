@@ -193,6 +193,8 @@ Application programming interface.
 @table Name|Value
 Stage|alpha
 
+@separator
+
 @metadata project.stage
 alpha
 
@@ -225,7 +227,7 @@ function assertProfileContract(contract) {
     },
     docs: {
       requiredBlocks: [],
-      recommendedBlocks: ["page", "nav", "paragraph", "image", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
+      recommendedBlocks: ["page", "nav", "paragraph", "image", "separator", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
       disallowedFeatures: ["rawHtml", "hooks", "customComponents", "styleDirectives", "layoutDirectives", "privateFlavors"]
     }
   };

@@ -65,7 +65,7 @@ export function getBlockAttrErrors(name, attrs) {
 
 export function getBlockBodyErrors(node) {
   const attrs = node.attrs ?? {};
-  if (["image", "nav", "page", "toc"].includes(node.name) && node.text.trim() !== "") {
+  if (["image", "nav", "page", "separator", "toc"].includes(node.name) && node.text.trim() !== "") {
     return [`@${node.name} must not have a body`];
   }
   if (node.name === "list") {

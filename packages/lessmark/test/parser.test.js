@@ -128,6 +128,8 @@ Application programming interface.
 @table Name|Value
 Stage|alpha
 
+@separator
+
 @metadata project.stage
 alpha
 
@@ -150,6 +152,7 @@ Footnote body.
   assert.match(formatted, /@callout kind="warning"\nWatch this\./);
   assert.match(formatted, /@definition term="API"\nApplication programming interface\./);
   assert.match(formatted, /@table columns="Name\|Value"\nStage\|alpha/);
+  assert.match(formatted, /@separator/);
   assert.match(formatted, /@metadata key="project\.stage"/);
   assert.match(formatted, /@link href="https:\/\/example\.com"/);
   assert.match(formatted, /@footnote id="note"/);
@@ -222,6 +225,8 @@ test("rejects invalid docs attrs", () => {
   assert.throws(() => parseLessmark('@page output="index.html"\nBody.\n'), /must not have a body/);
   assert.throws(() => parseLessmark("@toc\nBody.\n"), /must not have a body/);
   assert.throws(() => parseLessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n'), /must not have a body/);
+  assert.throws(() => parseLessmark("@separator\nBody.\n"), /must not have a body/);
+  assert.throws(() => parseLessmark('@separator style="thin"\n'), /does not allow attribute/);
   assert.throws(() => parseLessmark('@reference target="../secret"\nBad target.\n'), /lowercase slug/);
   assert.throws(() => parseLessmark('@reference target="missing-section"\nBad target.\n'), /Unknown local reference target/);
   assert.throws(() => parseLessmark('@definition term="Term<T>"\nBad term.\n'), /raw HTML/);
@@ -400,11 +405,14 @@ test("imports common GFM blocks into typed Lessmark blocks", () => {
 | --- | --- |
 | Images | done |
 | Tables \\| escaped | done |
+
+---
 `);
   assert.match(lessmark, /@image alt="Build pipeline" caption="Pipeline" src="assets\/diagram.svg"/);
   assert.match(lessmark, /@callout kind="warning" title="Migration"\nCheck imported content\./);
   assert.match(lessmark, /@quote\nKeep source safe\.\nPreserve the quote\./);
   assert.match(lessmark, /@table columns="Feature\|Status"\nImages\|done\nTables \\\\?\| escaped\|done/);
+  assert.match(lessmark, /@separator/);
   assert.equal(validateSource(lessmark).length, 0);
 });
 
@@ -423,12 +431,15 @@ Ship parser.
 
 @link href="https://example.com"
 Homepage
+
+@separator
 `;
   const markdown = toMarkdown(source);
   assert.match(markdown, /^# Project/);
   assert.match(markdown, /Typed context\./);
   assert.match(markdown, /- \[x\] Ship parser\./);
   assert.match(markdown, /\[Homepage\]\(https:\/\/example\.com\)/);
+  assert.match(markdown, /^---$/m);
 });
 
 test("exports docs blocks to Markdown without losing structure", async () => {
@@ -449,6 +460,7 @@ test("exports docs blocks to Markdown without losing structure", async () => {
   assert.match(markdown, /\| Feature \| Status \|/);
   assert.match(markdown, /\| Typed blocks\\\|agents \| done \|/);
   assert.match(markdown, /!\[Build pipeline\]\(assets\/diagram.svg\)/);
+  assert.match(toMarkdown("@separator\n"), /^---\n$/);
 });
 
 test("renders strict docs blocks to safe HTML", async () => {
@@ -470,6 +482,7 @@ test("renders strict docs blocks to safe HTML", async () => {
   assert.match(html, /<table>/);
   assert.match(html, /<td>Typed blocks\|agents<\/td>/);
   assert.doesNotMatch(html, /<script/);
+  assert.match(renderHtml("@separator\n"), /<hr class="lessmark-separator">/);
 });
 
 test("renders code blocks with safe lightweight highlighting", () => {

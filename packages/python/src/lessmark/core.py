@@ -68,6 +68,7 @@ CORE_BLOCKS = {
     "list",
     "table",
     "image",
+    "separator",
     "toc",
     "footnote",
     "definition",
@@ -97,6 +98,7 @@ CORE_BLOCK_NAMES = [
     "list",
     "table",
     "image",
+    "separator",
     "toc",
     "footnote",
     "definition",
@@ -151,6 +153,7 @@ BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "list": {"allowed": {"kind"}, "required": {"kind"}},
     "table": {"allowed": {"columns"}, "required": {"columns"}},
     "image": {"allowed": {"src", "alt", "caption"}, "required": {"src", "alt"}},
+    "separator": {"allowed": set(), "required": set()},
     "toc": {"allowed": set(), "required": set()},
     "footnote": {"allowed": {"id"}, "required": {"id"}},
     "definition": {"allowed": {"term"}, "required": {"term"}},
@@ -720,7 +723,7 @@ def _is_valid_table_columns(columns: str) -> bool:
 
 
 def _get_block_body_errors(name: object, attrs: object, text: str) -> list[str]:
-    if name in {"image", "nav", "page", "toc"} and text.strip():
+    if name in {"image", "nav", "page", "separator", "toc"} and text.strip():
         return [f"@{name} must not have a body"]
     if name == "list":
         return _get_list_body_errors(text)
@@ -948,6 +951,12 @@ def from_markdown(markdown: str) -> str:
             index += 1
             continue
 
+        if _is_markdown_separator(line):
+            children.append({"type": "block", "name": "separator", "attrs": {}, "text": ""})
+            first_paragraph = False
+            index += 1
+            continue
+
         fence = _read_fence_line(line)
         if fence is not None:
             body: list[str] = []
@@ -1074,6 +1083,8 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
             chunks.append(f"```{attrs.get('lang', '')}\n{text}\n```")
         elif name == "example":
             chunks.append(f"Example:\n\n{text}")
+        elif name == "separator":
+            chunks.append("---")
         elif name in {"page", "toc"}:
             continue
         elif name == "nav":
@@ -1279,6 +1290,7 @@ def _is_markdown_block_start(lines: list[str], index: int) -> bool:
     return (
         re.match(r"^(#{1,6})\s+", lines[index]) is not None
         or _read_fence_line(lines[index]) is not None
+        or _is_markdown_separator(lines[index])
         or re.match(r"^\s*[-*]\s+\[[ xX]\]\s+", lines[index]) is not None
         or _read_image_line(lines[index]) is not None
         or re.match(r"^\s*>\s?", lines[index]) is not None
@@ -1288,6 +1300,10 @@ def _is_markdown_block_start(lines: list[str], index: int) -> bool:
 
 def _escape_block_line(line: str) -> str:
     return f"  {line}" if line.startswith(("#", "@")) else line
+
+
+def _is_markdown_separator(line: str) -> bool:
+    return bool(re.match(r"^(?: {0,3})([-*_])(?:\s*\1){2,}\s*$", line))
 
 
 def _read_fence_line(line: str) -> dict[str, object] | None:

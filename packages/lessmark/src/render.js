@@ -63,6 +63,8 @@ function renderNode(node, ast, context) {
       return renderTable(node);
     case "image":
       return renderImage(node);
+    case "separator":
+      return `<hr class="lessmark-separator">`;
     case "toc":
       return renderToc(ast, context);
     case "footnote":

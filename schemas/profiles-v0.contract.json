@@ -19,7 +19,7 @@
       "renderer": "npm CLI safe HTML renderer",
       "securityModel": "escaped HTML output; safe href/resource policy; strict build checks for pages, links, images, and output collisions",
       "requiredBlocks": [],
-      "recommendedBlocks": ["page", "nav", "paragraph", "image", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
+      "recommendedBlocks": ["page", "nav", "paragraph", "image", "separator", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
       "disallowedFeatures": ["rawHtml", "hooks", "customComponents", "styleDirectives", "layoutDirectives", "privateFlavors"]
     }
   ],

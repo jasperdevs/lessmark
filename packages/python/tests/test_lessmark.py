@@ -89,6 +89,8 @@ Application programming interface.
 @table Name|Value
 Stage|alpha
 
+@separator
+
 @metadata project.stage
 alpha
 
@@ -111,6 +113,7 @@ Footnote body.
         self.assertIn('@callout kind="warning"\nWatch this.', formatted)
         self.assertIn('@definition term="API"\nApplication programming interface.', formatted)
         self.assertIn('@table columns="Name|Value"\nStage|alpha', formatted)
+        self.assertIn("@separator", formatted)
         self.assertIn('@metadata key="project.stage"', formatted)
         self.assertIn('@link href="https://example.com"', formatted)
         self.assertIn('@footnote id="note"', formatted)
@@ -189,6 +192,10 @@ RFC-0042
             parse_lessmark("@toc\nBody.\n")
         with self.assertRaisesRegex(LessmarkError, "must not have a body"):
             parse_lessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n')
+        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
+            parse_lessmark("@separator\nBody.\n")
+        with self.assertRaisesRegex(LessmarkError, "does not allow attribute"):
+            parse_lessmark('@separator style="thin"\n')
         with self.assertRaisesRegex(LessmarkError, "lowercase slug"):
             parse_lessmark('@reference target="../secret"\nBad target.\n')
         with self.assertRaisesRegex(LessmarkError, "Unknown local reference target"):
@@ -343,13 +350,15 @@ RFC-0042
             '| Feature | Status |\n'
             '| --- | --- |\n'
             '| Images | done |\n'
-            '| Tables \\| escaped | done |\n'
+            '| Tables \\| escaped | done |\n\n'
+            '---\n'
         )
         self.assertIn('@image alt="Build pipeline" caption="Pipeline" src="assets/diagram.svg"', lessmark)
         self.assertIn('@callout kind="warning" title="Migration"\nCheck imported content.', lessmark)
         self.assertIn("@quote\nKeep source safe.\nPreserve the quote.", lessmark)
         self.assertIn('@table columns="Feature|Status"', lessmark)
         self.assertIn(r"Tables \| escaped|done", lessmark)
+        self.assertIn("@separator", lessmark)
         self.assertEqual(validate_source(lessmark), [])
 
     def test_rejects_unclosed_markdown_code_fences(self):
@@ -361,6 +370,7 @@ RFC-0042
         markdown = to_markdown(source)
         self.assertTrue(markdown.startswith("# Project Context"))
         self.assertIn("- [ ] Add export settings.", markdown)
+        self.assertEqual(to_markdown("@separator\n"), "---\n")
 
     def test_exports_docs_blocks_to_markdown(self):
         source = (ROOT / "fixtures/valid/docs-page.mu").read_text(encoding="utf-8")

@@ -55,6 +55,7 @@ fn info_command(args: &[String]) -> i32 {
             "list",
             "table",
             "image",
+            "separator",
             "toc",
             "footnote",
             "definition",

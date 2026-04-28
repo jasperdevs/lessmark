@@ -38,6 +38,7 @@
           { "$ref": "#/$defs/listBlock" },
           { "$ref": "#/$defs/tableBlock" },
           { "$ref": "#/$defs/imageBlock" },
+          { "$ref": "#/$defs/separatorBlock" },
           { "$ref": "#/$defs/pageBlock" },
           { "$ref": "#/$defs/tocBlock" },
           { "$ref": "#/$defs/footnoteBlock" },
@@ -92,7 +93,7 @@
       "additionalProperties": false,
       "properties": {
         "type": { "const": "block" },
-        "name": { "enum": ["summary", "paragraph", "constraint", "example", "note", "warning", "toc"] },
+        "name": { "enum": ["summary", "paragraph", "constraint", "example", "note", "warning"] },
         "attrs": { "$ref": "#/$defs/emptyAttrs" },
         "text": { "$ref": "#/$defs/safeText" },
         "position": { "$ref": "#/$defs/position" }
@@ -468,7 +469,7 @@
             "caption": { "$ref": "#/$defs/attributeValue" }
           }
         },
-        "text": { "$ref": "#/$defs/safeText" },
+        "text": { "const": "" },
         "position": { "$ref": "#/$defs/position" }
       }
     },
@@ -492,7 +493,7 @@
             }
           }
         },
-        "text": { "$ref": "#/$defs/safeText" },
+        "text": { "const": "" },
         "position": { "$ref": "#/$defs/position" }
       }
     },
@@ -504,7 +505,19 @@
         "type": { "const": "block" },
         "name": { "const": "toc" },
         "attrs": { "$ref": "#/$defs/emptyAttrs" },
-        "text": { "$ref": "#/$defs/safeText" },
+        "text": { "const": "" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "separatorBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "separator" },
+        "attrs": { "$ref": "#/$defs/emptyAttrs" },
+        "text": { "const": "" },
         "position": { "$ref": "#/$defs/position" }
       }
     },

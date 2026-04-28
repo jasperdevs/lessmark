@@ -62,6 +62,8 @@ Write normal prose with {{strong:explicit}} inline functions, {{mark:highlights}
 
   @image src="assets/diagram.svg" alt="Build pipeline" caption="Static output"
 
+  @separator
+
   @list kind="unordered"
 - Parse strict source.
 - Validate typed blocks.

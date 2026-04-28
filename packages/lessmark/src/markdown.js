@@ -23,6 +23,13 @@ export function fromMarkdown(markdown) {
       continue;
     }
 
+    if (isMarkdownSeparator(line)) {
+      children.push({ type: "block", name: "separator", attrs: {}, text: "" });
+      firstParagraph = false;
+      index += 1;
+      continue;
+    }
+
     const fence = readFenceLine(line);
     if (fence) {
       const body = [];
@@ -131,6 +138,7 @@ export function toMarkdown(lessmark) {
     if (node.name === "depends-on") return `> Depends on \`${node.attrs.target}\`: ${node.text}`;
     if (node.name === "code") return `\`\`\`${node.attrs.lang ?? ""}\n${node.text}\n\`\`\``;
     if (node.name === "example") return `Example:\n\n${node.text}`;
+    if (node.name === "separator") return "---";
     if (node.name === "page" || node.name === "toc") return "";
     if (node.name === "nav") {
       if (!isSafeHref(node.attrs.href)) throw new Error("@nav href must be http, https, mailto, or a safe relative path");
@@ -337,10 +345,15 @@ function escapeLessmarkTableCell(cell) {
 function isMarkdownBlockStart(lines, index) {
   return /^(#{1,6})\s+/.test(lines[index]) ||
     readFenceLine(lines[index]) !== null ||
+    isMarkdownSeparator(lines[index]) ||
     /^\s*[-*]\s+\[[ xX]\]\s+/.test(lines[index]) ||
     readImageLine(lines[index]) !== null ||
     /^\s*>\s?/.test(lines[index]) ||
     readTable(lines, index) !== null;
+}
+
+function isMarkdownSeparator(line) {
+  return /^(?: {0,3})([-*_])(?:\s*\1){2,}\s*$/.test(line);
 }
 
 function escapeBlockLine(line) {

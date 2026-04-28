@@ -63,7 +63,7 @@ Overall, if support/network effects are excluded:
 @list kind="unordered"
 - Known block names instead of ambiguous prose conventions.
 - Parser rejects loose text, unknown attributes, raw HTML, JSX-like tags, unsafe file paths, and unsafe link schemes.
-- The docs profile renders pages, primary/footer navigation, images, lists, tables, quotes, callouts, TOCs, definitions, explicit references, footnotes, and explicit inline functions without raw HTML.
+- The docs profile renders pages, primary/footer navigation, images, separators, lists, tables, quotes, callouts, TOCs, definitions, explicit references, footnotes, and explicit inline functions without raw HTML.
 - Table body cells can include literal pipes with \\|, and malformed list/table bodies are rejected during validation.
 - @reference targets are checked against local headings, decisions, and footnotes instead of leaving broken local links for render time.
 - Documented human authoring conveniences cover the common typing pain: @p, @ul, @ol, one-token block attributes, `code`, *emphasis*, **bold**, links, local refs, footnotes, marks, and deletion. They format back to canonical source instead of becoming a new dialect.

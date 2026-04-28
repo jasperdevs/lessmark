@@ -88,6 +88,8 @@ fn rejects_invalid_docs_attrs() {
             "@image src=\"assets/diagram.svg\" alt=\"Diagram\"\nBody.\n",
             "must not have a body",
         ),
+        ("@separator\nBody.\n", "must not have a body"),
+        ("@separator style=\"thin\"\n", "does not allow attribute"),
         (
             "@reference target=\"../secret\"\nBad target.\n",
             "lowercase slug",
@@ -217,6 +219,8 @@ Application programming interface.
 @table Name|Value
 Stage|alpha
 
+@separator
+
 @metadata project.stage
 alpha
 
@@ -239,6 +243,7 @@ Footnote body.
     assert!(formatted.contains("@callout kind=\"warning\"\nWatch this."));
     assert!(formatted.contains("@definition term=\"API\"\nApplication programming interface."));
     assert!(formatted.contains("@table columns=\"Name|Value\"\nStage|alpha"));
+    assert!(formatted.contains("@separator"));
     assert!(formatted.contains("@metadata key=\"project.stage\""));
     assert!(formatted.contains("@link href=\"https://example.com\""));
     assert!(formatted.contains("@footnote id=\"note\""));
@@ -371,7 +376,8 @@ fn imports_common_gfm_blocks_into_typed_lessmark_blocks() {
 | Feature | Status |\n\
 | --- | --- |\n\
 | Images | done |\n\
-| Tables \\| escaped | done |\n",
+| Tables \\| escaped | done |\n\n\
+---\n",
     )
     .expect("markdown imports");
     assert!(lessmark
@@ -382,6 +388,7 @@ fn imports_common_gfm_blocks_into_typed_lessmark_blocks() {
     assert!(lessmark.contains("@quote\nKeep source safe.\nPreserve the quote."));
     assert!(lessmark.contains("@table columns=\"Feature|Status\""));
     assert!(lessmark.contains(r"Tables \| escaped|done"));
+    assert!(lessmark.contains("@separator"));
     assert!(validate_source(&lessmark).is_empty());
 }
 
@@ -398,6 +405,10 @@ fn exports_lessmark_to_markdown() {
     let markdown = to_markdown(&source).expect("exports markdown");
     assert!(markdown.starts_with("# Project Context"));
     assert!(markdown.contains("- [ ] Add export settings."));
+    assert_eq!(
+        to_markdown("@separator\n").expect("exports separator"),
+        "---\n"
+    );
 }
 
 #[test]
@@ -420,6 +431,10 @@ fn exports_docs_blocks_to_markdown() {
     assert!(markdown.contains("| Feature | Status |"));
     assert!(markdown.contains("| Typed blocks\\|agents | done |"));
     assert!(markdown.contains("![Build pipeline](assets/diagram.svg)"));
+    assert_eq!(
+        to_markdown("@separator\n").expect("exports separator"),
+        "---\n"
+    );
 }
 
 #[test]

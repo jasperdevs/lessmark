@@ -46,6 +46,18 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             continue;
         }
 
+        if is_markdown_separator(line) {
+            children.push(Node::Block {
+                name: "separator".to_string(),
+                attrs: BTreeMap::new(),
+                text: String::new(),
+                position: None,
+            });
+            first_paragraph = false;
+            index += 1;
+            continue;
+        }
+
         if let Some(fence) = read_fence_line(line) {
             let mut body = Vec::new();
             index += 1;
@@ -323,6 +335,7 @@ fn markdown_node(node: &Node, footnote_ids: &BTreeSet<String>) -> Option<String>
                 text
             )),
             "example" => Some(format!("Example:\n\n{}", text)),
+            "separator" => Some("---".to_string()),
             "page" | "toc" => None,
             "nav" => Some(format!(
                 "- [{}]({})",
@@ -678,12 +691,38 @@ fn escape_lessmark_table_cell(cell: &str) -> String {
 fn is_markdown_block_start(lines: &[&str], index: usize) -> bool {
     read_heading(lines[index]).is_some()
         || read_fence_line(lines[index]).is_some()
+        || is_markdown_separator(lines[index])
         || read_task(lines[index]).is_some()
         || read_image_line(lines[index]).is_some()
         || Regex::new(r"^\s*>\s?")
             .expect("blockquote regex compiles")
             .is_match(lines[index])
         || read_table(lines, index).is_some()
+}
+
+fn is_markdown_separator(line: &str) -> bool {
+    let leading_spaces = line.chars().take_while(|char| *char == ' ').count();
+    if leading_spaces > 3 {
+        return false;
+    }
+    let rest = line[leading_spaces..].trim_end();
+    let mut marker = None;
+    let mut count = 0;
+    for ch in rest.chars() {
+        if ch.is_whitespace() {
+            continue;
+        }
+        if !matches!(ch, '-' | '*' | '_') {
+            return false;
+        }
+        match marker {
+            Some(existing) if existing != ch => return false,
+            None => marker = Some(ch),
+            _ => {}
+        }
+        count += 1;
+    }
+    count >= 3
 }
 
 fn non_empty_or_image(value: &str) -> String {

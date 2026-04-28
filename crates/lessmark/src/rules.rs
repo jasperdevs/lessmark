@@ -105,7 +105,7 @@ pub fn get_block_body_errors(
     attrs: &BTreeMap<String, String>,
     text: &str,
 ) -> Vec<String> {
-    if matches!(name, "image" | "nav" | "page" | "toc") && !text.trim().is_empty() {
+    if matches!(name, "image" | "nav" | "page" | "separator" | "toc") && !text.trim().is_empty() {
         return vec![format!("@{} must not have a body", name)];
     }
     if name == "list" {

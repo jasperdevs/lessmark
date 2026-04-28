@@ -17,7 +17,7 @@ Source: https://bgslabs.org/blog/why-are-we-using-markdown/
 @list kind="unordered"
 - Missing publication path: lessmark render and lessmark build --strict now emit safe static HTML and reject broken page, image, and relative asset targets.
 - Missing agent contract: check --json returns stable error codes and info --json exposes the supported syntax and renderer capabilities.
-- Missing docs primitives: @page, @paragraph, @image, @list, @table, @quote, @callout, and @toc cover normal docs/site pages.
+- Missing docs primitives: @page, @paragraph, @image, @separator, @list, @table, @quote, @callout, and @toc cover normal docs/site pages.
 - Missing safe inline markup: inline functions provide bold, emphasis, code, keyboard text, and links without Markdown delimiter ambiguity.
 - Missing semantic docs primitives: @definition, @reference, @footnote, local {{ref:label\|target}}, and {{footnote:id}} cover glossaries, local navigation, and notes without global reference resolution.
 - Missing site chrome foundation: bodyless @nav items cover simple primary/footer navigation without raw HTML, layout directives, or component syntax.
