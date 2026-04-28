@@ -1,5 +1,5 @@
 import { CORE_BLOCKS } from "./grammar.js";
-import { CONTROL_WHITESPACE_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLocalAnchorErrors } from "./rules.js";
+import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLocalAnchorErrors, isSafeHref } from "./rules.js";
 
 const BLOCK_ALIASES = {
   p: { name: "paragraph", attrs: {} },
@@ -137,7 +137,7 @@ function parseBlock(lines, startIndex, sourcePositions) {
     type: "block",
     name,
     attrs,
-    text: name === "code" || name === "example" ? text : canonicalizeInlineSyntax(text)
+    text: name === "code" || name === "example" ? text : canonicalizeInlineSyntax(text, startIndex + 1)
   };
   validateBlockBody(node, startIndex + 1);
   if (sourcePositions) {
@@ -279,17 +279,17 @@ function assertSafeAttrValue(key, value, lineNumber, column) {
   assertSafeText(value, `attribute "${key}"`, lineNumber, column);
 }
 
-function canonicalizeInlineSyntax(text) {
+function canonicalizeInlineSyntax(text, lineNumber) {
   const source = String(text);
   let output = "";
   let index = 0;
   while (index < source.length) {
     const start = source.indexOf("{{", index);
     if (start === -1) {
-      output += canonicalizeInlineSegment(source.slice(index));
+      output += canonicalizeInlineSegment(source.slice(index), lineNumber);
       break;
     }
-    output += canonicalizeInlineSegment(source.slice(index, start));
+    output += canonicalizeInlineSegment(source.slice(index, start), lineNumber);
     const end = findInlineFunctionEnd(source, start);
     if (end === -1) {
       output += source.slice(start);
@@ -301,7 +301,7 @@ function canonicalizeInlineSyntax(text) {
   return output;
 }
 
-function canonicalizeInlineSegment(segment) {
+function canonicalizeInlineSegment(segment, lineNumber) {
   const source = String(segment);
   let output = "";
   let index = 0;
@@ -315,6 +315,12 @@ function canonicalizeInlineSegment(segment) {
       render: (match) => {
         if (/^#[a-z0-9]+(?:-[a-z0-9]+)*$/.test(match[2])) {
           return `{{ref:${match[1]}|${match[2].slice(1)}}}`;
+        }
+        if (match[2].startsWith("#") && !DECISION_ID_PATTERN.test(match[2].slice(1))) {
+          throw new LessmarkError("Inline ref target must be a lowercase slug", lineNumber, 1);
+        }
+        if (!isSafeHref(match[2])) {
+          throw new LessmarkError("Inline link href must not use an executable URL scheme", lineNumber, 1);
         }
         return `{{link:${match[1]}|${match[2]}}}`;
       }
@@ -342,12 +348,18 @@ function canonicalizeInlineSegment(segment) {
   ];
   while (index < source.length) {
     const rest = source.slice(index);
+    if (/^\*{3,}/.test(rest)) {
+      throw new LessmarkError("Combined shortcut emphasis is not supported; use explicit nested inline functions", lineNumber, 1);
+    }
     const matched = patterns.map((pattern) => [pattern, pattern.regex.exec(rest)]).find(([, match]) => match);
     if (matched) {
       const [pattern, match] = matched;
       output += pattern.render(match);
       index += match[0].length;
       continue;
+    }
+    if (/^\*\*\S/.test(rest) || /^\*\S/.test(rest)) {
+      throw new LessmarkError("Ambiguous shortcut emphasis is not supported; use explicit nested inline functions", lineNumber, 1);
     }
     output += source[index];
     index += 1;

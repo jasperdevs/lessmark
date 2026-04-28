@@ -3,7 +3,7 @@ use crate::error::ValidationError;
 use crate::parser::parse_lessmark;
 use crate::rules::{
     contains_control_whitespace, contains_html_like_tag, get_block_attr_errors_from_value,
-    get_block_body_errors_from_value,
+    get_block_body_errors_from_value, is_local_slug, is_safe_href,
 };
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -96,6 +96,7 @@ fn validate_heading(node: &serde_json::Map<String, Value>, errors: &mut Vec<Vali
         return;
     }
     validate_text_safety(text, errors, "heading");
+    validate_inline_text(text, errors, "heading");
 }
 
 fn validate_block(node: &serde_json::Map<String, Value>, errors: &mut Vec<ValidationError>) {
@@ -117,6 +118,9 @@ fn validate_block(node: &serde_json::Map<String, Value>, errors: &mut Vec<Valida
         return;
     };
     validate_text_safety(text, errors, &format!("@{}", name));
+    if !matches!(name, "code" | "example") {
+        validate_inline_text(text, errors, &format!("@{}", name));
+    }
     validate_block_body(
         name,
         node.get("attrs").and_then(Value::as_object),
@@ -258,6 +262,9 @@ fn validate_attrs(name: &str, value: Option<&Value>, errors: &mut Vec<Validation
             continue;
         };
         validate_text_safety(text, errors, &format!("attribute \"{}\"", key));
+        if matches!(key.as_str(), "label" | "cite" | "title" | "caption" | "term") {
+            validate_inline_text(text, errors, &format!("attribute \"{}\"", key));
+        }
         if contains_control_whitespace(text) {
             errors.push(ValidationError::message(format!(
                 "Attribute \"{}\" cannot contain control whitespace",
@@ -278,6 +285,110 @@ fn validate_text_safety(text: &str, errors: &mut Vec<ValidationError>, location:
             location
         )));
     }
+}
+
+fn validate_inline_text(text: &str, errors: &mut Vec<ValidationError>, location: &str) {
+    let mut index = 0;
+    while index < text.len() {
+        let Some(relative_start) = text[index..].find("{{") else {
+            return;
+        };
+        let start = index + relative_start;
+        let Some(end) = find_inline_function_end(text, start) else {
+            errors.push(ValidationError::message(format!(
+                "{} has an unclosed inline function",
+                location
+            )));
+            return;
+        };
+        validate_inline_function(&text[start + 2..end], errors, location);
+        index = end + 2;
+    }
+}
+
+fn find_inline_function_end(source: &str, start: usize) -> Option<usize> {
+    let mut depth = 1;
+    let mut index = start + 2;
+    while index < source.len() {
+        let remaining = &source[index..];
+        if remaining.starts_with("{{") {
+            depth += 1;
+            index += 2;
+            continue;
+        }
+        if remaining.starts_with("}}") {
+            depth -= 1;
+            if depth == 0 {
+                return Some(index);
+            }
+            index += 2;
+            continue;
+        }
+        index += source[index..].chars().next().map_or(1, char::len_utf8);
+    }
+    None
+}
+
+fn validate_inline_function(source: &str, errors: &mut Vec<ValidationError>, location: &str) {
+    let Some(separator) = source.find(':') else {
+        errors.push(ValidationError::message(format!(
+            "{} inline functions must use {{{{name:value}}}}",
+            location
+        )));
+        return;
+    };
+    if separator == 0 {
+        errors.push(ValidationError::message(format!(
+            "{} inline functions must use {{{{name:value}}}}",
+            location
+        )));
+        return;
+    }
+    let name = source[..separator].trim();
+    let value = &source[separator + 1..];
+    match name {
+        "strong" | "em" | "del" | "mark" => validate_inline_text(value, errors, location),
+        "code" | "kbd" | "sup" | "sub" => {}
+        "ref" => {
+            let (label, target) = split_once(value, "|");
+            validate_inline_text(label, errors, location);
+            if !is_local_slug(target) {
+                errors.push(ValidationError::message(
+                    "Inline ref target must be a lowercase slug",
+                ));
+            }
+        }
+        "footnote" => {
+            if !is_local_slug(value) {
+                errors.push(ValidationError::message(
+                    "Inline footnote target must be a lowercase slug",
+                ));
+            }
+        }
+        "link" => {
+            let (label, href) = split_once(value, "|");
+            validate_inline_text(label, errors, location);
+            if !is_safe_href(href) {
+                errors.push(ValidationError::message(
+                    "Inline link href must not use an executable URL scheme",
+                ));
+            }
+        }
+        _ => errors.push(ValidationError::message(format!(
+            "Unknown inline function \"{}\"",
+            name
+        ))),
+    }
+}
+
+fn split_once<'a>(value: &'a str, delimiter: &str) -> (&'a str, &'a str) {
+    let Some(index) = value.find(delimiter) else {
+        return (value.trim(), "");
+    };
+    (
+        value[..index].trim(),
+        value[index + delimiter.len()..].trim(),
+    )
 }
 
 fn validate_exact_keys(

@@ -164,6 +164,10 @@ pub fn is_safe_href(href: &str) -> bool {
         )
 }
 
+pub fn is_local_slug(value: &str) -> bool {
+    decision_id_pattern().is_match(value)
+}
+
 pub fn is_safe_resource(src: &str) -> bool {
     uri_scheme_pattern()
         .captures(src)
@@ -331,15 +335,32 @@ fn is_valid_table_columns(columns: &str) -> bool {
 }
 
 fn get_list_body_errors(text: &str) -> Vec<String> {
+    let mut previous_level = 0usize;
+    let mut seen_item = false;
     for line in text.lines().filter(|line| !line.trim().is_empty()) {
-        if line.trim_start().starts_with("- ") && !line.starts_with("- ") {
-            return vec![
-                "@list is flat in v0; nested or indented items are not supported".to_string(),
-            ];
-        }
-        if !line.starts_with("- ") {
+        if line.contains('\t') {
             return vec!["@list items must use one explicit '- ' item marker per line".to_string()];
         }
+        let Some(marker_index) = line.find("- ") else {
+            return vec!["@list items must use one explicit '- ' item marker per line".to_string()];
+        };
+        if !line[..marker_index].chars().all(|ch| ch == ' ') || marker_index % 2 != 0 {
+            return vec![
+                "@list nesting must use two spaces per level".to_string(),
+            ];
+        }
+        if line[marker_index + 2..].trim().is_empty() {
+            return vec!["@list items cannot be empty".to_string()];
+        }
+        let level = marker_index / 2;
+        if !seen_item && level != 0 {
+            return vec!["@list must start at the top level".to_string()];
+        }
+        if level > previous_level + 1 {
+            return vec!["@list nesting cannot skip levels".to_string()];
+        }
+        previous_level = level;
+        seen_item = true;
     }
     Vec::new()
 }

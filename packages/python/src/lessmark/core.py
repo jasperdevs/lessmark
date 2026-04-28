@@ -410,6 +410,7 @@ def validate_ast(ast: object) -> list[ValidationError]:
                 errors.append({"message": "heading text must be a non-empty string"})
                 continue
             _validate_text_safety(node.get("text", ""), errors, "heading")
+            _validate_inline_text(node.get("text", ""), errors, "heading")
             continue
 
         if node.get("type") != "block":
@@ -423,6 +424,8 @@ def validate_ast(ast: object) -> list[ValidationError]:
             errors.append({"message": f"@{name} text must be a string"})
             continue
         _validate_text_safety(node.get("text", ""), errors, f"@{name}")
+        if name not in {"code", "example"}:
+            _validate_inline_text(node.get("text", ""), errors, f"@{name}")
         _validate_block_body_ast(node, errors)
 
         _validate_attrs(node, errors)
@@ -434,6 +437,59 @@ def validate_ast(ast: object) -> list[ValidationError]:
 def _validate_text_safety(text: str, errors: list[ValidationError], location: str) -> None:
     if HTML_TAG_PATTERN.search(text):
         errors.append({"message": f"{location} contains raw HTML/JSX-like syntax"})
+
+
+def _validate_inline_text(text: str, errors: list[ValidationError], location: str) -> None:
+    source = str(text)
+    index = 0
+    while index < len(source):
+        start = source.find("{{", index)
+        if start == -1:
+            return
+        end = _find_inline_function_end(source, start)
+        if end == -1:
+            errors.append({"message": f"{location} has an unclosed inline function"})
+            return
+        _validate_inline_function(source[start + 2 : end], errors, location)
+        index = end + 2
+
+
+def _validate_inline_function(source: str, errors: list[ValidationError], location: str) -> None:
+    separator = source.find(":")
+    if separator <= 0:
+        errors.append({"message": f"{location} inline functions must use {{{{name:value}}}}"})
+        return
+    name = source[:separator].strip()
+    value = source[separator + 1 :]
+    if name in {"strong", "em", "del", "mark"}:
+        _validate_inline_text(value, errors, location)
+        return
+    if name in {"code", "kbd", "sup", "sub"}:
+        return
+    if name == "ref":
+        label, target = _split_once(value, "|")
+        _validate_inline_text(label, errors, location)
+        if not DECISION_ID_PATTERN.match(target):
+            errors.append({"message": "Inline ref target must be a lowercase slug"})
+        return
+    if name == "footnote":
+        if not DECISION_ID_PATTERN.match(value):
+            errors.append({"message": "Inline footnote target must be a lowercase slug"})
+        return
+    if name == "link":
+        label, href = _split_once(value, "|")
+        _validate_inline_text(label, errors, location)
+        if not _is_safe_href(href):
+            errors.append({"message": "Inline link href must not use an executable URL scheme"})
+        return
+    errors.append({"message": f'Unknown inline function "{name}"'})
+
+
+def _split_once(value: str, delimiter: str) -> tuple[str, str]:
+    index = value.find(delimiter)
+    if index == -1:
+        return value, ""
+    return value[:index].strip(), value[index + len(delimiter) :].strip()
 
 
 def _validate_block_attrs(name: str, attrs: dict[str, str], line_number: int) -> None:
@@ -480,6 +536,8 @@ def _validate_attrs(node: Mapping[str, object], errors: list[ValidationError]) -
             errors.append({"message": f'Attribute "{key}" must be a string'})
             continue
         _validate_text_safety(str(value), errors, f'attribute "{key}"')
+        if key in {"label", "cite", "title", "caption", "term"}:
+            _validate_inline_text(str(value), errors, f'attribute "{key}"')
         if CONTROL_WHITESPACE_PATTERN.search(str(value)):
             errors.append({"message": f'Attribute "{key}" cannot contain control whitespace'})
     for message in _get_block_attr_errors(name, attrs):
@@ -628,8 +686,12 @@ def error_code_for_message(message: str) -> str:
         return "unquoted_attribute"
     if "Unsupported escape" in message:
         return "unsupported_escape"
-    if "Unterminated" in message:
+    if "Unterminated" in message or "unclosed inline function" in message:
         return "unterminated_syntax"
+    if "Unknown inline function" in message:
+        return "unknown_inline_function"
+    if "inline functions must use" in message:
+        return "invalid_inline_function"
     if "control whitespace" in message:
         return "control_whitespace"
     if "safe relative" in message or "executable URL" in message:
@@ -687,7 +749,7 @@ def get_capabilities() -> dict[str, object]:
             "rawHtml": False,
             "hooks": False,
             "customBlocks": False,
-            "nestedLists": False,
+            "nestedLists": True,
         },
     }
 
@@ -734,11 +796,25 @@ def _get_block_body_errors(name: object, attrs: object, text: str) -> list[str]:
 
 
 def _get_list_body_errors(text: str) -> list[str]:
+    previous_level = 0
+    seen_item = False
     for line in (row for row in text.splitlines() if row.strip()):
-        if re.match(r"^\s+-\s+", line) and not line.startswith("- "):
-            return ["@list is flat in v0; nested or indented items are not supported"]
-        if not line.startswith("- "):
+        match = re.match(r"^( *)- (.*)$", line)
+        if match is None:
             return ["@list items must use one explicit '- ' item marker per line"]
+        if len(match.group(1)) % 2 != 0:
+            return ["@list nesting must use two spaces per level"]
+        if not match.group(2).strip():
+            return ["@list items cannot be empty"]
+        level = len(match.group(1)) // 2
+        if not seen_item and level != 0:
+            return ["@list must start at the top level"]
+        if level > previous_level + 1:
+            return ["@list nesting cannot skip levels"]
+        if "\t" in line:
+            return ["@list items must use one explicit '- ' item marker per line"]
+        previous_level = level
+        seen_item = True
     return []
 
 
@@ -889,6 +965,10 @@ def _canonicalize_inline_segment(segment: str) -> str:
         target = match.group(2)
         if re.match(r"^#[a-z0-9]+(?:-[a-z0-9]+)*$", target):
             return f"{{{{ref:{label}|{target[1:]}}}}}"
+        if target.startswith("#") and not DECISION_ID_PATTERN.match(target[1:]):
+            raise LessmarkError("Inline ref target must be a lowercase slug")
+        if not _is_safe_href(target):
+            raise LessmarkError("Inline link href must not use an executable URL scheme")
         return f"{{{{link:{label}|{target}}}}}"
 
     patterns: list[tuple[re.Pattern[str], Callable[[re.Match[str]], str]]] = [
@@ -902,6 +982,8 @@ def _canonicalize_inline_segment(segment: str) -> str:
     ]
     while index < len(source):
         rest = source[index:]
+        if re.match(r"^\*{3,}", rest):
+            raise LessmarkError("Combined shortcut emphasis is not supported; use explicit nested inline functions")
         for pattern, render in patterns:
             match = pattern.match(rest)
             if match:
@@ -909,6 +991,8 @@ def _canonicalize_inline_segment(segment: str) -> str:
                 index += len(match.group(0))
                 break
         else:
+            if re.match(r"^\*\*\S", rest) or re.match(r"^\*\S", rest):
+                raise LessmarkError("Ambiguous shortcut emphasis is not supported; use explicit nested inline functions")
             output += source[index]
             index += 1
     return output
@@ -984,6 +1068,13 @@ def from_markdown(markdown: str) -> str:
             )
             first_paragraph = False
             index += 1
+            continue
+
+        markdown_list = _read_markdown_list(lines, index)
+        if markdown_list is not None:
+            children.append(markdown_list["node"])  # type: ignore[arg-type]
+            first_paragraph = False
+            index = int(markdown_list["next_index"])
             continue
 
         image = _read_image_line(line)
@@ -1165,9 +1256,19 @@ def _callout_to_markdown(kind: str, title: str, text: str) -> str:
 
 def _list_to_markdown(kind: str, text: str) -> str:
     rows: list[str] = []
-    for index, line in enumerate(row for row in text.splitlines() if row.strip()):
-        item = _inline_to_markdown(re.sub(r"^\s*-\s+", "", line).strip())
-        rows.append(f"{index + 1}. {item}" if kind == "ordered" else f"- {item}")
+    counters: list[int] = []
+    for line in (row for row in text.splitlines() if row.strip()):
+        match = re.match(r"^( *)- (.*)$", line)
+        if match is None:
+            raise LessmarkError("@list items must use one explicit '- ' item marker per line")
+        level = len(match.group(1)) // 2
+        while len(counters) <= level:
+            counters.append(0)
+        counters[level] += 1
+        del counters[level + 1 :]
+        marker = f"{counters[level]}." if kind == "ordered" else "-"
+        item = _inline_to_markdown(match.group(2).strip())
+        rows.append(f"{'  ' * level}{marker} {item}")
     return "\n".join(rows)
 
 
@@ -1236,6 +1337,36 @@ def _read_blockquote(lines: list[str], start_index: int) -> dict[str, object] | 
     }
 
 
+def _read_markdown_list(lines: list[str], start_index: int) -> dict[str, object] | None:
+    first = _read_markdown_list_item(lines[start_index])
+    if first is None:
+        return None
+    kind = str(first["kind"])
+    items: list[str] = []
+    index = start_index
+    while index < len(lines):
+        item = _read_markdown_list_item(lines[index])
+        if item is None or item["kind"] != kind:
+            break
+        items.append(f"{'  ' * int(item['level'])}- {_plain_text(str(item['text']))}")
+        index += 1
+    return {
+        "next_index": index,
+        "node": {"type": "block", "name": "list", "attrs": {"kind": kind}, "text": "\n".join(items)},
+    }
+
+
+def _read_markdown_list_item(line: str) -> dict[str, object] | None:
+    match = re.match(r"^( *)(?:([-*+])|(\d+[.)]))\s+(.+?)\s*$", line)
+    if match is None:
+        return None
+    return {
+        "level": len(match.group(1)) // 2,
+        "kind": "ordered" if match.group(3) else "unordered",
+        "text": match.group(4),
+    }
+
+
 def _read_table(lines: list[str], start_index: int) -> dict[str, object] | None:
     if start_index + 1 >= len(lines):
         return None
@@ -1292,6 +1423,7 @@ def _is_markdown_block_start(lines: list[str], index: int) -> bool:
         or _read_fence_line(lines[index]) is not None
         or _is_markdown_separator(lines[index])
         or re.match(r"^\s*[-*]\s+\[[ xX]\]\s+", lines[index]) is not None
+        or _read_markdown_list_item(lines[index]) is not None
         or _read_image_line(lines[index]) is not None
         or re.match(r"^\s*>\s?", lines[index]) is not None
         or _read_table(lines, index) is not None

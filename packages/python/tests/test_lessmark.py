@@ -130,6 +130,20 @@ RFC-0042
 """
         self.assertEqual(format_lessmark(source), '@task status="done"\nhey\n\n@metadata key="rfc.id"\nRFC-0042\n')
 
+    def test_rejects_unsafe_shorthand_links_and_ambiguous_shortcut_emphasis(self):
+        with self.assertRaisesRegex(Exception, "executable URL"):
+            format_lessmark("@paragraph\n[Bad](javascript:alert(1))\n")
+        with self.assertRaisesRegex(Exception, "shortcut emphasis"):
+            format_lessmark("@paragraph\n**bold *em***\n")
+        with self.assertRaisesRegex(Exception, "shortcut emphasis"):
+            format_lessmark("@paragraph\n*em **bold***\n")
+
+    def test_supports_strict_nested_lists(self):
+        source = "@list kind=\"unordered\"\n- Parent\n  - Child\n- Sibling\n"
+        self.assertEqual(validate_source(source), [])
+        self.assertIn("  - Child", format_lessmark(source))
+        self.assertIn("1. Parent\n  1. Child\n2. Sibling", to_markdown('@list kind="ordered"\n- Parent\n  - Child\n- Sibling\n'))
+
     def test_rejects_empty_headings(self):
         with self.assertRaisesRegex(LessmarkError, "Invalid heading syntax"):
             parse_lessmark("# \n\n@summary\nHeadings need visible text.\n")
@@ -204,8 +218,8 @@ RFC-0042
             parse_lessmark('@definition term="Term<T>"\nBad term.\n')
         with self.assertRaisesRegex(LessmarkError, "row cell count"):
             parse_lessmark('@table columns="Feature|Status"\nOnly one cell\n')
-        with self.assertRaisesRegex(LessmarkError, "flat in v0"):
-            parse_lessmark('@list kind="unordered"\n- Parent\n  - Child\n')
+        with self.assertRaisesRegex(LessmarkError, "skip levels"):
+            parse_lessmark('@list kind="unordered"\n- Parent\n    - Child\n')
 
     def test_can_include_source_positions_without_changing_default_ast(self):
         source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
@@ -360,6 +374,12 @@ RFC-0042
         self.assertIn(r"Tables \| escaped|done", lessmark)
         self.assertIn("@separator", lessmark)
         self.assertEqual(validate_source(lessmark), [])
+
+    def test_imports_normal_markdown_lists(self):
+        unordered = from_markdown("- Parent\n  - Child\n- Sibling\n")
+        self.assertIn('@list kind="unordered"\n- Parent\n  - Child\n- Sibling', unordered)
+        ordered = from_markdown("1. First\n   1. Child\n2. Second\n")
+        self.assertIn('@list kind="ordered"\n- First\n  - Child\n- Second', ordered)
 
     def test_rejects_unclosed_markdown_code_fences(self):
         with self.assertRaisesRegex(ValueError, "Unclosed fenced code block"):

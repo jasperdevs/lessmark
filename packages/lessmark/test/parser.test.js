@@ -172,6 +172,23 @@ RFC-0042
   assert.equal(formatLessmark(source), '@task status="done"\nhey\n\n@metadata key="rfc.id"\nRFC-0042\n');
 });
 
+test("rejects unsafe shorthand links and ambiguous shortcut emphasis", () => {
+  assert.throws(() => formatLessmark("@paragraph\n[Bad](javascript:alert(1))\n"), /executable URL/);
+  assert.throws(() => formatLessmark("@paragraph\n**bold *em***\n"), /shortcut emphasis/);
+  assert.throws(() => formatLessmark("@paragraph\n*em **bold***\n"), /shortcut emphasis/);
+});
+
+test("supports strict nested lists", () => {
+  const source = `@list kind="unordered"
+- Parent
+  - Child
+- Sibling
+`;
+  assert.equal(validateSource(source).length, 0);
+  assert.match(renderHtml(source), /<ul><li>Parent<ul><li>Child<\/li><\/ul><\/li><li>Sibling<\/li><\/ul>/);
+  assert.match(toMarkdown('@list kind="ordered"\n- Parent\n  - Child\n- Sibling\n'), /1\. Parent\n  1\. Child\n2\. Sibling/);
+});
+
 test("rejects empty headings", async () => {
   const source = await read("fixtures/invalid/empty-heading.mu");
   assert.throws(() => parseLessmark(source), /Invalid heading syntax/);
@@ -416,6 +433,20 @@ test("imports common GFM blocks into typed Lessmark blocks", () => {
   assert.equal(validateSource(lessmark).length, 0);
 });
 
+test("imports normal Markdown lists into typed Lessmark lists", () => {
+  const unordered = fromMarkdown(`- Parent
+  - Child
+- Sibling
+`);
+  assert.match(unordered, /@list kind="unordered"\n- Parent\n  - Child\n- Sibling/);
+
+  const ordered = fromMarkdown(`1. First
+   1. Child
+2. Second
+`);
+  assert.match(ordered, /@list kind="ordered"\n- First\n  - Child\n- Second/);
+});
+
 test("rejects unclosed Markdown code fences", () => {
   assert.throws(() => fromMarkdown("```js\nconst a = 1;\n"), /Unclosed fenced code block/);
 });
@@ -536,5 +567,5 @@ test("renderer rejects malformed docs functions and tables", () => {
   assert.throws(() => renderHtml("@paragraph\n{{unknown:value}}\n"), /Unknown inline function/);
   assert.throws(() => parseLessmark('@table columns="A|B"\nOnly one cell\n'), /row cell count/);
   assert.throws(() => parseLessmark('@list kind="unordered"\nNo marker\n'), /item marker/);
-  assert.throws(() => parseLessmark('@list kind="unordered"\n- Parent\n  - Child\n'), /flat in v0/);
+  assert.throws(() => parseLessmark('@list kind="unordered"\n- Parent\n    - Child\n'), /skip levels/);
 });

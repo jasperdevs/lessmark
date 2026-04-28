@@ -104,8 +104,8 @@ fn rejects_invalid_docs_attrs() {
             "row cell count",
         ),
         (
-            "@list kind=\"unordered\"\n- Parent\n  - Child\n",
-            "flat in v0",
+            "@list kind=\"unordered\"\n- Parent\n    - Child\n",
+            "skip levels",
         ),
     ];
     for (source, message) in cases {
@@ -260,6 +260,18 @@ fn ignores_leading_blank_lines_inside_body_capable_blocks() {
 }
 
 #[test]
+fn supports_strict_nested_lists() {
+    let source = "@list kind=\"unordered\"\n- Parent\n  - Child\n- Sibling\n";
+    assert!(validate_source(source).is_empty());
+    assert!(format_lessmark(source)
+        .expect("nested list formats")
+        .contains("  - Child"));
+    assert!(to_markdown("@list kind=\"ordered\"\n- Parent\n  - Child\n- Sibling\n")
+        .expect("exports nested list")
+        .contains("1. Parent\n  1. Child\n2. Sibling"));
+}
+
+#[test]
 fn can_include_source_positions_without_changing_default_ast() {
     let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
         .expect("fixture is readable");
@@ -390,6 +402,14 @@ fn imports_common_gfm_blocks_into_typed_lessmark_blocks() {
     assert!(lessmark.contains(r"Tables \| escaped|done"));
     assert!(lessmark.contains("@separator"));
     assert!(validate_source(&lessmark).is_empty());
+}
+
+#[test]
+fn imports_normal_markdown_lists() {
+    let unordered = from_markdown("- Parent\n  - Child\n- Sibling\n").expect("imports unordered");
+    assert!(unordered.contains("@list kind=\"unordered\"\n- Parent\n  - Child\n- Sibling"));
+    let ordered = from_markdown("1. First\n   1. Child\n2. Second\n").expect("imports ordered");
+    assert!(ordered.contains("@list kind=\"ordered\"\n- First\n  - Child\n- Second"));
 }
 
 #[test]

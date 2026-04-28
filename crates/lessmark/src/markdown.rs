@@ -105,6 +105,13 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             continue;
         }
 
+        if let Some((node, next_index)) = read_markdown_list(&lines, index) {
+            children.push(node);
+            first_paragraph = false;
+            index = next_index;
+            continue;
+        }
+
         if let Some(image) = read_image_line(line) {
             if is_safe_resource(&image.src) {
                 let mut attrs = BTreeMap::new();
@@ -467,15 +474,22 @@ fn callout_to_markdown(kind: &str, title: &str, text: &str) -> String {
 }
 
 fn list_to_markdown(kind: &str, text: &str) -> String {
+    let mut counters: Vec<usize> = Vec::new();
     text.lines()
         .filter(|line| !line.trim().is_empty())
-        .enumerate()
-        .map(|(index, line)| {
-            let item = inline_to_markdown(line.trim_start().trim_start_matches("- ").trim());
+        .map(|line| {
+            let marker_index = line.find("- ").unwrap_or(0);
+            let level = marker_index / 2;
+            while counters.len() <= level {
+                counters.push(0);
+            }
+            counters[level] += 1;
+            counters.truncate(level + 1);
+            let item = inline_to_markdown(line[marker_index + 2..].trim());
             if kind == "ordered" {
-                format!("{}. {}", index + 1, item)
+                format!("{}{}. {}", "  ".repeat(level), counters[level], item)
             } else {
-                format!("- {}", item)
+                format!("{}- {}", "  ".repeat(level), item)
             }
         })
         .collect::<Vec<_>>()
@@ -611,6 +625,48 @@ fn read_blockquote(lines: &[&str], start_index: usize) -> Option<(Node, usize)> 
     ))
 }
 
+fn read_markdown_list(lines: &[&str], start_index: usize) -> Option<(Node, usize)> {
+    let first = read_markdown_list_item(lines[start_index])?;
+    let kind = first.1;
+    let mut items = Vec::new();
+    let mut index = start_index;
+    while index < lines.len() {
+        let Some((level, item_kind, text)) = read_markdown_list_item(lines[index]) else {
+            break;
+        };
+        if item_kind != kind {
+            break;
+        }
+        items.push(format!("{}- {}", "  ".repeat(level), plain_text(text)));
+        index += 1;
+    }
+    let mut attrs = BTreeMap::new();
+    attrs.insert("kind".to_string(), kind.to_string());
+    Some((
+        Node::Block {
+            name: "list".to_string(),
+            attrs,
+            text: items.join("\n"),
+            position: None,
+        },
+        index,
+    ))
+}
+
+fn read_markdown_list_item(line: &str) -> Option<(usize, &'static str, &str)> {
+    let re = Regex::new(r"^( *)(?:([-*+])|(\d+[.)]))\s+(.+?)\s*$")
+        .expect("markdown list regex compiles");
+    let captures = re.captures(line)?;
+    let level = captures.get(1).map_or("", |m| m.as_str()).len() / 2;
+    let kind = if captures.get(3).is_some() {
+        "ordered"
+    } else {
+        "unordered"
+    };
+    let text = captures.get(4).map_or("", |m| m.as_str());
+    Some((level, kind, text))
+}
+
 fn read_table(lines: &[&str], start_index: usize) -> Option<(Node, usize)> {
     if start_index + 1 >= lines.len() {
         return None;
@@ -693,6 +749,7 @@ fn is_markdown_block_start(lines: &[&str], index: usize) -> bool {
         || read_fence_line(lines[index]).is_some()
         || is_markdown_separator(lines[index])
         || read_task(lines[index]).is_some()
+        || read_markdown_list_item(lines[index]).is_some()
         || read_image_line(lines[index]).is_some()
         || Regex::new(r"^\s*>\s?")
             .expect("blockquote regex compiles")

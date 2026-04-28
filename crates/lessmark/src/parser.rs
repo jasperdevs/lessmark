@@ -3,7 +3,7 @@ use crate::error::LessmarkError;
 use crate::grammar::is_core_block;
 use crate::rules::{
     contains_control_whitespace, contains_html_like_tag, get_block_attr_errors,
-    get_block_body_errors,
+    get_block_body_errors, is_local_slug, is_safe_href,
 };
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
@@ -145,7 +145,7 @@ fn parse_block(
     let text = if name == "code" || name == "example" {
         text
     } else {
-        canonicalize_inline_syntax(&text)
+        canonicalize_inline_syntax(&text)?
     };
     validate_block_body(name, &attrs, &text, start_index + 1)?;
     Ok(ParsedBlock {
@@ -281,27 +281,27 @@ fn shorthand_attr(name: &str) -> Option<&'static str> {
     }
 }
 
-fn canonicalize_inline_syntax(text: &str) -> String {
+fn canonicalize_inline_syntax(text: &str) -> Result<String, LessmarkError> {
     let mut output = String::new();
     let mut index = 0;
     while let Some(relative_start) = text[index..].find("{{") {
         let start = index + relative_start;
-        output.push_str(&canonicalize_inline_segment(&text[index..start]));
+        output.push_str(&canonicalize_inline_segment(&text[index..start])?);
         if let Some(end) = find_inline_function_end(text, start) {
             output.push_str(&text[start..end]);
             index = end;
         } else {
-            output.push_str(&canonicalize_inline_segment(&text[start..]));
+            output.push_str(&canonicalize_inline_segment(&text[start..])?);
             index = text.len();
         }
     }
     if index < text.len() {
-        output.push_str(&canonicalize_inline_segment(&text[index..]));
+        output.push_str(&canonicalize_inline_segment(&text[index..])?);
     }
-    output
+    Ok(output)
 }
 
-fn canonicalize_inline_segment(segment: &str) -> String {
+fn canonicalize_inline_segment(segment: &str) -> Result<String, LessmarkError> {
     let code = Regex::new(r"^`([^`\n]+)`").expect("code regex");
     let link = Regex::new(r"^\[([^\]\n]+)\]\(([^)\s]+)\)").expect("link regex");
     let footnote = Regex::new(r"^\[\^([a-z0-9]+(?:-[a-z0-9]+)*)\]").expect("footnote regex");
@@ -314,6 +314,16 @@ fn canonicalize_inline_segment(segment: &str) -> String {
     let mut index = 0;
     while index < segment.len() {
         let rest = &segment[index..];
+        if Regex::new(r"^\*{3,}")
+            .expect("combined emphasis regex compiles")
+            .is_match(rest)
+        {
+            return Err(LessmarkError::new(
+                "Combined shortcut emphasis is not supported; use explicit nested inline functions",
+                1,
+                1,
+            ));
+        }
         if let Some(captures) = code.captures(rest) {
             output.push_str(&format!(
                 "{{{{code:{}}}}}",
@@ -326,8 +336,22 @@ fn canonicalize_inline_segment(segment: &str) -> String {
             let label = captures.get(1).map_or("", |m| m.as_str());
             let href = captures.get(2).map_or("", |m| m.as_str());
             if let Some(target) = href.strip_prefix('#') {
+                if !is_local_slug(target) {
+                    return Err(LessmarkError::new(
+                        "Inline ref target must be a lowercase slug",
+                        1,
+                        1,
+                    ));
+                }
                 output.push_str(&format!("{{{{ref:{}|{}}}}}", label, target));
             } else {
+                if !is_safe_href(href) {
+                    return Err(LessmarkError::new(
+                        "Inline link href must not use an executable URL scheme",
+                        1,
+                        1,
+                    ));
+                }
                 output.push_str(&format!("{{{{link:{}|{}}}}}", label, href));
             }
             index += captures.get(0).map_or(0, |m| m.as_str().len());
@@ -373,11 +397,21 @@ fn canonicalize_inline_segment(segment: &str) -> String {
             index += captures.get(0).map_or(0, |m| m.as_str().len());
             continue;
         }
+        if Regex::new(r"^\*\*?\S")
+            .expect("ambiguous emphasis regex compiles")
+            .is_match(rest)
+        {
+            return Err(LessmarkError::new(
+                "Ambiguous shortcut emphasis is not supported; use explicit nested inline functions",
+                1,
+                1,
+            ));
+        }
         let char_len = rest.chars().next().map_or(1, char::len_utf8);
         output.push_str(&rest[..char_len]);
         index += char_len;
     }
-    output
+    Ok(output)
 }
 
 fn find_inline_function_end(source: &str, start: usize) -> Option<usize> {

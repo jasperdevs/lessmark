@@ -46,7 +46,7 @@ export function getCapabilities() {
       rawHtml: false,
       hooks: false,
       customBlocks: false,
-      nestedLists: false
+      nestedLists: true
     }
   };
 }

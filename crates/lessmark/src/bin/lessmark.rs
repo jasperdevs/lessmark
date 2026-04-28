@@ -90,7 +90,7 @@ fn info_command(args: &[String]) -> i32 {
             "rawHtml": false,
             "hooks": false,
             "customBlocks": false,
-            "nestedLists": false
+            "nestedLists": true
         }
     });
     if args.iter().any(|arg| arg == "--json") {

@@ -192,13 +192,31 @@ function isValidTableColumns(columns) {
 
 function getListBodyErrors(text) {
   const lines = String(text).split("\n").filter((line) => line.trim() !== "");
+  let previousLevel = 0;
+  let seenItem = false;
   for (const line of lines) {
-    if (/^\s+-\s+/.test(line) && !line.startsWith("- ")) {
-      return ["@list is flat in v0; nested or indented items are not supported"];
-    }
-    if (!line.startsWith("- ")) {
+    const match = /^( *)- (.*)$/.exec(line);
+    if (!match) {
       return ["@list items must use one explicit '- ' item marker per line"];
     }
+    if (match[1].length % 2 !== 0) {
+      return ["@list nesting must use two spaces per level"];
+    }
+    if (match[2].trim() === "") {
+      return ["@list items cannot be empty"];
+    }
+    const level = match[1].length / 2;
+    if (!seenItem && level !== 0) {
+      return ["@list must start at the top level"];
+    }
+    if (level > previousLevel + 1) {
+      return ["@list nesting cannot skip levels"];
+    }
+    if (/\t/.test(line)) {
+      return ["@list items must use one explicit '- ' item marker per line"];
+    }
+    previousLevel = level;
+    seenItem = true;
   }
   return [];
 }

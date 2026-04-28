@@ -98,8 +98,14 @@ pub fn error_code_for_message(message: &str) -> &'static str {
     if message.contains("Unsupported escape") {
         return "unsupported_escape";
     }
-    if message.contains("Unterminated") {
+    if message.contains("Unterminated") || message.contains("unclosed inline function") {
         return "unterminated_syntax";
+    }
+    if message.contains("Unknown inline function") {
+        return "unknown_inline_function";
+    }
+    if message.contains("inline functions must use") {
+        return "invalid_inline_function";
     }
     if message.contains("control whitespace") {
         return "control_whitespace";

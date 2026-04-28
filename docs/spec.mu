@@ -123,7 +123,7 @@ Parsers must fail on:
 - unknown, missing, duplicate, or semantically invalid attributes
 - unquoted attributes
 - unsupported escapes in attribute values
-- nested or indented @list items
+- @list items with odd indentation, skipped nesting levels, tabs, missing - markers, or empty item text
 - body text on bodyless @page, @nav, @image, @separator, or @toc blocks
 - @table body rows whose cell count does not match columns
 - raw HTML or JSX-like tags in headings, block text, or attributes
@@ -146,6 +146,7 @@ Lessmark is not a Markdown dialect. Markdown import/export is intentionally loss
 - standalone safe links
 - standalone safe images
 - standard blockquotes
+- normal ordered and unordered lists
 - GFM note, tip, warning, and caution callouts
 - well-formed GFM tables with non-empty cells
 - standalone Markdown separators, such as ---
@@ -170,7 +171,7 @@ note|none|Non-blocking context.
 warning|none|Important risk or caveat.
 quote|cite optional|Quotation or quoted reference.
 callout|kind required, title optional|Explicit note, tip, warning, or caution.
-list|kind required|Ordered or unordered flat list. Each item starts with - .
+list|kind required|Ordered or unordered list. Each item starts with - . Nested items use two spaces per level.
 table|columns required|Pipe-separated table columns and rows. Body cells may escape a literal pipe as \|.
 image|src required, alt required, caption optional|Safe image or figure.
 separator|none|Bodyless horizontal separator for docs and rendered pages.
@@ -202,6 +203,7 @@ depends-on|target required|Relationship to a decision or other slugged context.
 - definition.term: plain single-line text.
 - reference.target: lowercase slug that resolves to a local heading anchor, @decision id, or @footnote id.
 - list.kind: unordered or ordered.
+- list rows: one row per item, each item uses - . Nested items use exactly two spaces per level and cannot skip levels.
 - table.columns: pipe-separated non-empty labels.
 - table rows: one row per line, same cell count as columns; use \\| for literal pipes inside body cells.
 - callout.kind: note, tip, warning, or caution.

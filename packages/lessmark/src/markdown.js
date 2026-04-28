@@ -65,6 +65,14 @@ export function fromMarkdown(markdown) {
       continue;
     }
 
+    const list = readMarkdownList(lines, index);
+    if (list) {
+      children.push(list.node);
+      firstParagraph = false;
+      index = list.nextIndex;
+      continue;
+    }
+
     const image = readImageLine(line);
     if (image) {
       if (isSafeResource(image.src)) {
@@ -225,12 +233,19 @@ function calloutToMarkdown(kind, title, text) {
 }
 
 function listToMarkdown(kind, text) {
+  const counters = [];
   return String(text)
     .split("\n")
     .filter((line) => line.trim() !== "")
-    .map((line, index) => {
-      const item = inlineToMarkdown(line.replace(/^\s*-\s+/, "").trim());
-      return kind === "ordered" ? `${index + 1}. ${item}` : `- ${item}`;
+    .map((line) => {
+      const match = /^( *)- (.*)$/.exec(line);
+      if (!match) throw new Error("@list items must use one explicit '- ' item marker per line");
+      const level = match[1].length / 2;
+      counters[level] = (counters[level] || 0) + 1;
+      counters.length = level + 1;
+      const marker = kind === "ordered" ? `${counters[level]}.` : "-";
+      const item = inlineToMarkdown(match[2].trim());
+      return `${"  ".repeat(level)}${marker} ${item}`;
     })
     .join("\n");
 }
@@ -297,6 +312,39 @@ function readBlockquote(lines, startIndex) {
   };
 }
 
+function readMarkdownList(lines, startIndex) {
+  const first = readMarkdownListItem(lines[startIndex]);
+  if (!first) return null;
+  const kind = first.kind;
+  const items = [];
+  let index = startIndex;
+  while (index < lines.length) {
+    const item = readMarkdownListItem(lines[index]);
+    if (!item || item.kind !== kind) break;
+    items.push(`${"  ".repeat(item.level)}- ${plainText(item.text)}`);
+    index += 1;
+  }
+  return {
+    nextIndex: index,
+    node: {
+      type: "block",
+      name: "list",
+      attrs: { kind },
+      text: items.join("\n")
+    }
+  };
+}
+
+function readMarkdownListItem(line) {
+  const match = /^( *)(?:([-*+])|(\d+[.)]))\s+(.+?)\s*$/.exec(line);
+  if (!match) return null;
+  return {
+    level: Math.floor(match[1].length / 2),
+    kind: match[3] ? "ordered" : "unordered",
+    text: match[4]
+  };
+}
+
 function readTable(lines, startIndex) {
   if (startIndex + 1 >= lines.length) return null;
   const header = splitMarkdownTableRow(lines[startIndex]);
@@ -347,6 +395,7 @@ function isMarkdownBlockStart(lines, index) {
     readFenceLine(lines[index]) !== null ||
     isMarkdownSeparator(lines[index]) ||
     /^\s*[-*]\s+\[[ xX]\]\s+/.test(lines[index]) ||
+    readMarkdownListItem(lines[index]) !== null ||
     readImageLine(lines[index]) !== null ||
     /^\s*>\s?/.test(lines[index]) ||
     readTable(lines, index) !== null;

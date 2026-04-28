@@ -115,4 +115,3 @@ render writes HTML to stdout. build recursively converts .mu and .lessmark files
 - arbitrary plugin hooks
 - expression syntax
 - undocumented alternate spellings for the same structure
-- nested list syntax in current source

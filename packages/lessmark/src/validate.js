@@ -1,11 +1,13 @@
 import { LessmarkError, parseLessmark } from "./parser.js";
 import {
   CONTROL_WHITESPACE_PATTERN,
+  DECISION_ID_PATTERN,
   HTML_TAG_PATTERN,
   getBlockAttrErrors,
   getBlockBodyErrors,
   getLocalAnchorErrors,
-  hasBlockAttrSpec
+  hasBlockAttrSpec,
+  isSafeHref
 } from "./rules.js";
 
 export function validateSource(source) {
@@ -44,6 +46,7 @@ export function validateAst(ast) {
         continue;
       }
       validateTextSafety(node.text, errors, "heading");
+      validateInlineText(node.text, errors, "heading");
       continue;
     }
 
@@ -59,6 +62,9 @@ export function validateAst(ast) {
       continue;
     }
     validateTextSafety(node.text, errors, `@${node.name}`);
+    if (node.name !== "code" && node.name !== "example") {
+      validateInlineText(node.text, errors, `@${node.name}`);
+    }
     validateBlockBody(node, errors);
 
     validateAttrs(node, errors);
@@ -80,6 +86,80 @@ function validateTextSafety(text, errors, location) {
   }
 }
 
+function validateInlineText(text, errors, location) {
+  const source = String(text);
+  let index = 0;
+  while (index < source.length) {
+    const start = source.indexOf("{{", index);
+    if (start === -1) return;
+    const end = findInlineFunctionEnd(source, start);
+    if (end === -1) {
+      errors.push(validationError(`${location} has an unclosed inline function`));
+      return;
+    }
+    validateInlineFunction(source.slice(start + 2, end), errors, location);
+    index = end + 2;
+  }
+}
+
+function findInlineFunctionEnd(source, start) {
+  let depth = 1;
+  let index = start + 2;
+  while (index < source.length) {
+    if (source.startsWith("{{", index)) {
+      depth += 1;
+      index += 2;
+      continue;
+    }
+    if (source.startsWith("}}", index)) {
+      depth -= 1;
+      if (depth === 0) return index;
+      index += 2;
+      continue;
+    }
+    index += 1;
+  }
+  return -1;
+}
+
+function validateInlineFunction(source, errors, location) {
+  const separator = source.indexOf(":");
+  if (separator <= 0) {
+    errors.push(validationError(`${location} inline functions must use {{name:value}}`));
+    return;
+  }
+  const name = source.slice(0, separator).trim();
+  const value = source.slice(separator + 1);
+  if (["strong", "em", "del", "mark"].includes(name)) {
+    validateInlineText(value, errors, location);
+    return;
+  }
+  if (["code", "kbd", "sup", "sub"].includes(name)) return;
+  if (name === "ref") {
+    const [label, target] = splitOnce(value, "|");
+    validateInlineText(label, errors, location);
+    if (!DECISION_ID_PATTERN.test(target)) errors.push(validationError("Inline ref target must be a lowercase slug"));
+    return;
+  }
+  if (name === "footnote") {
+    if (!DECISION_ID_PATTERN.test(value)) errors.push(validationError("Inline footnote target must be a lowercase slug"));
+    return;
+  }
+  if (name === "link") {
+    const [label, href] = splitOnce(value, "|");
+    validateInlineText(label, errors, location);
+    if (!isSafeHref(href)) errors.push(validationError("Inline link href must not use an executable URL scheme"));
+    return;
+  }
+  errors.push(validationError(`Unknown inline function "${name}"`));
+}
+
+function splitOnce(value, delimiter) {
+  const index = String(value).indexOf(delimiter);
+  if (index === -1) return [String(value), ""];
+  return [String(value).slice(0, index).trim(), String(value).slice(index + delimiter.length).trim()];
+}
+
 function validateAttrs(node, errors) {
   if (!hasBlockAttrSpec(node.name)) {
     errors.push(validationError(`Unknown typed block "${node.name}"`));
@@ -97,6 +177,9 @@ function validateAttrs(node, errors) {
       continue;
     }
     validateTextSafety(String(attrs[key]), errors, `attribute "${key}"`);
+    if (["label", "cite", "title", "caption", "term"].includes(key)) {
+      validateInlineText(String(attrs[key]), errors, `attribute "${key}"`);
+    }
     if (CONTROL_WHITESPACE_PATTERN.test(String(attrs[key]))) {
       errors.push(validationError(`Attribute "${key}" cannot contain control whitespace`));
     }
@@ -168,6 +251,9 @@ export function errorCodeForMessage(message) {
   if (/double-quoted/.test(message)) return "unquoted_attribute";
   if (/Unsupported escape/.test(message)) return "unsupported_escape";
   if (/Unterminated/.test(message)) return "unterminated_syntax";
+  if (/unclosed inline function/.test(message)) return "unterminated_syntax";
+  if (/Unknown inline function/.test(message)) return "unknown_inline_function";
+  if (/inline functions must use/.test(message)) return "invalid_inline_function";
   if (/control whitespace/.test(message)) return "control_whitespace";
   if (/safe relative|safe relative, http|safe relative \.html|executable URL/.test(message)) return "unsafe_link_or_path";
   if (/lowercase slug/.test(message)) return "invalid_slug";

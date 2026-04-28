@@ -135,17 +135,41 @@ function renderCallout(node) {
 
 function renderList(node) {
   const tag = node.attrs.kind === "ordered" ? "ol" : "ul";
-  const items = node.text
+  const items = parseListItems(node.text);
+  if (items.length === 0) return `<${tag}></${tag}>`;
+  const state = { index: 0 };
+  return renderListLevel(items, tag, 0, state);
+}
+
+function parseListItems(text) {
+  return String(text)
     .split("\n")
-    .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      if (!line.startsWith("- ")) {
+      const match = /^( *)- (.*)$/.exec(line);
+      if (!match || match[1].length % 2 !== 0 || match[2].trim() === "") {
         throw new Error("@list items must use one explicit '- ' item marker per line");
       }
-      return `<li>${renderInline(line.slice(2).trim())}</li>`;
+      return { level: match[1].length / 2, text: match[2].trim() };
     });
-  return `<${tag}>${items.join("")}</${tag}>`;
+}
+
+function renderListLevel(items, tag, level, state) {
+  const rendered = [];
+  while (state.index < items.length) {
+    const item = items[state.index];
+    if (item.level < level) break;
+    if (item.level > level) {
+      throw new Error("@list nesting cannot skip levels");
+    }
+    state.index += 1;
+    let nested = "";
+    if (state.index < items.length && items[state.index].level > level) {
+      nested = renderListLevel(items, tag, level + 1, state);
+    }
+    rendered.push(`<li>${renderInline(item.text)}${nested}</li>`);
+  }
+  return `<${tag}>${rendered.join("")}</${tag}>`;
 }
 
 function renderTable(node) {

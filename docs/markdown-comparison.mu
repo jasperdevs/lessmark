@@ -89,7 +89,7 @@ Overall, if support/network effects are excluded:
 @list kind="ordered"
 - GitHub does not render Lessmark repository home pages.
 - Existing editors, linters, package registries, and docs systems do not broadly support Lessmark.
-- Nested lists are intentionally rejected in v0 source to preserve one flat, typed list shape.
+- Nested lists are supported only inside @list with exactly two spaces per level and one canonical - item marker.
 - Cross-page link and asset checking is handled by build --strict, not by source parsing.
 - Build-time hooks, custom components, style directives, and undocumented shorthand aliases are intentionally outside v0.
 - text/vnd.lessmark and GitHub Linguist recognition remain platform adoption work, not language semantics.
