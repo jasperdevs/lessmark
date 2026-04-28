@@ -29,4 +29,4 @@ lessmark build --strict input public
 lessmark info --json
 ```
 
-`build --strict` parses and render-checks every page before writing output. `info --json` exposes npm CLI renderer/build capabilities plus the shared v0 language contract exported at `lessmark/schemas/language-v0.contract.json`.
+`build --strict` parses and render-checks every page before writing output. Static files are copied only from `assets/`, `public/`, or `static/`. `info --json` exposes npm CLI renderer/build capabilities plus the shared v0 language contract exported at `lessmark/schemas/language-v0.contract.json`.

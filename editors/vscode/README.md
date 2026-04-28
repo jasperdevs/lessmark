@@ -13,5 +13,5 @@ https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode
 Install a local VSIX during development:
 
 ```sh
-code --install-extension lessmark-vscode-0.1.3.vsix
+code --install-extension lessmark-vscode-0.1.4.vsix
 ```

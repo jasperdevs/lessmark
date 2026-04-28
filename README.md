@@ -21,6 +21,8 @@ It rejects raw HTML, hidden execution surfaces, undefined attributes, and most l
 
 JavaScript, Python, and Rust stay fixture-compatible for parsing, formatting, Markdown conversion, validation, and the shared language contract. HTML rendering and static docs builds are part of the npm CLI.
 
+Lessmark is pre-1.0 but no longer treated as throwaway syntax. Patch releases are for compatible fixes. Minor releases may change the v0 language contract, and those changes must ship with fixture, conformance, fuzz, stress, security, and readiness checks.
+
 ## Install
 
 ```sh
@@ -88,6 +90,8 @@ cargo run -p lessmark -- format file.lmk
 ```sh
 npm run check
 ```
+
+`npm run check` runs the JS, Python, and Rust suites, docs checks, editor syntax checks, cross-runtime conformance, hostile-input security checks, deterministic fuzzing, large-document stress checks, and release-readiness checks.
 
 </details>
 

@@ -15,6 +15,31 @@ import {
 
 const args = process.argv.slice(2);
 const command = args[0];
+const STATIC_ASSET_ROOTS = new Set(["assets", "public", "static"]);
+const STATIC_ASSET_EXTS = new Set([
+  ".avif",
+  ".css",
+  ".gif",
+  ".html",
+  ".ico",
+  ".jpeg",
+  ".jpg",
+  ".js",
+  ".json",
+  ".mjs",
+  ".otf",
+  ".pdf",
+  ".png",
+  ".svg",
+  ".ttf",
+  ".txt",
+  ".webmanifest",
+  ".webp",
+  ".woff",
+  ".woff2",
+  ".xml"
+]);
+const SKIP_STATIC_DIRS = new Set([".git", ".hg", ".svn", "build", "dist", "node_modules", "out", "target"]);
 
 if (!command || command === "help" || command === "--help" || command === "-h") {
   printHelp();
@@ -185,6 +210,7 @@ async function checkAsset(inputRoot, sourceDir, file, value, label, errors) {
   try {
     const info = await stat(assetPath);
     if (!info.isFile()) errors.push(`${file}: ${label} "${value}" is not a file`);
+    pushNonPublicStaticAssetError(assetPath, inputRoot, file, label, value, errors);
   } catch {
     errors.push(`${file}: ${label} "${value}" does not exist`);
   }
@@ -215,6 +241,7 @@ async function checkBuildHref(file, value, label, outputs, inputRoot, errors, op
   try {
     const info = await stat(assetPath);
     if (!info.isFile()) errors.push(`${file}: ${label} "${value}" is not a file`);
+    pushNonPublicStaticAssetError(assetPath, inputRoot, file, label, value, errors);
   } catch {
     errors.push(`${file}: ${label} "${value}" does not exist`);
   }
@@ -242,8 +269,9 @@ async function copyStaticAssets(dir, inputRoot, outputRoot) {
     const path = join(dir, entry.name);
     if (isInsideOrEqual(path, outputRoot)) continue;
     if (entry.isDirectory()) {
+      if (shouldSkipStaticDirectory(entry.name)) continue;
       await copyStaticAssets(path, inputRoot, outputRoot);
-    } else if (entry.isFile() && !/\.(lmk|lessmark)$/i.test(entry.name)) {
+    } else if (entry.isFile() && isCopyableStaticAsset(path, inputRoot)) {
       const outPath = join(outputRoot, relative(inputRoot, path));
       await mkdir(dirname(outPath), { recursive: true });
       await copyFile(path, outPath);
@@ -258,12 +286,29 @@ async function listStaticAssets(dir, inputRoot, skipRoot) {
     const path = join(dir, entry.name);
     if (isInsideOrEqual(path, skipRoot)) continue;
     if (entry.isDirectory()) {
+      if (shouldSkipStaticDirectory(entry.name)) continue;
       assets.push(...await listStaticAssets(path, inputRoot, skipRoot));
-    } else if (entry.isFile() && !/\.(lmk|lessmark)$/i.test(entry.name)) {
+    } else if (entry.isFile() && isCopyableStaticAsset(path, inputRoot)) {
       assets.push({ file: path, relativeOutput: normalizeRelativePath(relative(inputRoot, path)) });
     }
   }
   return assets.sort((left, right) => left.relativeOutput.localeCompare(right.relativeOutput));
+}
+
+function shouldSkipStaticDirectory(name) {
+  return name.startsWith(".") || SKIP_STATIC_DIRS.has(name);
+}
+
+function isCopyableStaticAsset(path, inputRoot) {
+  const rel = normalizeRelativePath(relative(inputRoot, path));
+  const [rootSegment] = rel.split("/");
+  return STATIC_ASSET_ROOTS.has(rootSegment) && STATIC_ASSET_EXTS.has(extname(path).toLowerCase());
+}
+
+function pushNonPublicStaticAssetError(path, inputRoot, file, label, value, errors) {
+  if (!isCopyableStaticAsset(path, inputRoot)) {
+    errors.push(`${file}: ${label} "${value}" must point to a public asset under assets/, public/, or static/`);
+  }
 }
 
 async function listLessmarkFiles(dir, skipRoot) {

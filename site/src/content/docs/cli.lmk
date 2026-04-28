@@ -34,6 +34,7 @@ lessmark info --json
 - to-markdown converts lessmark into safe markdown.
 - render --document produces a complete HTML document.
 - build --strict walks a directory and writes a static site.
+- build copies only public assets under assets/, public/, or static/.
 - info --json reports the supported blocks, inline functions, and CLI features.
 
 ## Exit codes
@@ -42,4 +43,3 @@ lessmark info --json
 0|Success
 1|Validation or parse error
 2|I/O error
-

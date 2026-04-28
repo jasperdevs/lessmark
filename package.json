@@ -1,7 +1,7 @@
 {
   "name": "lessmark-workspace",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Workspace for Lessmark, a strict agent-readable document format.",
   "license": "MIT",
   "workspaces": [
@@ -16,9 +16,10 @@
     "test:docs": "node scripts/check-docs.mjs",
     "test:editors": "node --check editors/vscode/extension.js",
     "test:conformance": "node scripts/conformance.mjs",
-    "check": "npm run build && npm test && npm run test:docs && npm run test:editors && npm run test:conformance"
-  },
-  "dependencies": {
-    "mermaid": "^11.14.0"
+    "test:fuzz": "node scripts/fuzz.mjs",
+    "test:stress": "node scripts/stress.mjs",
+    "test:security": "node scripts/security.mjs",
+    "test:readiness": "node scripts/readiness.mjs",
+    "check": "npm run build && npm test && npm run test:docs && npm run test:editors && npm run test:conformance && npm run test:security && npm run test:fuzz && npm run test:stress && npm run test:readiness"
   }
 }

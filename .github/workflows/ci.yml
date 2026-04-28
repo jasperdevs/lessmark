@@ -20,7 +20,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
       - run: npm run check
+      - run: npm pack --dry-run --workspace lessmark
+      - run: cargo package --allow-dirty --manifest-path crates/lessmark/Cargo.toml
+      - run: python -m pip install build
+      - run: python -m build --sdist --wheel packages/python
       - run: npm ci
+        working-directory: site
+      - run: npm audit --audit-level=high
         working-directory: site
       - run: npm run build
         working-directory: site

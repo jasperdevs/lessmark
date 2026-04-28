@@ -176,23 +176,67 @@ test("CLI build --strict rejects unsafe inline links before writing", async () =
   }
 });
 
+test("CLI build copies only explicit public assets", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-build-public-assets-"));
+  try {
+    const input = join(temp, "src");
+    const output = join(temp, "out");
+    await mkdir(join(input, "assets"), { recursive: true });
+    await mkdir(join(input, ".git"), { recursive: true });
+    await mkdir(join(input, "node_modules", "pkg"), { recursive: true });
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@image src="assets/logo.svg" alt="Logo"\n', "utf8");
+    await writeFile(join(input, "assets", "logo.svg"), "<svg></svg>\n", "utf8");
+    await writeFile(join(input, ".env"), "TOKEN=secret\n", "utf8");
+    await writeFile(join(input, ".git", "config"), "secret\n", "utf8");
+    await writeFile(join(input, "node_modules", "pkg", "index.js"), "secret\n", "utf8");
+    await exec(process.execPath, [cli, "build", "--strict", input, output]);
+    assert.match(await readFile(join(output, "assets", "logo.svg"), "utf8"), /<svg>/);
+    await assert.rejects(readFile(join(output, ".env"), "utf8"));
+    await assert.rejects(readFile(join(output, ".git", "config"), "utf8"));
+    await assert.rejects(readFile(join(output, "node_modules", "pkg", "index.js"), "utf8"));
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("CLI build --strict rejects links to non-public assets", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-build-private-asset-"));
+  try {
+    const input = join(temp, "src");
+    const output = join(temp, "out");
+    await mkdir(input, { recursive: true });
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@link href=".env"\nSecret.\n', "utf8");
+    await writeFile(join(input, ".env"), "TOKEN=secret\n", "utf8");
+    await assert.rejects(
+      exec(process.execPath, [cli, "build", "--strict", input, output]),
+      (error) => {
+        assert.match(error.stderr, /must point to a public asset/);
+        return true;
+      }
+    );
+    await assert.rejects(readFile(join(output, "index.html"), "utf8"));
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
 test("CLI build --strict rejects generated page and static asset output collisions", async () => {
   const temp = await mkdtemp(join(tmpdir(), "lessmark-build-collision-"));
   try {
     const input = join(temp, "src");
     const output = join(temp, "out");
-    await mkdir(join(input, "docs"), { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nHome.\n', "utf8");
-    await writeFile(join(input, "docs", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
+    await mkdir(join(input, "assets"), { recursive: true });
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="assets/index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "assets", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
       (error) => {
         assert.match(error.stderr, /Strict build failed/);
-        assert.match(error.stderr, /static asset output "docs\/index.html" conflicts with generated page/);
+        assert.match(error.stderr, /static asset output "assets\/index.html" conflicts with generated page/);
         return true;
       }
     );
-    await assert.rejects(readFile(join(output, "docs", "index.html"), "utf8"));
+    await assert.rejects(readFile(join(output, "assets", "index.html"), "utf8"));
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
@@ -203,13 +247,13 @@ test("CLI build --strict rejects case-insensitive output collisions", async () =
   try {
     const input = join(temp, "src");
     const output = join(temp, "out");
-    await mkdir(join(input, "Docs"), { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nHome.\n', "utf8");
-    await writeFile(join(input, "Docs", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
+    await mkdir(join(input, "assets"), { recursive: true });
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="assets/index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "assets", "Index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
       (error) => {
-        assert.match(error.stderr, /static asset output "Docs\/index.html" conflicts with generated page/);
+        assert.match(error.stderr, /static asset output "assets\/Index.html" conflicts with generated page/);
         return true;
       }
     );
@@ -224,19 +268,19 @@ test("CLI build --strict rejects case-insensitive static asset collisions", asyn
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
-    await mkdir(join(input, "Assets"), { recursive: true });
     await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@paragraph\nHome.\n', "utf8");
     await writeFile(join(input, "assets", "logo.svg"), "<svg></svg>\n", "utf8");
-    await writeFile(join(input, "Assets", "logo.svg"), "<svg></svg>\n", "utf8");
+    await writeFile(join(input, "assets", "Logo.svg"), "<svg></svg>\n", "utf8");
     const rootEntries = await readdir(input);
-    if (!rootEntries.includes("assets") || !rootEntries.includes("Assets")) {
+    const assetEntries = await readdir(join(input, "assets"));
+    if (!rootEntries.includes("assets") || !assetEntries.includes("logo.svg") || !assetEntries.includes("Logo.svg")) {
       t.skip("filesystem is case-insensitive");
       return;
     }
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
       (error) => {
-        assert.match(error.stderr, /duplicate static asset output "assets\/logo.svg" also used by|duplicate static asset output "Assets\/logo.svg" also used by/);
+        assert.match(error.stderr, /duplicate static asset output "assets\/logo.svg" also used by|duplicate static asset output "assets\/Logo.svg" also used by/);
         return true;
       }
     );
