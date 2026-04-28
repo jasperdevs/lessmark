@@ -18,15 +18,109 @@ fn run(args: Vec<String>) -> i32 {
     match args[0].as_str() {
         "parse" => parse_command(&args[1..]),
         "check" => check_command(&args[1..]),
-        "format" => format_command(&args[1..]),
+        "format" | "fix" => format_command(&args[1..]),
         "from-markdown" => from_markdown_command(&args[1..]),
         "to-markdown" => to_markdown_command(&args[1..]),
+        "info" => info_command(&args[1..]),
         command => {
             eprintln!("Unknown command: {}", command);
             print_help();
             1
         }
     }
+}
+
+fn info_command(args: &[String]) -> i32 {
+    let info = json!({
+        "language": "lessmark",
+        "version": env!("CARGO_PKG_VERSION"),
+        "astVersion": "v0",
+        "extensions": [".mu", ".lessmark"],
+        "mediaType": "text/vnd.lessmark; charset=utf-8",
+        "blocks": [
+            "summary",
+            "page",
+            "nav",
+            "paragraph",
+            "decision",
+            "constraint",
+            "task",
+            "file",
+            "code",
+            "example",
+            "note",
+            "warning",
+            "quote",
+            "callout",
+            "list",
+            "table",
+            "image",
+            "toc",
+            "footnote",
+            "definition",
+            "reference",
+            "api",
+            "link",
+            "metadata",
+            "risk",
+            "depends-on"
+        ],
+        "inlineFunctions": ["strong", "em", "code", "kbd", "del", "mark", "sup", "sub", "ref", "footnote", "link"],
+        "enums": {
+            "taskStatus": ["todo", "doing", "done", "blocked"],
+            "riskLevel": ["low", "medium", "high", "critical"],
+            "listKind": ["unordered", "ordered"],
+            "calloutKind": ["note", "tip", "warning", "caution"]
+        },
+        "cli": {
+            "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
+            "jsonCommands": ["check --json", "info --json"],
+            "strictBuild": false
+        },
+        "renderer": {
+            "html": false,
+            "fullDocument": false,
+            "staticSiteBuild": false,
+            "strictLinkAssetCheck": false,
+            "rawHtml": false
+        },
+        "syntaxPolicy": {
+            "aliases": true,
+            "rawHtml": false,
+            "hooks": false,
+            "customBlocks": false,
+            "nestedLists": false
+        }
+    });
+    if args.iter().any(|arg| arg == "--json") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&info).expect("info serializes")
+        );
+    } else {
+        println!("Lessmark {} (v0)", env!("CARGO_PKG_VERSION"));
+        println!(
+            "Blocks: {}",
+            info["blocks"]
+                .as_array()
+                .expect("blocks array")
+                .iter()
+                .map(|item| item.as_str().expect("block string"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        println!(
+            "Inline functions: {}",
+            info["inlineFunctions"]
+                .as_array()
+                .expect("inline array")
+                .iter()
+                .map(|item| item.as_str().expect("inline string"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+    0
 }
 
 fn from_markdown_command(args: &[String]) -> i32 {
@@ -173,5 +267,7 @@ fn first_path_arg(args: &[String]) -> Option<&str> {
 }
 
 fn print_help() {
-    eprintln!("Usage: lessmark <parse|check|format|from-markdown|to-markdown> [options] <file>");
+    eprintln!(
+        "Usage: lessmark <parse|check|format|fix|from-markdown|to-markdown|info> [options] <file>"
+    );
 }

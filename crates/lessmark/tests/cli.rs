@@ -93,8 +93,25 @@ fn cli_format_prints_normalized_source() {
 }
 
 #[test]
+fn cli_fix_is_formatter_alias() {
+    let fixture = repo_root().join("fixtures/valid/project-context.mu");
+    let output = Command::new(lessmark_bin())
+        .args(["fix", fixture.to_str().expect("utf8 path")])
+        .output()
+        .expect("lessmark command runs");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let formatted = String::from_utf8(output.stdout).expect("format output is utf8");
+    assert!(formatted.starts_with("# Project Context"));
+    assert!(formatted.contains("@task status=\"todo\""));
+}
+
+#[test]
 fn cli_converts_markdown_to_lessmark() {
-    let fixture = repo_root().join("fixtures/valid/markdown-import.md");
+    let fixture = repo_root().join("fixtures/valid/markdown-import.fixture");
     let output = Command::new(lessmark_bin())
         .args(["from-markdown", fixture.to_str().expect("utf8 path")])
         .output()

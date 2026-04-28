@@ -57,6 +57,22 @@ test("packaged schema stays in sync with repository schema", async () => {
   }
 });
 
+test("schema href patterns match safe link rules", async () => {
+  const rootSchema = JSON.parse(await read("schemas/ast-v0.schema.json"));
+  for (const block of [rootSchema.$defs.navBlock, rootSchema.$defs.linkBlock]) {
+    const pattern = block.properties.attrs.properties.href.allOf.find((rule) => typeof rule.pattern === "string").pattern;
+    const href = new RegExp(pattern);
+    assert.equal(href.test("index.html"), true);
+    assert.equal(href.test("https://example.com"), true);
+    assert.equal(href.test("mailto:team@example.com"), true);
+    assert.equal(href.test("javascript:alert(1)"), false);
+    assert.equal(href.test("/abs.html"), false);
+    assert.equal(href.test("../up.html"), false);
+    assert.equal(href.test("docs/../up.html"), false);
+    assert.equal(href.test("//example.com"), false);
+  }
+});
+
 test("formatter is deterministic and idempotent", async () => {
   const source = await read("fixtures/valid/project-context.mu");
   const once = formatLessmark(source);
@@ -69,6 +85,88 @@ test("preserves indented example text", async () => {
   const expected = JSON.parse(await read("fixtures/valid/example-code.ast.json"));
   assert.deepEqual(parseLessmark(source), expected);
   assert.equal(formatLessmark(source), source);
+});
+
+test("canonicalizes documented human authoring conveniences", () => {
+  const source = `# Project Context
+
+@p
+Use **bold**, *emphasis*, \`code\`, \`**literal**\`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
+
+@ul
+- One
+- Two
+
+@ol
+- First
+- Second
+
+@decision storage-backend
+Use SQLite.
+
+@task todo
+Add docs.
+
+@risk high
+Migration risk.
+
+@file src/app.ts
+Owns app.
+
+@api parseLessmark
+Parser API.
+
+@code ts
+const ok = true;
+
+@callout warning
+Watch this.
+
+@definition API
+Application programming interface.
+
+@table Name|Value
+Stage|alpha
+
+@metadata project.stage
+alpha
+
+@link https://example.com
+Homepage.
+
+@footnote note
+Footnote body.
+`;
+  const formatted = formatLessmark(source);
+  assert.match(formatted, /@paragraph\nUse \{\{strong:bold\}\}, \{\{em:emphasis\}\}, \{\{code:code\}\}, \{\{code:\*\*literal\*\*\}\}, \{\{link:Docs\|https:\/\/example\.com\}\}, \{\{ref:Decision\|storage-backend\}\}, \{\{footnote:note\}\}, \{\{mark:marked\}\}, and \{\{del:gone\}\}\./);
+  assert.match(formatted, /@list kind="unordered"\n- One\n- Two/);
+  assert.match(formatted, /@list kind="ordered"\n- First\n- Second/);
+  assert.match(formatted, /@decision id="storage-backend"/);
+  assert.match(formatted, /@task status="todo"/);
+  assert.match(formatted, /@risk level="high"/);
+  assert.match(formatted, /@file path="src\/app\.ts"/);
+  assert.match(formatted, /@api name="parseLessmark"/);
+  assert.match(formatted, /@code lang="ts"\nconst ok = true;/);
+  assert.match(formatted, /@callout kind="warning"\nWatch this\./);
+  assert.match(formatted, /@definition term="API"\nApplication programming interface\./);
+  assert.match(formatted, /@table columns="Name\|Value"\nStage\|alpha/);
+  assert.match(formatted, /@metadata key="project\.stage"/);
+  assert.match(formatted, /@link href="https:\/\/example\.com"/);
+  assert.match(formatted, /@footnote id="note"/);
+  assert.equal(validateSource(formatted).length, 0);
+  assert.match(renderHtml(source), /<strong>bold<\/strong>/);
+});
+
+test("ignores leading blank lines inside body-capable blocks", () => {
+  const source = `@task done
+
+hey
+
+@metadata rfc.id
+
+RFC-0042
+`;
+  assert.equal(formatLessmark(source), '@task status="done"\nhey\n\n@metadata key="rfc.id"\nRFC-0042\n');
 });
 
 test("rejects empty headings", async () => {
@@ -117,6 +215,16 @@ test("rejects invalid docs attrs", () => {
   assert.throws(() => parseLessmark('@callout kind="custom"\nNo custom callouts.\n'), /@callout kind/);
   assert.throws(() => parseLessmark('@page output="../index.html"\n'), /safe relative .html path/);
   assert.throws(() => parseLessmark('@image src="javascript:alert(1)" alt="Bad"\n'), /safe relative, http, or https URL/);
+  assert.throws(() => parseLessmark('@nav label="Docs" href="javascript:alert(1)"\n'), /safe relative path/);
+  assert.throws(() => parseLessmark('@nav label="Docs" href="index.html" slot="sidebar"\n'), /primary or footer/);
+  assert.throws(() => parseLessmark('@nav label="Docs" href="index.html" slot=""\n'), /primary or footer/);
+  assert.throws(() => parseLessmark('@nav label="Docs" href="index.html"\nBody.\n'), /must not have a body/);
+  assert.throws(() => parseLessmark('@page output="index.html"\nBody.\n'), /must not have a body/);
+  assert.throws(() => parseLessmark("@toc\nBody.\n"), /must not have a body/);
+  assert.throws(() => parseLessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n'), /must not have a body/);
+  assert.throws(() => parseLessmark('@reference target="../secret"\nBad target.\n'), /lowercase slug/);
+  assert.throws(() => parseLessmark('@reference target="missing-section"\nBad target.\n'), /Unknown local reference target/);
+  assert.throws(() => parseLessmark('@definition term="Term<T>"\nBad term.\n'), /raw HTML/);
 });
 
 test("can include source positions without changing the default AST", async () => {
@@ -134,7 +242,7 @@ test("can include source positions without changing the default AST", async () =
 test("validateSource reports parse errors as data", async () => {
   const source = await read("fixtures/invalid/raw-html.mu");
   assert.deepEqual(validateSource(source), [
-    { message: "@summary contains raw HTML/JSX-like syntax", line: 2, column: 1 }
+    { code: "raw_html", message: "@summary contains raw HTML/JSX-like syntax", line: 2, column: 1 }
   ]);
 });
 
@@ -166,10 +274,41 @@ test("validates semantic attrs on direct AST input", () => {
     ]
   });
   assert.deepEqual(errors, [
-    { message: "@file path must be a relative project path" },
-    { message: "@api name must be an identifier" },
-    { message: "@link href must be http, https, mailto, or a safe relative path" }
+    { code: "validation_error", message: "@file path must be a relative project path" },
+    { code: "validation_error", message: "@api name must be an identifier" },
+    { code: "unsafe_link_or_path", message: "@link href must be http, https, mailto, or a safe relative path" }
   ]);
+});
+
+test("rejects duplicate local anchor slugs on direct AST input", () => {
+  const errors = validateAst({
+    type: "document",
+    children: [
+      { type: "heading", level: 1, text: "Build System" },
+      { type: "block", name: "decision", attrs: { id: "build-system" }, text: "Collision." }
+    ]
+  });
+  assert.deepEqual(errors, [{ code: "duplicate_local_anchor", message: 'Duplicate local anchor slug "build-system"' }]);
+
+  const renderedFootnoteErrors = validateAst({
+    type: "document",
+    children: [
+      { type: "heading", level: 1, text: "Fn Build System" },
+      { type: "block", name: "footnote", attrs: { id: "build-system" }, text: "Collision." }
+    ]
+  });
+  assert.deepEqual(renderedFootnoteErrors, [{ code: "duplicate_local_anchor", message: 'Duplicate local anchor slug "fn-build-system"' }]);
+});
+
+test("rejects unknown local reference targets on direct AST input", () => {
+  const errors = validateAst({
+    type: "document",
+    children: [
+      { type: "heading", level: 1, text: "Build System" },
+      { type: "block", name: "reference", attrs: { target: "missing-section" }, text: "Bad target." }
+    ]
+  });
+  assert.deepEqual(errors, [{ code: "unknown_reference_target", message: 'Unknown local reference target "missing-section"' }]);
 });
 
 test("validates non-string attrs without treating present values as missing", () => {
@@ -181,9 +320,9 @@ test("validates non-string attrs without treating present values as missing", ()
     ]
   });
   assert.deepEqual(errors, [
-    { message: 'Attribute "mood" must be a string' },
-    { message: '@summary does not allow attribute "mood"' },
-    { message: 'Attribute "status" must be a string' }
+    { code: "invalid_ast_value", message: 'Attribute "mood" must be a string' },
+    { code: "unknown_attribute", message: '@summary does not allow attribute "mood"' },
+    { code: "invalid_ast_value", message: 'Attribute "status" must be a string' }
   ]);
 });
 
@@ -194,10 +333,10 @@ test("validates exact AST shape", () => {
     extra: true
   });
   assert.deepEqual(errors, [
-    { message: 'document has unknown property "extra"' },
-    { message: 'heading has unknown property "extra"' },
-    { message: "heading level must be an integer from 1 to 6" },
-    { message: "heading text must be a non-empty string" }
+    { code: "invalid_ast_shape", message: 'document has unknown property "extra"' },
+    { code: "invalid_ast_shape", message: 'heading has unknown property "extra"' },
+    { code: "validation_error", message: "heading level must be an integer from 1 to 6" },
+    { code: "validation_error", message: "heading text must be a non-empty string" }
   ]);
 });
 
@@ -246,6 +385,29 @@ const b = 2;
   assert.equal(ast.children[1].text, "const a = 1;\n\nconst b = 2;");
 });
 
+test("imports common GFM blocks into typed Lessmark blocks", () => {
+  const lessmark = fromMarkdown(`# Project
+
+![Build pipeline](assets/diagram.svg "Pipeline")
+
+> [!WARNING] Migration
+> Check imported content.
+
+> Keep source safe.
+> Preserve the quote.
+
+| Feature | Status |
+| --- | --- |
+| Images | done |
+| Tables \\| escaped | done |
+`);
+  assert.match(lessmark, /@image alt="Build pipeline" caption="Pipeline" src="assets\/diagram.svg"/);
+  assert.match(lessmark, /@callout kind="warning" title="Migration"\nCheck imported content\./);
+  assert.match(lessmark, /@quote\nKeep source safe\.\nPreserve the quote\./);
+  assert.match(lessmark, /@table columns="Feature\|Status"\nImages\|done\nTables \\\\?\| escaped\|done/);
+  assert.equal(validateSource(lessmark).length, 0);
+});
+
 test("rejects unclosed Markdown code fences", () => {
   assert.throws(() => fromMarkdown("```js\nconst a = 1;\n"), /Unclosed fenced code block/);
 });
@@ -271,11 +433,21 @@ Homepage
 
 test("exports docs blocks to Markdown without losing structure", async () => {
   const markdown = toMarkdown(await read("fixtures/valid/docs-page.mu"));
-  assert.match(markdown, /^# Docs/);
+  assert.match(markdown, /# Docs Home/);
   assert.match(markdown, /\*\*explicit\*\*/);
+  assert.match(markdown, /==marked text==/);
+  assert.match(markdown, /\[\^strict-syntax\]: Lessmark keeps one explicit spelling/);
+  assert.match(markdown, /### renderer-contract/);
+  assert.match(markdown, /\*\*Build system\*\*/);
+  assert.match(markdown, /\[Build system section\]\(#build-system\)/);
+  assert.match(markdown, /\[Renderer contract decision\]\(#renderer-contract\)/);
+  assert.match(markdown, /\[Strict syntax footnote\]\(#fn-strict-syntax\)/);
+  assert.match(markdown, /- \[Home\]\(index\.html\)/);
+  assert.match(markdown, /- \[API\]\(api\.html\)/);
   assert.match(markdown, /> \[!TIP\] No hooks by default/);
   assert.match(markdown, /- Parse strict source\./);
   assert.match(markdown, /\| Feature \| Status \|/);
+  assert.match(markdown, /\| Typed blocks\\\|agents \| done \|/);
   assert.match(markdown, /!\[Build pipeline\]\(assets\/diagram.svg\)/);
 });
 
@@ -283,15 +455,73 @@ test("renders strict docs blocks to safe HTML", async () => {
   const source = await read("fixtures/valid/docs-page.mu");
   const html = renderHtml(source, { document: true });
   assert.match(html, /<title>Docs Home<\/title>/);
+  assert.match(html, /<nav class="lessmark-nav" aria-label="Primary"><a href="index.html">Home<\/a><a href="spec.html">Spec<\/a><\/nav>/);
+  assert.match(html, /<nav class="lessmark-nav" aria-label="Footer"><a href="api.html">API<\/a><\/nav>/);
   assert.match(html, /<strong>explicit<\/strong>/);
-  assert.match(html, /<a href="https:\/\/example.com">safe links<\/a>/);
+  assert.match(html, /<mark>marked text<\/mark>/);
+  assert.match(html, /<del>deleted text<\/del>/);
+  assert.match(html, /<a href="#build-system">local references<\/a>/);
+  assert.match(html, /<section class="lessmark-decision" id="renderer-contract" data-id="renderer-contract">/);
+  assert.match(html, /<a href="#renderer-contract">Renderer contract decision<\/a>/);
+  assert.match(html, /<a href="#fn-strict-syntax">Strict syntax footnote<\/a>/);
+  assert.match(html, /id="fn-strict-syntax"/);
+  assert.match(html, /<dl class="lessmark-definition">/);
   assert.match(html, /<img src="assets\/diagram.svg" alt="Build pipeline">/);
   assert.match(html, /<table>/);
+  assert.match(html, /<td>Typed blocks\|agents<\/td>/);
   assert.doesNotMatch(html, /<script/);
+});
+
+test("renders code blocks with safe lightweight highlighting", () => {
+  const html = renderHtml('@code lang="ts"\nconst ok = "yes";\n// safe\n', { document: true });
+  assert.match(html, /<span class="tok-key">const<\/span>/);
+  assert.match(html, /<span class="tok-string">&quot;yes&quot;<\/span>/);
+  assert.match(html, /<span class="tok-comment">\/\/ safe<\/span>/);
+});
+
+test("renders and exports nested explicit inline functions", async () => {
+  const source = await read("fixtures/valid/nested-inline.mu");
+  const html = renderHtml(source, { document: true });
+  const markdown = toMarkdown(source);
+  assert.match(html, /<strong>Bold <em>inside<\/em><\/strong>/);
+  assert.match(html, /<a href="https:\/\/example.com">docs<\/a>/);
+  assert.match(markdown, /\*\*Bold \*inside\*\*\*/);
+  assert.match(markdown, /\[docs\]\(https:\/\/example.com\)/);
+  assert.match(markdown, /\[\*\*Renderer\*\* decision\]\(#renderer\)/);
+});
+
+test("renderer emits deterministic unique heading ids", () => {
+  const html = renderHtml("# Intro\n\n# Intro\n", { document: true });
+  assert.match(html, /<h1 id="intro">Intro<\/h1>/);
+  assert.match(html, /<h1 id="intro-2">Intro<\/h1>/);
+});
+
+test("rejects invalid inline local targets during render and export", () => {
+  assert.throws(() => renderHtml("@paragraph\n{{ref:Build|Build System}}\n"), /lowercase slug/);
+  assert.throws(() => renderHtml("@paragraph\n{{ref:Build| build-system}}\n"), /lowercase slug/);
+  assert.throws(() => renderHtml("@paragraph\n{{footnote:}}\n"), /lowercase slug/);
+  assert.throws(() => toMarkdown("@paragraph\n{{ref:Build|Build System}}\n"), /lowercase slug/);
+  assert.throws(() => toMarkdown("@paragraph\n{{footnote: strict-syntax}}\n"), /lowercase slug/);
+  assert.throws(() => toMarkdown("# {{ref:Build|Build System}}\n"), /lowercase slug/);
+  assert.throws(() => toMarkdown('@callout kind="note" title="{{footnote: strict-syntax}}"\nBody.\n'), /lowercase slug/);
+});
+
+test("renderer rejects unclosed inline functions", () => {
+  assert.throws(() => renderHtml("@paragraph\n{{strong:open\n"), /Unclosed inline function/);
+});
+
+test("renderer rejects unknown inline functions", () => {
+  assert.throws(() => renderHtml("@paragraph\n{{frobnicate:value}}\n"), /Unknown inline function/);
+});
+
+test("exports literal code and example inline syntax without validating it", () => {
+  assert.match(toMarkdown("@code\n{{ref:Build|Build System}}\n"), /\{\{ref:Build\|Build System\}\}/);
+  assert.match(toMarkdown("@example\n{{footnote: bad id}}\n"), /\{\{footnote: bad id\}\}/);
 });
 
 test("renderer rejects malformed docs functions and tables", () => {
   assert.throws(() => renderHtml("@paragraph\n{{unknown:value}}\n"), /Unknown inline function/);
-  assert.throws(() => renderHtml('@table columns="A|B"\nOnly one cell\n'), /row cell count/);
-  assert.throws(() => renderHtml('@list kind="unordered"\nNo marker\n'), /item marker/);
+  assert.throws(() => parseLessmark('@table columns="A|B"\nOnly one cell\n'), /row cell count/);
+  assert.throws(() => parseLessmark('@list kind="unordered"\nNo marker\n'), /item marker/);
+  assert.throws(() => parseLessmark('@list kind="unordered"\n- Parent\n  - Child\n'), /flat in v0/);
 });

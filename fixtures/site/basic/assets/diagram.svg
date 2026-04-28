@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="80" viewBox="0 0 160 80" role="img" aria-label="Build diagram">
+  <rect width="160" height="80" fill="#f6f6f6"/>
+  <path d="M24 40h112" stroke="#222" stroke-width="4"/>
+  <circle cx="24" cy="40" r="10" fill="#0f766e"/>
+  <circle cx="80" cy="40" r="10" fill="#b45309"/>
+  <circle cx="136" cy="40" r="10" fill="#1d4ed8"/>
+</svg>

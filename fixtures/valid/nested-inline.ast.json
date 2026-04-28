@@ -1,0 +1,33 @@
+{
+  "type": "document",
+  "children": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Inline Functions"
+    },
+    {
+      "type": "block",
+      "name": "paragraph",
+      "attrs": {},
+      "text": "{{strong:Bold {{em:inside}}}} and {{link:docs|https://example.com}}."
+    },
+    {
+      "type": "block",
+      "name": "decision",
+      "attrs": {
+        "id": "renderer"
+      },
+      "text": "Supports nesting."
+    },
+    {
+      "type": "block",
+      "name": "reference",
+      "attrs": {
+        "target": "renderer",
+        "label": "{{strong:Renderer}} decision"
+      },
+      "text": ""
+    }
+  ]
+}

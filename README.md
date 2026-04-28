@@ -8,6 +8,8 @@
 
 <p align="center">
   <a href="https://lessmark.org"><img alt="website" src="https://img.shields.io/badge/site-lessmark.org-black?style=flat-square"></a>
+  <a href="https://github.com/jasperdevs/lessmark/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/github/actions/workflow/status/jasperdevs/lessmark/ci.yml?branch=main&style=flat-square"></a>
+  <img alt="conformance" src="https://img.shields.io/badge/conformance-v0_checked-black?style=flat-square">
   <a href="https://github.com/jasperdevs/lessmark/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/jasperdevs/lessmark?style=flat-square"></a>
   <a href="https://www.npmjs.com/package/lessmark"><img alt="npm" src="https://img.shields.io/npm/v/lessmark?style=flat-square"></a>
   <a href="https://pypi.org/project/lessmark/"><img alt="PyPI" src="https://img.shields.io/pypi/v/lessmark?style=flat-square"></a>
@@ -18,7 +20,7 @@ Lessmark is a small Markdown-inspired format built around typed blocks, a stable
 It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
 It is intentionally stricter than Markdown and optimized for agent context files.
 
-The canonical implementation is the Rust crate. The npm and Python packages stay fixture-compatible with it.
+The Rust crate, npm package, and Python package are conformance-checked for source parsing, formatting, Markdown export, validation errors, and the shared language contract. Safe HTML rendering and static-site builds are npm CLI features.
 
 ## Install
 
@@ -35,20 +37,25 @@ pip install lessmark
 ```sh
 lessmark parse file.mu
 lessmark check file.mu
+lessmark check --json file.mu
 lessmark format file.mu
+lessmark fix --write file.mu
 lessmark from-markdown README.md
 lessmark to-markdown file.mu
 lessmark render --document docs/index.mu
-lessmark build docs public
+lessmark build --strict docs public
+lessmark info --json
 ```
+
+`check --json` returns stable error `code` values for tools. `info --json` exposes the v0 block set, inline functions, CLI features, and syntax policy.
 
 ## Blocks
 
-Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `api`, `metadata`, `risk`, and `depends-on`, plus docs blocks like `page`, `paragraph`, `image`, `list`, `table`, `quote`, `callout`, and `toc`.
+Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `api`, `metadata`, `risk`, and `depends-on`, plus docs blocks like `page`, `nav`, `paragraph`, `image`, `list`, `table`, `quote`, `callout`, `toc`, `definition`, `reference`, and `footnote`.
 
-See [`docs/spec.md`](./docs/spec.md) and [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json) for the source and AST contracts.
+See [`docs/spec.mu`](./docs/spec.mu), [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json), [`schemas/language-v0.contract.json`](./schemas/language-v0.contract.json), and [`schemas/profiles-v0.contract.json`](./schemas/profiles-v0.contract.json) for the source, AST, shared language, and profile contracts.
 
-Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/docs-profile.md`](./docs/docs-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), [`docs/markdown-comparison.md`](./docs/markdown-comparison.md), [`docs/article-alignment.md`](./docs/article-alignment.md), [`docs/standardization.md`](./docs/standardization.md), and [`docs/markdown-chaos-timeline.md`](./docs/markdown-chaos-timeline.md).
+Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.mu`](./docs/agent-context-profile.mu), [`docs/docs-profile.mu`](./docs/docs-profile.mu), [`docs/profiles.mu`](./docs/profiles.mu), [`docs/conformance.mu`](./docs/conformance.mu), [`docs/governance.mu`](./docs/governance.mu), [`docs/file-type-registration.mu`](./docs/file-type-registration.mu), [`docs/markdown-comparison.mu`](./docs/markdown-comparison.mu), [`docs/article-alignment.mu`](./docs/article-alignment.mu), [`docs/standardization.mu`](./docs/standardization.mu), and [`docs/markdown-chaos-timeline.mu`](./docs/markdown-chaos-timeline.mu).
 
 <details>
 <summary>API and docs</summary>

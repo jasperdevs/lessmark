@@ -13,7 +13,9 @@
     "test:js": "npm run test --workspace lessmark",
     "test:python": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONPATH='packages/python/src'; python -m unittest discover packages/python/tests\"",
     "test:rust": "cargo test --workspace",
+    "test:docs": "node scripts/check-docs.mjs",
+    "test:editors": "node --check editors/vscode/extension.js",
     "test:conformance": "node scripts/conformance.mjs",
-    "check": "npm run build && npm test && npm run test:conformance"
+    "check": "npm run build && npm test && npm run test:docs && npm run test:editors && npm run test:conformance"
   }
 }

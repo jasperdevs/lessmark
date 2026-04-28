@@ -1,0 +1,25 @@
+# Imported Context
+
+Markdown import fixture.
+
+- [ ] Add import command.
+- [x] Keep validation strict.
+
+```shell
+lessmark check file.mu
+```
+
+[Lessmark](https://lessmark.org)
+
+![Build pipeline](assets/diagram.svg "Pipeline")
+
+> [!WARNING] Migration
+> Keep imported content explicit.
+
+> Markdown import should stay safe.
+> Raw HTML should not pass through.
+
+| Feature | Status |
+| --- | --- |
+| Images | imported |
+| Tables \| escaped | imported |

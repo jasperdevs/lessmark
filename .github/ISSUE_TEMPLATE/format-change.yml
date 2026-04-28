@@ -1,0 +1,56 @@
+name: Format change
+description: Propose a Lessmark source, AST, profile, renderer, or conformance change.
+title: "format: "
+labels: ["format-change"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - source syntax
+        - AST schema
+        - language contract
+        - profile contract
+        - Markdown import
+        - Markdown export
+        - npm renderer
+        - npm build
+        - conformance
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: What concrete document or agent workflow needs this?
+    validations:
+      required: true
+  - type: textarea
+    id: existing_surface
+    attributes:
+      label: Why current v0 cannot cover it
+      description: Name the existing blocks or profile rules you tried first.
+    validations:
+      required: true
+  - type: checkboxes
+    id: required_updates
+    attributes:
+      label: Required updates
+      options:
+        - label: Spec text updated
+        - label: AST schema updated when shape changes
+        - label: Language contract updated when language fields change
+        - label: Profile contract updated when profile behavior changes
+        - label: Valid fixtures added
+        - label: Invalid fixtures added when rejection behavior matters
+        - label: JavaScript, Python, and Rust behavior updated together
+        - label: Conformance updated
+        - label: Security model stated for renderer or profile changes
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: State whether this is patch, compatible language change, profile change, or breaking change.
+    validations:
+      required: true

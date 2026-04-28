@@ -1,0 +1,48 @@
+{
+  "language": "lessmark",
+  "astVersion": "v0",
+  "extensions": [".mu", ".lessmark"],
+  "mediaType": "text/vnd.lessmark; charset=utf-8",
+  "blocks": [
+    "summary",
+    "page",
+    "nav",
+    "paragraph",
+    "decision",
+    "constraint",
+    "task",
+    "file",
+    "code",
+    "example",
+    "note",
+    "warning",
+    "quote",
+    "callout",
+    "list",
+    "table",
+    "image",
+    "toc",
+    "footnote",
+    "definition",
+    "reference",
+    "api",
+    "link",
+    "metadata",
+    "risk",
+    "depends-on"
+  ],
+  "inlineFunctions": ["strong", "em", "code", "kbd", "del", "mark", "sup", "sub", "ref", "footnote", "link"],
+  "enums": {
+    "taskStatus": ["todo", "doing", "done", "blocked"],
+    "riskLevel": ["low", "medium", "high", "critical"],
+    "listKind": ["unordered", "ordered"],
+    "calloutKind": ["note", "tip", "warning", "caution"]
+  },
+  "syntaxPolicy": {
+    "aliases": true,
+    "rawHtml": false,
+    "hooks": false,
+    "customBlocks": false,
+    "nestedLists": false
+  }
+}

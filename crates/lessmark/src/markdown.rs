@@ -2,13 +2,20 @@ use crate::ast::{Document, Node};
 use crate::error::LessmarkError;
 use crate::format::format_document;
 use crate::parser::parse_lessmark;
+use crate::rules::{is_safe_resource, split_table_row};
 use regex::Regex;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 struct Fence {
     marker: char,
     length: usize,
     lang: String,
+}
+
+struct ImageLine {
+    alt: String,
+    src: String,
+    caption: String,
 }
 
 pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
@@ -86,12 +93,53 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             continue;
         }
 
+        if let Some(image) = read_image_line(line) {
+            if is_safe_resource(&image.src) {
+                let mut attrs = BTreeMap::new();
+                attrs.insert(
+                    "alt".to_string(),
+                    non_empty_or_image(&plain_text(&image.alt)),
+                );
+                attrs.insert("src".to_string(), image.src);
+                if !image.caption.is_empty() {
+                    attrs.insert("caption".to_string(), plain_text(&image.caption));
+                }
+                children.push(Node::Block {
+                    name: "image".to_string(),
+                    attrs,
+                    text: String::new(),
+                    position: None,
+                });
+            } else {
+                children.push(Node::Block {
+                    name: if first_paragraph { "summary" } else { "note" }.to_string(),
+                    attrs: BTreeMap::new(),
+                    text: plain_text(&image.alt),
+                    position: None,
+                });
+            }
+            first_paragraph = false;
+            index += 1;
+            continue;
+        }
+
+        if let Some((node, next_index)) = read_blockquote(&lines, index) {
+            children.push(node);
+            first_paragraph = false;
+            index = next_index;
+            continue;
+        }
+
+        if let Some((node, next_index)) = read_table(&lines, index) {
+            children.push(node);
+            first_paragraph = false;
+            index = next_index;
+            continue;
+        }
+
         let mut paragraph = Vec::new();
         while index < lines.len() && !lines[index].trim().is_empty() {
-            if read_heading(lines[index]).is_some()
-                || read_fence_line(lines[index]).is_some()
-                || read_task(lines[index]).is_some()
-            {
+            if is_markdown_block_start(&lines, index) {
                 break;
             }
             paragraph.push(lines[index].trim());
@@ -133,20 +181,88 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
 
 pub fn to_markdown(lessmark: &str) -> Result<String, LessmarkError> {
     let ast = parse_lessmark(lessmark)?;
+    validate_inline_local_targets(&ast)?;
+    let footnote_ids = collect_footnote_ids(&ast);
     let chunks = ast
         .children
         .iter()
-        .filter_map(markdown_node)
+        .filter_map(|node| markdown_node(node, &footnote_ids))
         .filter(|chunk| !chunk.is_empty())
         .collect::<Vec<_>>();
     Ok(format!("{}\n", chunks.join("\n\n")))
 }
 
-fn markdown_node(node: &Node) -> Option<String> {
-    match node {
-        Node::Heading { level, text, .. } => {
-            Some(format!("{} {}", "#".repeat(*level as usize), text))
+fn collect_footnote_ids(document: &Document) -> BTreeSet<String> {
+    document
+        .children
+        .iter()
+        .filter_map(|node| match node {
+            Node::Block { name, attrs, .. } if name == "footnote" => attrs.get("id").cloned(),
+            _ => None,
+        })
+        .collect()
+}
+
+fn validate_inline_local_targets(document: &Document) -> Result<(), LessmarkError> {
+    let ref_re = Regex::new(r"\{\{ref:[^{}|]*\|([^{}]*)\}\}").expect("inline ref regex compiles");
+    let footnote_re =
+        Regex::new(r"\{\{footnote:([^{}]*)\}\}").expect("inline footnote regex compiles");
+    let slug_re = Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").expect("slug regex compiles");
+
+    for node in &document.children {
+        let mut values: Vec<&str> = Vec::new();
+        match node {
+            Node::Heading { text, .. } => values.push(text),
+            Node::Block {
+                name, attrs, text, ..
+            } => {
+                if name != "code" && name != "example" {
+                    values.push(text);
+                }
+                values.extend(attrs.values().map(String::as_str));
+            }
         }
+        for value in values {
+            validate_inline_local_targets_in_text(value, &ref_re, &footnote_re, &slug_re)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_inline_local_targets_in_text(
+    text: &str,
+    ref_re: &Regex,
+    footnote_re: &Regex,
+    slug_re: &Regex,
+) -> Result<(), LessmarkError> {
+    for captures in ref_re.captures_iter(text) {
+        if !slug_re.is_match(captures.get(1).map(|target| target.as_str()).unwrap_or("")) {
+            return Err(LessmarkError::new(
+                "Inline ref target must be a lowercase slug",
+                1,
+                1,
+            ));
+        }
+    }
+    for captures in footnote_re.captures_iter(text) {
+        if !slug_re.is_match(captures.get(1).map(|target| target.as_str()).unwrap_or("")) {
+            return Err(LessmarkError::new(
+                "Inline footnote target must be a lowercase slug",
+                1,
+                1,
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn markdown_node(node: &Node, footnote_ids: &BTreeSet<String>) -> Option<String> {
+    match node {
+        Node::Heading { level, text, .. } => Some(format!(
+            "{} {}",
+            "#".repeat(*level as usize),
+            inline_to_markdown(text)
+        )),
         Node::Block {
             name, attrs, text, ..
         } => match name.as_str() {
@@ -154,9 +270,9 @@ fn markdown_node(node: &Node) -> Option<String> {
             "warning" => Some(format!("> Warning: {}", text)),
             "constraint" => Some(format!("> Constraint: {}", text)),
             "decision" => Some(format!(
-                "**Decision {}:** {}",
+                "### {}\n\n**Decision:** {}",
                 attrs.get("id").map(String::as_str).unwrap_or(""),
-                text
+                inline_to_markdown(text)
             )),
             "task" => Some(format!(
                 "- [{}] {}",
@@ -208,6 +324,11 @@ fn markdown_node(node: &Node) -> Option<String> {
             )),
             "example" => Some(format!("Example:\n\n{}", text)),
             "page" | "toc" => None,
+            "nav" => Some(format!(
+                "- [{}]({})",
+                inline_to_markdown(attrs.get("label").map(String::as_str).unwrap_or("")),
+                attrs.get("href").map(String::as_str).unwrap_or("")
+            )),
             "quote" => Some(quote_to_markdown(
                 text,
                 attrs.get("cite").map(String::as_str).unwrap_or(""),
@@ -226,8 +347,44 @@ fn markdown_node(node: &Node) -> Option<String> {
                 text,
             )),
             "image" => Some(image_to_markdown(attrs, text)),
+            "footnote" => Some(format!(
+                "[^{}]: {}",
+                attrs.get("id").map(String::as_str).unwrap_or(""),
+                inline_to_markdown(text)
+            )),
+            "definition" => Some(format!(
+                "**{}**\n: {}",
+                inline_to_markdown(attrs.get("term").map(String::as_str).unwrap_or("")),
+                inline_to_markdown(text)
+            )),
+            "reference" => Some(format!(
+                "[{}](#{})",
+                inline_to_markdown(
+                    attrs
+                        .get("label")
+                        .map(String::as_str)
+                        .filter(|label| !label.is_empty())
+                        .unwrap_or(if text.is_empty() {
+                            attrs.get("target").map(String::as_str).unwrap_or("")
+                        } else {
+                            text
+                        })
+                ),
+                reference_anchor(
+                    attrs.get("target").map(String::as_str).unwrap_or(""),
+                    footnote_ids
+                )
+            )),
             _ => Some(text.clone()),
         },
+    }
+}
+
+fn reference_anchor(target: &str, footnote_ids: &BTreeSet<String>) -> String {
+    if footnote_ids.contains(target) {
+        format!("fn-{}", target)
+    } else {
+        target.to_string()
     }
 }
 
@@ -237,16 +394,35 @@ fn inline_to_markdown(text: &str) -> String {
         (r"\{\{em:([^{}]+)\}\}", "*$1*"),
         (r"\{\{code:([^{}]+)\}\}", "`$1`"),
         (r"\{\{kbd:([^{}]+)\}\}", "`$1`"),
+        (r"\{\{del:([^{}]+)\}\}", "~~$1~~"),
+        (r"\{\{mark:([^{}]+)\}\}", "==$1=="),
+        (r"\{\{sup:([^{}]+)\}\}", "^$1^"),
+        (r"\{\{sub:([^{}]+)\}\}", "~$1~"),
+        (r"\{\{ref:([^{}|]+)\|([^{}]+)\}\}", "[$1](#$2)"),
+        (r"\{\{footnote:([^{}]+)\}\}", "[^$1]"),
         (r"\{\{link:([^{}|]+)\|([^{}]+)\}\}", "[$1]($2)"),
     ];
-    replacements
+    let compiled = replacements
         .iter()
-        .fold(text.to_string(), |current, (pattern, replacement)| {
-            Regex::new(pattern)
-                .expect("inline export regex compiles")
-                .replace_all(&current, *replacement)
-                .to_string()
+        .map(|(pattern, replacement)| {
+            (
+                Regex::new(pattern).expect("inline export regex compiles"),
+                *replacement,
+            )
         })
+        .collect::<Vec<_>>();
+    let mut result = text.to_string();
+    let max_passes = result.len().max(1);
+    for _ in 0..max_passes {
+        let before = result.clone();
+        for (pattern, replacement) in &compiled {
+            result = pattern.replace_all(&result, *replacement).to_string();
+        }
+        if result == before {
+            return result;
+        }
+    }
+    result
 }
 
 fn quote_to_markdown(text: &str, cite: &str) -> String {
@@ -258,7 +434,7 @@ fn quote_to_markdown(text: &str, cite: &str) -> String {
     if cite.is_empty() {
         quoted
     } else {
-        format!("{}\n>\n> Source: {}", quoted, cite)
+        format!("{}\n>\n> Source: {}", quoted, inline_to_markdown(cite))
     }
 }
 
@@ -267,7 +443,7 @@ fn callout_to_markdown(kind: &str, title: &str, text: &str) -> String {
     let head = if title.is_empty() {
         format!("> [!{}]", label)
     } else {
-        format!("> [!{}] {}", label, title)
+        format!("> [!{}] {}", label, inline_to_markdown(title))
     };
     let body = inline_to_markdown(text)
         .lines()
@@ -294,19 +470,26 @@ fn list_to_markdown(kind: &str, text: &str) -> String {
 }
 
 fn table_to_markdown(columns: &str, text: &str) -> String {
-    let header = columns.split('|').collect::<Vec<_>>();
+    let header = split_table_row(columns)
+        .into_iter()
+        .map(|cell| escape_markdown_table_cell(&cell))
+        .collect::<Vec<_>>();
     let mut table = vec![
         format!("| {} |", header.join(" | ")),
         format!("| {} |", vec!["---"; header.len()].join(" | ")),
     ];
     for row in text.lines().filter(|line| !line.trim().is_empty()) {
-        let cells = row
-            .split('|')
-            .map(|cell| inline_to_markdown(cell.trim()))
+        let cells = split_table_row(row)
+            .into_iter()
+            .map(|cell| escape_markdown_table_cell(&inline_to_markdown(&cell)))
             .collect::<Vec<_>>();
         table.push(format!("| {} |", cells.join(" | ")));
     }
     table.join("\n")
+}
+
+fn escape_markdown_table_cell(cell: &str) -> String {
+    cell.replace('|', "\\|")
 }
 
 fn image_to_markdown(attrs: &BTreeMap<String, String>, text: &str) -> String {
@@ -324,6 +507,190 @@ fn image_to_markdown(attrs: &BTreeMap<String, String>, text: &str) -> String {
         image
     } else {
         format!("{}\n\n{}", image, inline_to_markdown(caption))
+    }
+}
+
+fn read_image_line(line: &str) -> Option<ImageLine> {
+    let re = Regex::new(r#"^!\[([^\]]*)\]\((\S+?)(?:\s+"([^"]*)")?\)\s*$"#)
+        .expect("image regex compiles");
+    let captures = re.captures(line.trim())?;
+    Some(ImageLine {
+        alt: captures
+            .get(1)
+            .map(|value| value.as_str())
+            .unwrap_or("")
+            .to_string(),
+        src: captures.get(2)?.as_str().to_string(),
+        caption: captures
+            .get(3)
+            .map(|value| value.as_str())
+            .unwrap_or("")
+            .to_string(),
+    })
+}
+
+fn read_blockquote(lines: &[&str], start_index: usize) -> Option<(Node, usize)> {
+    let quote_re = Regex::new(r"^\s*>\s?").expect("blockquote regex compiles");
+    if !quote_re.is_match(lines[start_index]) {
+        return None;
+    }
+
+    let mut quote_lines = Vec::new();
+    let mut index = start_index;
+    while index < lines.len() && quote_re.is_match(lines[index]) {
+        quote_lines.push(quote_re.replace(lines[index], "").to_string());
+        index += 1;
+    }
+
+    let first = quote_lines.first().map(|line| line.trim()).unwrap_or("");
+    let callout_re = Regex::new(r"(?i)^\[!(NOTE|TIP|WARNING|CAUTION)\]\s*(.*)$")
+        .expect("callout regex compiles");
+    if let Some(captures) = callout_re.captures(first) {
+        let mut attrs = BTreeMap::new();
+        attrs.insert(
+            "kind".to_string(),
+            captures
+                .get(1)
+                .map(|value| value.as_str())
+                .unwrap_or("note")
+                .to_ascii_lowercase(),
+        );
+        let title = captures
+            .get(2)
+            .map(|value| value.as_str())
+            .unwrap_or("")
+            .trim();
+        if !title.is_empty() {
+            attrs.insert("title".to_string(), plain_text(title));
+        }
+        let text = quote_lines
+            .iter()
+            .skip(1)
+            .map(|line| plain_text(line))
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Some((
+            Node::Block {
+                name: "callout".to_string(),
+                attrs,
+                text,
+                position: None,
+            },
+            index,
+        ));
+    }
+
+    let text = quote_lines
+        .iter()
+        .map(|line| plain_text(line))
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    Some((
+        Node::Block {
+            name: "quote".to_string(),
+            attrs: BTreeMap::new(),
+            text,
+            position: None,
+        },
+        index,
+    ))
+}
+
+fn read_table(lines: &[&str], start_index: usize) -> Option<(Node, usize)> {
+    if start_index + 1 >= lines.len() {
+        return None;
+    }
+    let header = split_markdown_table_row(lines[start_index]);
+    let separators = split_markdown_table_row(lines[start_index + 1]);
+    if header.is_empty()
+        || header.len() != separators.len()
+        || !separators.iter().all(|cell| is_table_separator(cell))
+    {
+        return None;
+    }
+
+    let mut rows = Vec::new();
+    let mut index = start_index + 2;
+    while index < lines.len() && !lines[index].trim().is_empty() {
+        let cells = split_markdown_table_row(lines[index]);
+        if cells.len() != header.len() {
+            break;
+        }
+        rows.push(cells);
+        index += 1;
+    }
+
+    let columns = header
+        .iter()
+        .map(|cell| escape_lessmark_table_cell(&plain_text(cell)))
+        .collect::<Vec<_>>();
+    let body = rows
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|cell| escape_lessmark_table_cell(&plain_text(cell)))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    if columns.iter().any(String::is_empty) || body.iter().flatten().any(String::is_empty) {
+        return None;
+    }
+
+    let mut attrs = BTreeMap::new();
+    attrs.insert("columns".to_string(), columns.join("|"));
+    Some((
+        Node::Block {
+            name: "table".to_string(),
+            attrs,
+            text: body
+                .iter()
+                .map(|row| row.join("|"))
+                .collect::<Vec<_>>()
+                .join("\n"),
+            position: None,
+        },
+        index,
+    ))
+}
+
+fn split_markdown_table_row(line: &str) -> Vec<String> {
+    let mut row = line.trim();
+    if row.starts_with('|') {
+        row = &row[1..];
+    }
+    if row.ends_with('|') && !row.ends_with(r"\|") {
+        row = &row[..row.len() - 1];
+    }
+    split_table_row(row)
+}
+
+fn is_table_separator(cell: &str) -> bool {
+    let re = Regex::new(r"^:?-{3,}:?$").expect("table separator regex compiles");
+    re.is_match(cell.trim())
+}
+
+fn escape_lessmark_table_cell(cell: &str) -> String {
+    cell.replace('\\', r"\\").replace('|', r"\|")
+}
+
+fn is_markdown_block_start(lines: &[&str], index: usize) -> bool {
+    read_heading(lines[index]).is_some()
+        || read_fence_line(lines[index]).is_some()
+        || read_task(lines[index]).is_some()
+        || read_image_line(lines[index]).is_some()
+        || Regex::new(r"^\s*>\s?")
+            .expect("blockquote regex compiles")
+            .is_match(lines[index])
+        || read_table(lines, index).is_some()
+}
+
+fn non_empty_or_image(value: &str) -> String {
+    if value.is_empty() {
+        "Image".to_string()
+    } else {
+        value.to_string()
     }
 }
 

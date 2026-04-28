@@ -1,6 +1,8 @@
 # Lessmark VS Code Extension
 
-Local extension scaffold for Lessmark syntax highlighting.
+Local extension scaffold for Lessmark syntax highlighting, diagnostics, and preview.
+
+The check and preview commands call the `lessmark` CLI from your PATH. Install the workspace CLI first with `npm install` from the repository root.
 
 Install from this folder during development:
 

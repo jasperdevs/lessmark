@@ -1,18 +1,21 @@
 # Lessmark Standardization Notes
 
+@paragraph
 Sources:
 
-- <https://blog.codinghorror.com/responsible-open-source-code-parenting/>
-- <https://blog.codinghorror.com/the-future-of-markdown/>
-- <https://blog.codinghorror.com/standard-flavored-markdown/>
-- <https://blog.codinghorror.com/standard-markdown-is-now-common-markdown/>
-- <https://www.metafilter.com/142475/Standard-flavored-Markdown>
-- <https://arstechnica.com/information-technology/2014/10/markdown-throwdown-what-happens-when-foss-software-gets-corporate-backing/>
-- <https://news.ycombinator.com/item?id=4700160>
-- <https://www.osnews.com/story/143128/markdown-is-a-disaster-why-and-what-to-do-instead/>
+@list kind="unordered"
+- https://blog.codinghorror.com/responsible-open-source-code-parenting/
+- https://blog.codinghorror.com/the-future-of-markdown/
+- https://blog.codinghorror.com/standard-flavored-markdown/
+- https://blog.codinghorror.com/standard-markdown-is-now-common-markdown/
+- https://www.metafilter.com/142475/Standard-flavored-Markdown
+- https://arstechnica.com/information-technology/2014/10/markdown-throwdown-what-happens-when-foss-software-gets-corporate-backing/
+- https://news.ycombinator.com/item?id=4700160
+- https://www.osnews.com/story/143128/markdown-is-a-disaster-why-and-what-to-do-instead/
 
 ## Lessons to Keep
 
+@list kind="unordered"
 - A readable text format still needs an unambiguous specification.
 - The test suite is part of the language contract, not just repo maintenance.
 - Popular variants should be named and documented instead of silently accepted.
@@ -24,31 +27,38 @@ Sources:
 
 ## Lessmark Policy
 
-- `docs/spec.md` is the source contract for v0.
-- `schemas/ast-v0.schema.json` is the AST contract.
-- `fixtures/valid/` and `fixtures/invalid/` are conformance fixtures.
-- `scripts/conformance.mjs` must compare JavaScript, Python, and Rust parsing, formatting, validation, Markdown import, and Markdown export behavior.
+@list kind="unordered"
+- docs/spec.mu is the source contract for v0.
+- schemas/ast-v0.schema.json is the AST contract.
+- schemas/language-v0.contract.json is the shared capability contract for language-level fields.
+- schemas/profiles-v0.contract.json is the machine-readable contract for named profiles.
+- fixtures/valid/ and fixtures/invalid/ are conformance fixtures.
+- scripts/conformance.mjs must compare JavaScript, Python, and Rust parsing, formatting, full validation error arrays, Markdown import, Markdown export behavior, generated valid examples, line-ending normalization, shared language contract fields, and profile contract copies.
 - Unknown blocks, unknown attributes, and unknown inline functions remain errors.
-- Lessmark does not support private flavors in source syntax. A future profile must be documented as a named profile and backed by fixtures.
+- Lessmark does not support private flavors in source syntax. A future profile must be documented as a named profile, listed in schemas/profiles-v0.contract.json, and backed by fixtures.
 - Lessmark is Markdown-inspired, not Markdown-compatible by default. Marketing and docs should not call it Standard Markdown, Common Markdown, Better Markdown, or a Markdown replacement.
 - Any breaking syntax or AST change needs a new format version. Do not silently repurpose v0 syntax.
 - Every accepted profile must state its audience, renderer assumptions, and security model.
 
 ## Stewardship Policy
 
+@list kind="unordered"
 - The repository is the project home for source, spec, fixtures, schemas, and release notes.
 - A format change must include rationale, spec text, schema updates when AST shape changes, valid fixtures, invalid fixtures when relevant, and cross-runtime conformance.
+- Format changes should use the GitHub format-change issue form so the affected surface, evidence, and compatibility impact are explicit before implementation.
 - Compatibility claims must name the exact surface: source parser, AST, Markdown import, Markdown export, renderer, CLI, or package format.
 - If the project becomes multi-maintainer, format changes should be reviewed in public issues or pull requests before release.
 - Security-sensitive rendering changes must default to rejecting input rather than sanitizing ambiguous source after the fact.
 
 ## Current Named Profiles
 
+@list kind="unordered"
 - Agent context profile: structured project context for agents and tools.
 - Docs profile: strict static docs and website pages with safe rendering.
 
 ## Things Not to Add Casually
 
+@list kind="unordered"
 - Raw HTML passthrough.
 - Global reference resolution.
 - Renderer-specific syntax.
@@ -57,4 +67,5 @@ Sources:
 - Unreviewed dialect switches or hidden renderer options.
 - Name changes that imply external endorsement.
 
+@paragraph
 Those features are exactly how a simple format becomes hard to parse, hard to test, and hard for agents to trust.

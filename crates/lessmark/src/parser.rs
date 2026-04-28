@@ -1,8 +1,12 @@
 use crate::ast::{Document, Node, PositionPoint, PositionRange};
 use crate::error::LessmarkError;
 use crate::grammar::is_core_block;
-use crate::rules::{contains_control_whitespace, contains_html_like_tag, get_block_attr_errors};
-use std::collections::BTreeMap;
+use crate::rules::{
+    contains_control_whitespace, contains_html_like_tag, get_block_attr_errors,
+    get_block_body_errors,
+};
+use regex::Regex;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub fn parse_lessmark(source: &str) -> Result<Document, LessmarkError> {
     parse_source(source, false)
@@ -42,6 +46,9 @@ fn parse_source(source: &str, source_positions: bool) -> Result<Document, Lessma
         ));
     }
 
+    if let Some(error) = get_local_anchor_errors(&children).into_iter().next() {
+        return Err(LessmarkError::new(error, 1, 1));
+    }
     Ok(Document::new(children))
 }
 
@@ -97,8 +104,11 @@ fn parse_block(
     source_positions: bool,
 ) -> Result<ParsedBlock, LessmarkError> {
     let header = lines[start_index];
-    let (name, rest) = read_block_header(header)
+    let (raw_name, raw_rest) = read_block_header(header)
         .ok_or_else(|| LessmarkError::new("Invalid typed block header", start_index + 1, 1))?;
+    let (name, shorthand_attrs, rest) =
+        normalize_block_header(raw_name, raw_rest, start_index + 1)?;
+    let name = name.as_str();
     if !is_core_block(name) {
         return Err(LessmarkError::new(
             format!("Unknown typed block \"{}\"", name),
@@ -107,7 +117,8 @@ fn parse_block(
         ));
     }
 
-    let attrs = parse_attrs(rest, start_index + 1, name.len() + 2)?;
+    let mut attrs = shorthand_attrs;
+    attrs.extend(parse_attrs(&rest, start_index + 1, name.len() + 2)?);
     validate_block_attrs(name, &attrs, start_index + 1)?;
 
     let mut body = Vec::new();
@@ -116,6 +127,10 @@ fn parse_block(
     let mut end_column = header.len() + 1;
     while index < lines.len() {
         let line = lines[index];
+        if body.is_empty() && line.trim().is_empty() && name != "code" && name != "example" {
+            index += 1;
+            continue;
+        }
         if is_block_terminator(&lines, index, name) {
             break;
         }
@@ -126,11 +141,18 @@ fn parse_block(
         index += 1;
     }
 
+    let text = body.join("\n");
+    let text = if name == "code" || name == "example" {
+        text
+    } else {
+        canonicalize_inline_syntax(&text)
+    };
+    validate_block_body(name, &attrs, &text, start_index + 1)?;
     Ok(ParsedBlock {
         node: Node::Block {
             name: name.to_string(),
             attrs,
-            text: body.join("\n"),
+            text,
             position: source_positions.then(|| position(start_index + 1, 1, end_line, end_column)),
         },
         next_index: index,
@@ -193,6 +215,192 @@ fn read_block_header(header: &str) -> Option<(&str, &str)> {
         }
     }
     Some((&header[1..end], &header[end..]))
+}
+
+fn normalize_block_header(
+    raw_name: &str,
+    raw_rest: &str,
+    line_number: usize,
+) -> Result<(String, BTreeMap<String, String>, String), LessmarkError> {
+    let mut attrs = BTreeMap::new();
+    let mut name = raw_name;
+    match raw_name {
+        "p" | "ul" | "ol" => {
+            if !raw_rest.trim().is_empty() {
+                return Err(LessmarkError::new(
+                    format!("@{} does not accept attributes", raw_name),
+                    line_number,
+                    1,
+                ));
+            }
+            match raw_name {
+                "p" => name = "paragraph",
+                "ul" => {
+                    name = "list";
+                    attrs.insert("kind".to_string(), "unordered".to_string());
+                }
+                "ol" => {
+                    name = "list";
+                    attrs.insert("kind".to_string(), "ordered".to_string());
+                }
+                _ => {}
+            }
+        }
+        _ => {}
+    }
+
+    let mut rest = raw_rest.to_string();
+    if let Some(attr) = shorthand_attr(name) {
+        let value = raw_rest.trim();
+        if !value.is_empty() && !value.contains('=') && !value.chars().any(char::is_whitespace) {
+            attrs.insert(attr.to_string(), value.to_string());
+            rest.clear();
+        }
+    }
+
+    Ok((name.to_string(), attrs, rest))
+}
+
+fn shorthand_attr(name: &str) -> Option<&'static str> {
+    match name {
+        "api" => Some("name"),
+        "callout" => Some("kind"),
+        "code" => Some("lang"),
+        "decision" => Some("id"),
+        "definition" => Some("term"),
+        "depends-on" => Some("target"),
+        "file" => Some("path"),
+        "footnote" => Some("id"),
+        "link" => Some("href"),
+        "metadata" => Some("key"),
+        "reference" => Some("target"),
+        "risk" => Some("level"),
+        "table" => Some("columns"),
+        "task" => Some("status"),
+        _ => None,
+    }
+}
+
+fn canonicalize_inline_syntax(text: &str) -> String {
+    let mut output = String::new();
+    let mut index = 0;
+    while let Some(relative_start) = text[index..].find("{{") {
+        let start = index + relative_start;
+        output.push_str(&canonicalize_inline_segment(&text[index..start]));
+        if let Some(end) = find_inline_function_end(text, start) {
+            output.push_str(&text[start..end]);
+            index = end;
+        } else {
+            output.push_str(&canonicalize_inline_segment(&text[start..]));
+            index = text.len();
+        }
+    }
+    if index < text.len() {
+        output.push_str(&canonicalize_inline_segment(&text[index..]));
+    }
+    output
+}
+
+fn canonicalize_inline_segment(segment: &str) -> String {
+    let code = Regex::new(r"^`([^`\n]+)`").expect("code regex");
+    let link = Regex::new(r"^\[([^\]\n]+)\]\(([^)\s]+)\)").expect("link regex");
+    let footnote = Regex::new(r"^\[\^([a-z0-9]+(?:-[a-z0-9]+)*)\]").expect("footnote regex");
+    let strong = Regex::new(r"^\*\*([^*\n]+)\*\*").expect("strong regex");
+    let emphasis = Regex::new(r"^\*([^*\n]+)\*").expect("emphasis regex");
+    let deleted = Regex::new(r"^~~([^~\n]+)~~").expect("deleted regex");
+    let marked = Regex::new(r"^==([^=\n]+)==").expect("marked regex");
+
+    let mut output = String::new();
+    let mut index = 0;
+    while index < segment.len() {
+        let rest = &segment[index..];
+        if let Some(captures) = code.captures(rest) {
+            output.push_str(&format!(
+                "{{{{code:{}}}}}",
+                captures.get(1).map_or("", |m| m.as_str())
+            ));
+            index += captures.get(0).map_or(0, |m| m.as_str().len());
+            continue;
+        }
+        if let Some(captures) = link.captures(rest) {
+            let label = captures.get(1).map_or("", |m| m.as_str());
+            let href = captures.get(2).map_or("", |m| m.as_str());
+            if let Some(target) = href.strip_prefix('#') {
+                output.push_str(&format!("{{{{ref:{}|{}}}}}", label, target));
+            } else {
+                output.push_str(&format!("{{{{link:{}|{}}}}}", label, href));
+            }
+            index += captures.get(0).map_or(0, |m| m.as_str().len());
+            continue;
+        }
+        if let Some(captures) = footnote.captures(rest) {
+            output.push_str(&format!(
+                "{{{{footnote:{}}}}}",
+                captures.get(1).map_or("", |m| m.as_str())
+            ));
+            index += captures.get(0).map_or(0, |m| m.as_str().len());
+            continue;
+        }
+        if let Some(captures) = strong.captures(rest) {
+            output.push_str(&format!(
+                "{{{{strong:{}}}}}",
+                captures.get(1).map_or("", |m| m.as_str())
+            ));
+            index += captures.get(0).map_or(0, |m| m.as_str().len());
+            continue;
+        }
+        if let Some(captures) = emphasis.captures(rest) {
+            output.push_str(&format!(
+                "{{{{em:{}}}}}",
+                captures.get(1).map_or("", |m| m.as_str())
+            ));
+            index += captures.get(0).map_or(0, |m| m.as_str().len());
+            continue;
+        }
+        if let Some(captures) = deleted.captures(rest) {
+            output.push_str(&format!(
+                "{{{{del:{}}}}}",
+                captures.get(1).map_or("", |m| m.as_str())
+            ));
+            index += captures.get(0).map_or(0, |m| m.as_str().len());
+            continue;
+        }
+        if let Some(captures) = marked.captures(rest) {
+            output.push_str(&format!(
+                "{{{{mark:{}}}}}",
+                captures.get(1).map_or("", |m| m.as_str())
+            ));
+            index += captures.get(0).map_or(0, |m| m.as_str().len());
+            continue;
+        }
+        let char_len = rest.chars().next().map_or(1, char::len_utf8);
+        output.push_str(&rest[..char_len]);
+        index += char_len;
+    }
+    output
+}
+
+fn find_inline_function_end(source: &str, start: usize) -> Option<usize> {
+    let mut depth = 0;
+    let mut index = start;
+    while index < source.len() {
+        let remaining = &source[index..];
+        if remaining.starts_with("{{") {
+            depth += 1;
+            index += 2;
+            continue;
+        }
+        if remaining.starts_with("}}") {
+            depth -= 1;
+            index += 2;
+            if depth == 0 {
+                return Some(index);
+            }
+            continue;
+        }
+        index += source[index..].chars().next().map_or(1, char::len_utf8);
+    }
+    None
 }
 
 fn parse_attrs(
@@ -334,6 +542,98 @@ fn validate_block_attrs(
         return Err(LessmarkError::new(error, line_number, 1));
     }
     Ok(())
+}
+
+fn validate_block_body(
+    name: &str,
+    attrs: &BTreeMap<String, String>,
+    text: &str,
+    line_number: usize,
+) -> Result<(), LessmarkError> {
+    if let Some(error) = get_block_body_errors(name, attrs, text).into_iter().next() {
+        return Err(LessmarkError::new(error, line_number, 1));
+    }
+    Ok(())
+}
+
+fn get_local_anchor_errors(children: &[Node]) -> Vec<String> {
+    let mut errors = Vec::new();
+    let mut seen = BTreeSet::new();
+    let mut targets = BTreeSet::new();
+    let mut heading_counts: BTreeMap<String, usize> = BTreeMap::new();
+    for node in children {
+        let slugs = match node {
+            Node::Heading { text, .. } => {
+                let base = slugify_local_anchor(text);
+                let next = heading_counts.get(&base).copied().unwrap_or(0) + 1;
+                heading_counts.insert(base.clone(), next);
+                vec![if next == 1 {
+                    base
+                } else {
+                    format!("{}-{}", base, next)
+                }]
+            }
+            Node::Block { name, attrs, .. } if name == "decision" => {
+                vec![attrs.get("id").cloned().unwrap_or_default()]
+            }
+            Node::Block { name, attrs, .. } if name == "footnote" => {
+                let id = attrs.get("id").cloned().unwrap_or_default();
+                vec![
+                    id.clone(),
+                    if id.is_empty() {
+                        String::new()
+                    } else {
+                        format!("fn-{}", id)
+                    },
+                ]
+            }
+            _ => Vec::new(),
+        };
+        for slug in slugs {
+            if slug.is_empty() {
+                continue;
+            }
+            if !seen.insert(slug.clone()) {
+                errors.push(format!("Duplicate local anchor slug \"{}\"", slug));
+            } else {
+                targets.insert(slug);
+            }
+        }
+    }
+    for node in children {
+        let Node::Block { name, attrs, .. } = node else {
+            continue;
+        };
+        if name != "reference" {
+            continue;
+        }
+        let target = attrs.get("target").map(String::as_str).unwrap_or("");
+        let footnote_target = format!("fn-{}", target);
+        if !target.is_empty() && !targets.contains(target) && !targets.contains(&footnote_target) {
+            errors.push(format!("Unknown local reference target \"{}\"", target));
+        }
+    }
+    errors
+}
+
+fn slugify_local_anchor(text: &str) -> String {
+    let mut slug = String::new();
+    let mut last_dash = false;
+    for ch in text.chars().flat_map(char::to_lowercase) {
+        if ch.is_ascii_alphanumeric() {
+            slug.push(ch);
+            last_dash = false;
+        } else if !last_dash {
+            slug.push('-');
+            last_dash = true;
+        }
+    }
+    let slug = slug.trim_matches('-').to_string();
+    if slug.is_empty() {
+        "section".to_string()
+    } else {
+        slug
+    }
 }
 
 fn assert_safe_text(

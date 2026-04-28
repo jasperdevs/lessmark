@@ -28,6 +28,7 @@ impl std::error::Error for LessmarkError {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ValidationError {
+    pub code: String,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub line: Option<usize>,
@@ -37,18 +38,101 @@ pub struct ValidationError {
 
 impl ValidationError {
     pub fn message(message: impl Into<String>) -> Self {
+        let message = message.into();
         Self {
-            message: message.into(),
+            code: error_code_for_message(&message).to_string(),
+            message,
             line: None,
             column: None,
         }
     }
 
     pub fn from_parse_error(error: LessmarkError) -> Self {
+        let code = error_code_for_message(&error.message).to_string();
         Self {
+            code,
             message: error.message,
             line: Some(error.line),
             column: Some(error.column),
         }
     }
+}
+
+pub fn error_code_for_message(message: &str) -> &'static str {
+    if message.contains("Unknown typed block") {
+        return "unknown_block";
+    }
+    if message.contains("does not allow attribute") {
+        return "unknown_attribute";
+    }
+    if message.contains(" requires ") {
+        return "missing_required_attribute";
+    }
+    if message.contains("Duplicate attribute") {
+        return "duplicate_attribute";
+    }
+    if message.contains("raw HTML/JSX-like") {
+        return "raw_html";
+    }
+    if message.contains("Loose text") {
+        return "loose_text";
+    }
+    if message.contains("Invalid heading") {
+        return "invalid_heading";
+    }
+    if message.contains("Closing heading markers") {
+        return "closing_heading_marker";
+    }
+    if message.contains("Invalid typed block header") {
+        return "invalid_block_header";
+    }
+    if message.contains("Invalid attribute name") {
+        return "invalid_attribute_name";
+    }
+    if message.contains("Expected =") {
+        return "expected_attribute_equals";
+    }
+    if message.contains("double-quoted") {
+        return "unquoted_attribute";
+    }
+    if message.contains("Unsupported escape") {
+        return "unsupported_escape";
+    }
+    if message.contains("Unterminated") {
+        return "unterminated_syntax";
+    }
+    if message.contains("control whitespace") {
+        return "control_whitespace";
+    }
+    if message.contains("safe relative") || message.contains("executable URL") {
+        return "unsafe_link_or_path";
+    }
+    if message.contains("lowercase slug") {
+        return "invalid_slug";
+    }
+    if message.contains("Unknown local reference target") {
+        return "unknown_reference_target";
+    }
+    if message.contains("Duplicate local anchor") {
+        return "duplicate_local_anchor";
+    }
+    if message.contains("@list") {
+        return "invalid_list_body";
+    }
+    if message.contains("@table") {
+        return "invalid_table_body";
+    }
+    if message.contains("position") {
+        return "invalid_position";
+    }
+    if message.contains("AST root") {
+        return "invalid_ast_root";
+    }
+    if message.contains("unknown property") || message.contains("missing property") {
+        return "invalid_ast_shape";
+    }
+    if message.contains("must be a string") {
+        return "invalid_ast_value";
+    }
+    "validation_error"
 }

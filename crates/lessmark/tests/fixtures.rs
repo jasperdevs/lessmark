@@ -5,6 +5,7 @@ use lessmark::{
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -62,6 +63,48 @@ fn rejects_invalid_docs_attrs() {
             "@image src=\"javascript:alert(1)\" alt=\"Bad\"\n",
             "safe relative, http, or https URL",
         ),
+        (
+            "@nav label=\"Docs\" href=\"javascript:alert(1)\"\n",
+            "safe relative path",
+        ),
+        (
+            "@nav label=\"Docs\" href=\"index.html\" slot=\"sidebar\"\n",
+            "primary or footer",
+        ),
+        (
+            "@nav label=\"Docs\" href=\"index.html\" slot=\"\"\n",
+            "primary or footer",
+        ),
+        (
+            "@nav label=\"Docs\" href=\"index.html\"\nBody.\n",
+            "must not have a body",
+        ),
+        (
+            "@page output=\"index.html\"\nBody.\n",
+            "must not have a body",
+        ),
+        ("@toc\nBody.\n", "must not have a body"),
+        (
+            "@image src=\"assets/diagram.svg\" alt=\"Diagram\"\nBody.\n",
+            "must not have a body",
+        ),
+        (
+            "@reference target=\"../secret\"\nBad target.\n",
+            "lowercase slug",
+        ),
+        (
+            "@reference target=\"missing-section\"\nBad target.\n",
+            "Unknown local reference target",
+        ),
+        ("@definition term=\"Term<T>\"\nBad term.\n", "raw HTML"),
+        (
+            "@table columns=\"Feature|Status\"\nOnly one cell\n",
+            "row cell count",
+        ),
+        (
+            "@list kind=\"unordered\"\n- Parent\n  - Child\n",
+            "flat in v0",
+        ),
     ];
     for (source, message) in cases {
         let error = parse_lessmark(source).expect_err("invalid docs attr rejects");
@@ -87,6 +130,36 @@ fn validates_safe_links() {
 }
 
 #[test]
+fn validation_errors_include_stable_codes() {
+    let errors = validate_source("@summary\nDo not use <script>alert(1)</script> here.\n");
+    assert_eq!(errors[0].code, "raw_html");
+    assert_eq!(
+        errors[0].message,
+        "@summary contains raw HTML/JSX-like syntax"
+    );
+    assert_eq!(errors[0].line, Some(2));
+    assert_eq!(errors[0].column, Some(1));
+}
+
+#[test]
+fn cli_info_json_prints_machine_readable_capabilities() {
+    let output = Command::new(env!("CARGO_BIN_EXE_lessmark"))
+        .args(["info", "--json"])
+        .output()
+        .expect("lessmark info runs");
+    assert!(output.status.success());
+    let info: Value = serde_json::from_slice(&output.stdout).expect("info json parses");
+    assert_eq!(info["language"], "lessmark");
+    assert_eq!(info["astVersion"], "v0");
+    assert_eq!(info["syntaxPolicy"]["aliases"], true);
+    assert_eq!(info["cli"]["strictBuild"], false);
+    assert!(info["blocks"]
+        .as_array()
+        .expect("blocks")
+        .contains(&Value::String("summary".into())));
+}
+
+#[test]
 fn formatter_is_idempotent() {
     let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
         .expect("fixture is readable");
@@ -100,6 +173,85 @@ fn formatter_preserves_indented_example_text() {
     let source = fs::read_to_string(repo_root().join("fixtures/valid/example-code.mu"))
         .expect("fixture is readable");
     assert_eq!(format_lessmark(&source).expect("format example"), source);
+}
+
+#[test]
+fn canonicalizes_documented_human_authoring_conveniences() {
+    let source = r#"# Project Context
+
+@p
+Use **bold**, *emphasis*, `code`, `**literal**`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
+
+@ul
+- One
+- Two
+
+@ol
+- First
+- Second
+
+@decision storage-backend
+Use SQLite.
+
+@task todo
+Add docs.
+
+@risk high
+Migration risk.
+
+@file src/app.ts
+Owns app.
+
+@api parseLessmark
+Parser API.
+
+@code ts
+const ok = true;
+
+@callout warning
+Watch this.
+
+@definition API
+Application programming interface.
+
+@table Name|Value
+Stage|alpha
+
+@metadata project.stage
+alpha
+
+@link https://example.com
+Homepage.
+
+@footnote note
+Footnote body.
+"#;
+    let formatted = format_lessmark(source).expect("authoring conveniences format");
+    assert!(formatted.contains("@paragraph\nUse {{strong:bold}}, {{em:emphasis}}, {{code:code}}, {{code:**literal**}}, {{link:Docs|https://example.com}}, {{ref:Decision|storage-backend}}, {{footnote:note}}, {{mark:marked}}, and {{del:gone}}."));
+    assert!(formatted.contains("@list kind=\"unordered\"\n- One\n- Two"));
+    assert!(formatted.contains("@list kind=\"ordered\"\n- First\n- Second"));
+    assert!(formatted.contains("@decision id=\"storage-backend\""));
+    assert!(formatted.contains("@task status=\"todo\""));
+    assert!(formatted.contains("@risk level=\"high\""));
+    assert!(formatted.contains("@file path=\"src/app.ts\""));
+    assert!(formatted.contains("@api name=\"parseLessmark\""));
+    assert!(formatted.contains("@code lang=\"ts\"\nconst ok = true;"));
+    assert!(formatted.contains("@callout kind=\"warning\"\nWatch this."));
+    assert!(formatted.contains("@definition term=\"API\"\nApplication programming interface."));
+    assert!(formatted.contains("@table columns=\"Name|Value\"\nStage|alpha"));
+    assert!(formatted.contains("@metadata key=\"project.stage\""));
+    assert!(formatted.contains("@link href=\"https://example.com\""));
+    assert!(formatted.contains("@footnote id=\"note\""));
+    assert!(validate_source(&formatted).is_empty());
+}
+
+#[test]
+fn ignores_leading_blank_lines_inside_body_capable_blocks() {
+    let source = "@task done\n\nhey\n\n@metadata rfc.id\n\nRFC-0042\n";
+    assert_eq!(
+        format_lessmark(source).expect("leading blank body formats"),
+        "@task status=\"done\"\nhey\n\n@metadata key=\"rfc.id\"\nRFC-0042\n"
+    );
 }
 
 #[test]
@@ -147,6 +299,57 @@ fn validates_non_string_attrs_without_treating_present_values_as_missing() {
 }
 
 #[test]
+fn rejects_duplicate_local_anchor_slugs_on_direct_ast_input() {
+    let ast = serde_json::json!({
+        "type": "document",
+        "children": [
+            { "type": "heading", "level": 1, "text": "Build System" },
+            { "type": "block", "name": "decision", "attrs": { "id": "build-system" }, "text": "Collision." }
+        ]
+    });
+    let errors: Vec<String> = validate_value(&ast)
+        .into_iter()
+        .map(|error| error.message)
+        .collect();
+    assert_eq!(errors, vec!["Duplicate local anchor slug \"build-system\""]);
+
+    let rendered_footnote_ast = serde_json::json!({
+        "type": "document",
+        "children": [
+            { "type": "heading", "level": 1, "text": "Fn Build System" },
+            { "type": "block", "name": "footnote", "attrs": { "id": "build-system" }, "text": "Collision." }
+        ]
+    });
+    let rendered_footnote_errors: Vec<String> = validate_value(&rendered_footnote_ast)
+        .into_iter()
+        .map(|error| error.message)
+        .collect();
+    assert_eq!(
+        rendered_footnote_errors,
+        vec!["Duplicate local anchor slug \"fn-build-system\""]
+    );
+}
+
+#[test]
+fn rejects_unknown_local_reference_targets_on_direct_ast_input() {
+    let ast = serde_json::json!({
+        "type": "document",
+        "children": [
+            { "type": "heading", "level": 1, "text": "Build System" },
+            { "type": "block", "name": "reference", "attrs": { "target": "missing-section" }, "text": "Bad target." }
+        ]
+    });
+    let errors: Vec<String> = validate_value(&ast)
+        .into_iter()
+        .map(|error| error.message)
+        .collect();
+    assert_eq!(
+        errors,
+        vec!["Unknown local reference target \"missing-section\""]
+    );
+}
+
+#[test]
 fn imports_markdown_code_fences_with_internal_blank_lines() {
     let lessmark = from_markdown("# Project\n\n```js\nconst a = 1;\n\nconst b = 2;\n```\n")
         .expect("markdown imports");
@@ -154,6 +357,32 @@ fn imports_markdown_code_fences_with_internal_blank_lines() {
     let ast = parse_lessmark(&lessmark).expect("imported Lessmark parses");
     let json = serde_json::to_value(ast).expect("document serializes");
     assert_eq!(json["children"][1]["text"], "const a = 1;\n\nconst b = 2;");
+}
+
+#[test]
+fn imports_common_gfm_blocks_into_typed_lessmark_blocks() {
+    let lessmark = from_markdown(
+        "# Project\n\n\
+![Build pipeline](assets/diagram.svg \"Pipeline\")\n\n\
+> [!WARNING] Migration\n\
+> Check imported content.\n\n\
+> Keep source safe.\n\
+> Preserve the quote.\n\n\
+| Feature | Status |\n\
+| --- | --- |\n\
+| Images | done |\n\
+| Tables \\| escaped | done |\n",
+    )
+    .expect("markdown imports");
+    assert!(lessmark
+        .contains("@image alt=\"Build pipeline\" caption=\"Pipeline\" src=\"assets/diagram.svg\""));
+    assert!(
+        lessmark.contains("@callout kind=\"warning\" title=\"Migration\"\nCheck imported content.")
+    );
+    assert!(lessmark.contains("@quote\nKeep source safe.\nPreserve the quote."));
+    assert!(lessmark.contains("@table columns=\"Feature|Status\""));
+    assert!(lessmark.contains(r"Tables \| escaped|done"));
+    assert!(validate_source(&lessmark).is_empty());
 }
 
 #[test]
@@ -176,9 +405,45 @@ fn exports_docs_blocks_to_markdown() {
     let source = fs::read_to_string(repo_root().join("fixtures/valid/docs-page.mu"))
         .expect("fixture is readable");
     let markdown = to_markdown(&source).expect("exports markdown");
-    assert!(markdown.starts_with("# Docs"));
+    assert!(markdown.contains("# Docs Home"));
     assert!(markdown.contains("**explicit**"));
+    assert!(markdown.contains("==marked text=="));
+    assert!(markdown.contains("[^strict-syntax]: Lessmark keeps one explicit spelling"));
+    assert!(markdown.contains("### renderer-contract"));
+    assert!(markdown.contains("**Build system**"));
+    assert!(markdown.contains("[Build system section](#build-system)"));
+    assert!(markdown.contains("[Renderer contract decision](#renderer-contract)"));
+    assert!(markdown.contains("[Strict syntax footnote](#fn-strict-syntax)"));
+    assert!(markdown.contains("- [Home](index.html)"));
+    assert!(markdown.contains("- [API](api.html)"));
     assert!(markdown.contains("> [!TIP] No hooks by default"));
     assert!(markdown.contains("| Feature | Status |"));
+    assert!(markdown.contains("| Typed blocks\\|agents | done |"));
     assert!(markdown.contains("![Build pipeline](assets/diagram.svg)"));
+}
+
+#[test]
+fn rejects_invalid_inline_local_targets_during_markdown_export() {
+    for source in [
+        "@paragraph\n{{ref:Build|Build System}}\n",
+        "@paragraph\n{{ref:Build| build-system}}\n",
+        "@paragraph\n{{footnote:}}\n",
+        "# {{ref:Build|Build System}}\n",
+        "@callout kind=\"note\" title=\"{{footnote: strict-syntax}}\"\nBody.\n",
+    ] {
+        let error = to_markdown(source).expect_err("invalid inline target rejects");
+        assert!(
+            error.message.contains("lowercase slug"),
+            "{}",
+            error.message
+        );
+    }
+}
+
+#[test]
+fn exports_literal_code_and_example_inline_syntax() {
+    let code = to_markdown("@code\n{{ref:Build|Build System}}\n").expect("exports code");
+    assert!(code.contains("{{ref:Build|Build System}}"));
+    let example = to_markdown("@example\n{{footnote: bad id}}\n").expect("exports example");
+    assert!(example.contains("{{footnote: bad id}}"));
 }

@@ -1,9 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::LazyLock;
 
-pub const CORE_BLOCK_NAMES: [&str; 22] = [
+pub const CORE_BLOCK_NAMES: [&str; 26] = [
     "summary",
     "page",
+    "nav",
     "paragraph",
     "decision",
     "constraint",
@@ -19,6 +20,9 @@ pub const CORE_BLOCK_NAMES: [&str; 22] = [
     "table",
     "image",
     "toc",
+    "footnote",
+    "definition",
+    "reference",
     "api",
     "link",
     "metadata",
@@ -46,6 +50,7 @@ pub static BLOCK_ATTR_SPECS: LazyLock<BTreeMap<&'static str, BlockAttrSpec>> =
         let mut specs = BTreeMap::new();
         specs.insert("summary", spec(&[], &[]));
         specs.insert("page", spec(&["title", "output"], &[]));
+        specs.insert("nav", spec(&["label", "href", "slot"], &["label", "href"]));
         specs.insert("paragraph", spec(&[], &[]));
         specs.insert("decision", spec(&["id"], &["id"]));
         specs.insert("constraint", spec(&[], &[]));
@@ -61,6 +66,9 @@ pub static BLOCK_ATTR_SPECS: LazyLock<BTreeMap<&'static str, BlockAttrSpec>> =
         specs.insert("table", spec(&["columns"], &["columns"]));
         specs.insert("image", spec(&["src", "alt", "caption"], &["src", "alt"]));
         specs.insert("toc", spec(&[], &[]));
+        specs.insert("footnote", spec(&["id"], &["id"]));
+        specs.insert("definition", spec(&["term"], &["term"]));
+        specs.insert("reference", spec(&["target", "label"], &["target"]));
         specs.insert("api", spec(&["name"], &["name"]));
         specs.insert("link", spec(&["href"], &["href"]));
         specs.insert("metadata", spec(&["key"], &["key"]));

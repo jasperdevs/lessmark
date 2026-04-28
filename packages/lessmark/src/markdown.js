@@ -1,5 +1,6 @@
 import { formatAst } from "./format.js";
 import { parseLessmark } from "./parser.js";
+import { DECISION_ID_PATTERN, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
 
 export function fromMarkdown(markdown) {
   const lines = String(markdown).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n");
@@ -57,9 +58,39 @@ export function fromMarkdown(markdown) {
       continue;
     }
 
+    const image = readImageLine(line);
+    if (image) {
+      if (isSafeResource(image.src)) {
+        const attrs = { src: image.src, alt: plainText(image.alt) || "Image" };
+        if (image.caption) attrs.caption = plainText(image.caption);
+        children.push({ type: "block", name: "image", attrs, text: "" });
+      } else {
+        children.push({ type: "block", name: firstParagraph ? "summary" : "note", attrs: {}, text: plainText(image.alt) });
+      }
+      firstParagraph = false;
+      index += 1;
+      continue;
+    }
+
+    const quote = readBlockquote(lines, index);
+    if (quote) {
+      children.push(quote.node);
+      firstParagraph = false;
+      index = quote.nextIndex;
+      continue;
+    }
+
+    const table = readTable(lines, index);
+    if (table) {
+      children.push(table.node);
+      firstParagraph = false;
+      index = table.nextIndex;
+      continue;
+    }
+
     const paragraph = [];
     while (index < lines.length && lines[index].trim() !== "") {
-      if (/^(#{1,6})\s+/.test(lines[index]) || /^```/.test(lines[index]) || /^\s*[-*]\s+\[[ xX]\]\s+/.test(lines[index])) {
+      if (isMarkdownBlockStart(lines, index)) {
         break;
       }
       paragraph.push(lines[index].trim());
@@ -82,14 +113,15 @@ export function fromMarkdown(markdown) {
 
 export function toMarkdown(lessmark) {
   const ast = typeof lessmark === "string" ? parseLessmark(lessmark) : lessmark;
+  const footnoteIds = collectFootnoteIds(ast);
   const chunks = ast.children.map((node) => {
-    if (node.type === "heading") return `${"#".repeat(node.level)} ${node.text}`;
+    if (node.type === "heading") return `${"#".repeat(node.level)} ${inlineToMarkdown(node.text)}`;
     if (node.type !== "block") return "";
 
     if (node.name === "summary" || node.name === "note" || node.name === "paragraph") return inlineToMarkdown(node.text);
     if (node.name === "warning") return `> Warning: ${node.text}`;
     if (node.name === "constraint") return `> Constraint: ${node.text}`;
-    if (node.name === "decision") return `**Decision ${node.attrs.id}:** ${node.text}`;
+    if (node.name === "decision") return `### ${node.attrs.id}\n\n**Decision:** ${inlineToMarkdown(node.text)}`;
     if (node.name === "task") return `- [${node.attrs.status === "done" ? "x" : " "}] ${node.text}`;
     if (node.name === "file") return `**File:** \`${node.attrs.path}\`\n\n${node.text}`;
     if (node.name === "api") return `**API:** \`${node.attrs.name}\`\n\n${node.text}`;
@@ -100,23 +132,70 @@ export function toMarkdown(lessmark) {
     if (node.name === "code") return `\`\`\`${node.attrs.lang ?? ""}\n${node.text}\n\`\`\``;
     if (node.name === "example") return `Example:\n\n${node.text}`;
     if (node.name === "page" || node.name === "toc") return "";
+    if (node.name === "nav") {
+      if (!isSafeHref(node.attrs.href)) throw new Error("@nav href must be http, https, mailto, or a safe relative path");
+      return `- [${inlineToMarkdown(node.attrs.label)}](${node.attrs.href})`;
+    }
     if (node.name === "quote") return quoteToMarkdown(node.text, node.attrs.cite);
     if (node.name === "callout") return calloutToMarkdown(node.attrs.kind, node.attrs.title, node.text);
     if (node.name === "list") return listToMarkdown(node.attrs.kind, node.text);
     if (node.name === "table") return tableToMarkdown(node.attrs.columns, node.text);
     if (node.name === "image") return imageToMarkdown(node.attrs, node.text);
+    if (node.name === "footnote") return `[^${node.attrs.id}]: ${inlineToMarkdown(node.text)}`;
+    if (node.name === "definition") return `**${inlineToMarkdown(node.attrs.term)}**\n: ${inlineToMarkdown(node.text)}`;
+    if (node.name === "reference") {
+      const anchor = footnoteIds.has(node.attrs.target) ? `fn-${node.attrs.target}` : node.attrs.target;
+      return `[${inlineToMarkdown(node.attrs.label || node.text || node.attrs.target)}](#${anchor})`;
+    }
     return node.text;
   });
   return `${chunks.filter(Boolean).join("\n\n")}\n`;
 }
 
+function collectFootnoteIds(ast) {
+  return new Set(ast.children
+    .filter((node) => node.type === "block" && node.name === "footnote")
+    .map((node) => node.attrs.id));
+}
+
 function inlineToMarkdown(text) {
-  return String(text)
-    .replace(/\{\{strong:([^{}]+)\}\}/g, "**$1**")
-    .replace(/\{\{em:([^{}]+)\}\}/g, "*$1*")
-    .replace(/\{\{code:([^{}]+)\}\}/g, "`$1`")
-    .replace(/\{\{kbd:([^{}]+)\}\}/g, "`$1`")
-    .replace(/\{\{link:([^{}|]+)\|([^{}]+)\}\}/g, "[$1]($2)");
+  let result = String(text);
+  assertInlineLocalTargets(result);
+  const replacements = [
+    [/\{\{strong:([^{}]+)\}\}/g, "**$1**"],
+    [/\{\{em:([^{}]+)\}\}/g, "*$1*"],
+    [/\{\{code:([^{}]+)\}\}/g, "`$1`"],
+    [/\{\{kbd:([^{}]+)\}\}/g, "`$1`"],
+    [/\{\{del:([^{}]+)\}\}/g, "~~$1~~"],
+    [/\{\{mark:([^{}]+)\}\}/g, "==$1=="],
+    [/\{\{sup:([^{}]+)\}\}/g, "^$1^"],
+    [/\{\{sub:([^{}]+)\}\}/g, "~$1~"],
+    [/\{\{ref:([^{}|]+)\|([^{}]+)\}\}/g, "[$1](#$2)"],
+    [/\{\{footnote:([^{}]+)\}\}/g, "[^$1]"],
+    [/\{\{link:([^{}|]+)\|([^{}]+)\}\}/g, "[$1]($2)"]
+  ];
+  const maxPasses = Math.max(1, result.length);
+  for (let pass = 0; pass < maxPasses; pass += 1) {
+    const before = result;
+    for (const [pattern, replacement] of replacements) {
+      result = result.replace(pattern, replacement);
+    }
+    if (result === before) return result;
+  }
+  return result;
+}
+
+function assertInlineLocalTargets(text) {
+  for (const match of text.matchAll(/\{\{ref:[^{}|]*\|([^{}]*)\}\}/g)) {
+    if (!DECISION_ID_PATTERN.test(match[1])) {
+      throw new Error("Inline ref target must be a lowercase slug");
+    }
+  }
+  for (const match of text.matchAll(/\{\{footnote:([^{}]*)\}\}/g)) {
+    if (!DECISION_ID_PATTERN.test(match[1])) {
+      throw new Error("Inline footnote target must be a lowercase slug");
+    }
+  }
 }
 
 function quoteToMarkdown(text, cite) {
@@ -124,12 +203,12 @@ function quoteToMarkdown(text, cite) {
     .split("\n")
     .map((line) => `> ${line}`)
     .join("\n");
-  return cite ? `${quoted}\n>\n> Source: ${cite}` : quoted;
+  return cite ? `${quoted}\n>\n> Source: ${inlineToMarkdown(cite)}` : quoted;
 }
 
 function calloutToMarkdown(kind, title, text) {
   const label = String(kind || "note").toUpperCase();
-  const head = title ? `> [!${label}] ${title}` : `> [!${label}]`;
+  const head = title ? `> [!${label}] ${inlineToMarkdown(title)}` : `> [!${label}]`;
   const body = inlineToMarkdown(text)
     .split("\n")
     .map((line) => `> ${line}`)
@@ -149,19 +228,119 @@ function listToMarkdown(kind, text) {
 }
 
 function tableToMarkdown(columns, text) {
-  const header = String(columns || "").split("|");
+  const header = splitTableRow(columns).map(escapeMarkdownTableCell);
   const rows = String(text)
     .split("\n")
     .filter((line) => line.trim() !== "")
-    .map((line) => line.split("|").map((cell) => inlineToMarkdown(cell.trim())));
+    .map((line) => splitTableRow(line).map((cell) => escapeMarkdownTableCell(inlineToMarkdown(cell))));
   const table = [`| ${header.join(" | ")} |`, `| ${header.map(() => "---").join(" | ")} |`];
   for (const row of rows) table.push(`| ${row.join(" | ")} |`);
   return table.join("\n");
 }
 
+function escapeMarkdownTableCell(cell) {
+  return String(cell).replace(/\|/g, "\\|");
+}
+
 function imageToMarkdown(attrs, text) {
   const image = `![${attrs.alt}](${attrs.src})`;
   return attrs.caption || text ? `${image}\n\n${inlineToMarkdown(attrs.caption || text)}` : image;
+}
+
+function readImageLine(line) {
+  const match = /^!\[([^\]]*)\]\((\S+?)(?:\s+"([^"]*)")?\)\s*$/.exec(line.trim());
+  if (!match) return null;
+  return { alt: match[1], src: match[2], caption: match[3] || "" };
+}
+
+function readBlockquote(lines, startIndex) {
+  if (!/^\s*>\s?/.test(lines[startIndex])) return null;
+  const quoteLines = [];
+  let index = startIndex;
+  while (index < lines.length && /^\s*>\s?/.test(lines[index])) {
+    quoteLines.push(lines[index].replace(/^\s*>\s?/, ""));
+    index += 1;
+  }
+
+  const first = quoteLines[0]?.trim() ?? "";
+  const callout = /^\[!(NOTE|TIP|WARNING|CAUTION)\]\s*(.*)$/i.exec(first);
+  if (callout) {
+    const attrs = { kind: callout[1].toLowerCase() };
+    if (callout[2].trim()) attrs.title = plainText(callout[2]);
+    return {
+      nextIndex: index,
+      node: {
+        type: "block",
+        name: "callout",
+        attrs,
+        text: quoteLines.slice(1).map(plainText).filter(Boolean).join("\n")
+      }
+    };
+  }
+
+  return {
+    nextIndex: index,
+    node: {
+      type: "block",
+      name: "quote",
+      attrs: {},
+      text: quoteLines.map(plainText).filter(Boolean).join("\n")
+    }
+  };
+}
+
+function readTable(lines, startIndex) {
+  if (startIndex + 1 >= lines.length) return null;
+  const header = splitMarkdownTableRow(lines[startIndex]);
+  const separators = splitMarkdownTableRow(lines[startIndex + 1]);
+  if (header.length < 1 || header.length !== separators.length || !separators.every(isTableSeparator)) return null;
+
+  const rows = [];
+  let index = startIndex + 2;
+  while (index < lines.length && lines[index].trim() !== "") {
+    const cells = splitMarkdownTableRow(lines[index]);
+    if (cells.length !== header.length) break;
+    rows.push(cells);
+    index += 1;
+  }
+
+  const columns = header.map((cell) => escapeLessmarkTableCell(plainText(cell)));
+  const body = rows.map((row) => row.map((cell) => escapeLessmarkTableCell(plainText(cell))));
+  if (columns.some((cell) => cell === "") || body.some((row) => row.some((cell) => cell === ""))) return null;
+
+  return {
+    nextIndex: index,
+    node: {
+      type: "block",
+      name: "table",
+      attrs: { columns: columns.join("|") },
+      text: body.map((row) => row.join("|")).join("\n")
+    }
+  };
+}
+
+function splitMarkdownTableRow(line) {
+  let row = line.trim();
+  if (row.startsWith("|")) row = row.slice(1);
+  if (row.endsWith("|") && !row.endsWith("\\|")) row = row.slice(0, -1);
+  return splitTableRow(row);
+}
+
+function isTableSeparator(cell) {
+  return /^:?-{3,}:?$/.test(cell.trim());
+}
+
+function escapeLessmarkTableCell(cell) {
+  return String(cell).replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+}
+
+function isMarkdownBlockStart(lines, index) {
+  return /^(#{1,6})\s+/.test(lines[index]) ||
+    readFenceLine(lines[index]) !== null ||
+    /^\s*[-*]\s+\[[ xX]\]\s+/.test(lines[index]) ||
+    readImageLine(lines[index]) !== null ||
+    /^\s*>\s?/.test(lines[index]) ||
+    readTable(lines, index) !== null;
 }
 
 function escapeBlockLine(line) {

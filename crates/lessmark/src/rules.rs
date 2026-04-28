@@ -31,6 +31,11 @@ fn metadata_key_pattern() -> &'static Regex {
     PATTERN.get_or_init(|| Regex::new(r#"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"#).unwrap())
 }
 
+fn definition_term_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r#"^[^\r\n\t<>]+$"#).unwrap())
+}
+
 fn windows_drive_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     PATTERN.get_or_init(|| Regex::new(r#"^[A-Za-z]:[\\/]"#).unwrap())
@@ -93,6 +98,36 @@ pub fn get_block_attr_errors_from_value(
         errors.push(error);
     }
     errors
+}
+
+pub fn get_block_body_errors(
+    name: &str,
+    attrs: &BTreeMap<String, String>,
+    text: &str,
+) -> Vec<String> {
+    if matches!(name, "image" | "nav" | "page" | "toc") && !text.trim().is_empty() {
+        return vec![format!("@{} must not have a body", name)];
+    }
+    if name == "list" {
+        return get_list_body_errors(text);
+    }
+    if name == "table" {
+        return get_table_body_errors(attrs.get("columns").map(String::as_str).unwrap_or(""), text);
+    }
+    Vec::new()
+}
+
+pub fn get_block_body_errors_from_value(
+    name: &str,
+    attrs: Option<&serde_json::Map<String, Value>>,
+    text: &str,
+) -> Vec<String> {
+    let string_attrs: BTreeMap<String, String> = attrs
+        .into_iter()
+        .flat_map(|attrs| attrs.iter())
+        .filter_map(|(key, value)| value.as_str().map(|text| (key.clone(), text.to_string())))
+        .collect();
+    get_block_body_errors(name, &string_attrs, text)
 }
 
 fn attr_shape_errors<'a>(
@@ -233,6 +268,46 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
             }
         }
     }
+    if name == "nav" {
+        if let Some(label) = attrs.get("label") {
+            if label.trim().is_empty() || !definition_term_pattern().is_match(label) {
+                return Some("@nav label must be plain single-line text".to_string());
+            }
+        }
+        if let Some(href) = attrs.get("href") {
+            if !is_safe_href(href) {
+                return Some(
+                    "@nav href must be http, https, mailto, or a safe relative path".to_string(),
+                );
+            }
+        }
+        if let Some(slot) = attrs.get("slot") {
+            if slot != "primary" && slot != "footer" {
+                return Some("@nav slot must be primary or footer".to_string());
+            }
+        }
+    }
+    if name == "footnote" {
+        if let Some(id) = attrs.get("id") {
+            if !decision_id_pattern().is_match(id) {
+                return Some("@footnote id must be a lowercase slug".to_string());
+            }
+        }
+    }
+    if name == "definition" {
+        if let Some(term) = attrs.get("term") {
+            if term.trim().is_empty() || !definition_term_pattern().is_match(term) {
+                return Some("@definition term must be plain single-line text".to_string());
+            }
+        }
+    }
+    if name == "reference" {
+        if let Some(target) = attrs.get("target") {
+            if !decision_id_pattern().is_match(target) {
+                return Some("@reference target must be a lowercase slug".to_string());
+            }
+        }
+    }
     if name == "page" {
         if let Some(output) = attrs.get("output") {
             if !is_safe_page_output(output) {
@@ -253,6 +328,65 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
 fn is_valid_table_columns(columns: &str) -> bool {
     let labels = columns.split('|').map(str::trim).collect::<Vec<_>>();
     !labels.is_empty() && labels.iter().all(|column| !column.is_empty())
+}
+
+fn get_list_body_errors(text: &str) -> Vec<String> {
+    for line in text.lines().filter(|line| !line.trim().is_empty()) {
+        if line.trim_start().starts_with("- ") && !line.starts_with("- ") {
+            return vec![
+                "@list is flat in v0; nested or indented items are not supported".to_string(),
+            ];
+        }
+        if !line.starts_with("- ") {
+            return vec!["@list items must use one explicit '- ' item marker per line".to_string()];
+        }
+    }
+    Vec::new()
+}
+
+fn get_table_body_errors(columns: &str, text: &str) -> Vec<String> {
+    let column_count = split_table_row(columns).len();
+    for line in text.lines().filter(|line| !line.trim().is_empty()) {
+        let cells = split_table_row(line);
+        if cells.iter().any(String::is_empty) {
+            return vec!["@table cells cannot be empty".to_string()];
+        }
+        if cells.len() != column_count {
+            return vec!["@table row cell count must match columns".to_string()];
+        }
+    }
+    Vec::new()
+}
+
+pub fn split_table_row(value: &str) -> Vec<String> {
+    let mut cells = Vec::new();
+    let mut cell = String::new();
+    let mut escaping = false;
+    for ch in value.chars() {
+        if escaping {
+            if ch != '|' && ch != '\\' {
+                cell.push('\\');
+            }
+            cell.push(ch);
+            escaping = false;
+            continue;
+        }
+        if ch == '\\' {
+            escaping = true;
+            continue;
+        }
+        if ch == '|' {
+            cells.push(cell.trim().to_string());
+            cell.clear();
+            continue;
+        }
+        cell.push(ch);
+    }
+    if escaping {
+        cell.push('\\');
+    }
+    cells.push(cell.trim().to_string());
+    cells
 }
 
 fn is_safe_page_output(output: &str) -> bool {

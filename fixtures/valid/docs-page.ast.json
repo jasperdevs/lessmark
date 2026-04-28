@@ -11,6 +11,34 @@
       "text": ""
     },
     {
+      "type": "block",
+      "name": "nav",
+      "attrs": {
+        "label": "Home",
+        "href": "index.html"
+      },
+      "text": ""
+    },
+    {
+      "type": "block",
+      "name": "nav",
+      "attrs": {
+        "label": "Spec",
+        "href": "spec.html"
+      },
+      "text": ""
+    },
+    {
+      "type": "block",
+      "name": "nav",
+      "attrs": {
+        "label": "API",
+        "href": "api.html",
+        "slot": "footer"
+      },
+      "text": ""
+    },
+    {
       "type": "heading",
       "level": 1,
       "text": "Docs Home"
@@ -23,9 +51,17 @@
     },
     {
       "type": "block",
+      "name": "decision",
+      "attrs": {
+        "id": "renderer-contract"
+      },
+      "text": "Docs rendering keeps local anchors stable."
+    },
+    {
+      "type": "block",
       "name": "paragraph",
       "attrs": {},
-      "text": "Lessmark supports {{strong:explicit}} inline functions and {{link:safe links|https://example.com}}."
+      "text": "Lessmark supports {{strong:explicit}} inline functions, {{mark:marked text}}, {{del:deleted text}}, {{ref:local references|build-system}}, and {{footnote:strict-syntax}}."
     },
     {
       "type": "block",
@@ -51,7 +87,7 @@
       "attrs": {
         "columns": "Feature|Status"
       },
-      "text": "Typed blocks|done\nRaw HTML|rejected"
+      "text": "Typed blocks\\|agents|done\nRaw HTML|rejected"
     },
     {
       "type": "block",
@@ -69,6 +105,54 @@
         "title": "No hooks by default"
       },
       "text": "Use built-in blocks before adding execution surfaces."
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Build System"
+    },
+    {
+      "type": "block",
+      "name": "definition",
+      "attrs": {
+        "term": "Build system"
+      },
+      "text": "A deterministic renderer that turns typed Lessmark into static output without raw HTML."
+    },
+    {
+      "type": "block",
+      "name": "reference",
+      "attrs": {
+        "target": "build-system",
+        "label": "Build system section"
+      },
+      "text": "Jump to the build-system section."
+    },
+    {
+      "type": "block",
+      "name": "reference",
+      "attrs": {
+        "target": "renderer-contract",
+        "label": "Renderer contract decision"
+      },
+      "text": "Jump to the renderer-contract decision."
+    },
+    {
+      "type": "block",
+      "name": "reference",
+      "attrs": {
+        "target": "strict-syntax",
+        "label": "Strict syntax footnote"
+      },
+      "text": "Jump to the strict-syntax footnote."
+    },
+    {
+      "type": "block",
+      "name": "footnote",
+      "attrs": {
+        "id": "strict-syntax"
+      },
+      "text": "Lessmark keeps one explicit spelling for each supported structure."
     }
   ]
 }

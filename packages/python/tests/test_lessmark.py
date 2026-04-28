@@ -9,6 +9,7 @@ from lessmark import (
     format_ast,
     format_lessmark,
     from_markdown,
+    get_capabilities,
     parse_lessmark,
     to_markdown,
     validate_ast,
@@ -46,6 +47,85 @@ class LessmarkPythonTests(unittest.TestCase):
         expected = json.loads((ROOT / "fixtures/valid/example-code.ast.json").read_text(encoding="utf-8"))
         self.assertEqual(parse_lessmark(source), expected)
         self.assertEqual(format_lessmark(source), source)
+
+    def test_canonicalizes_documented_human_authoring_conveniences(self):
+        source = """# Project Context
+
+@p
+Use **bold**, *emphasis*, `code`, `**literal**`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
+
+@ul
+- One
+- Two
+
+@ol
+- First
+- Second
+
+@decision storage-backend
+Use SQLite.
+
+@task todo
+Add docs.
+
+@risk high
+Migration risk.
+
+@file src/app.ts
+Owns app.
+
+@api parseLessmark
+Parser API.
+
+@code ts
+const ok = true;
+
+@callout warning
+Watch this.
+
+@definition API
+Application programming interface.
+
+@table Name|Value
+Stage|alpha
+
+@metadata project.stage
+alpha
+
+@link https://example.com
+Homepage.
+
+@footnote note
+Footnote body.
+"""
+        formatted = format_lessmark(source)
+        self.assertIn("@paragraph\nUse {{strong:bold}}, {{em:emphasis}}, {{code:code}}, {{code:**literal**}}, {{link:Docs|https://example.com}}, {{ref:Decision|storage-backend}}, {{footnote:note}}, {{mark:marked}}, and {{del:gone}}.", formatted)
+        self.assertIn('@list kind="unordered"\n- One\n- Two', formatted)
+        self.assertIn('@list kind="ordered"\n- First\n- Second', formatted)
+        self.assertIn('@decision id="storage-backend"', formatted)
+        self.assertIn('@task status="todo"', formatted)
+        self.assertIn('@risk level="high"', formatted)
+        self.assertIn('@file path="src/app.ts"', formatted)
+        self.assertIn('@api name="parseLessmark"', formatted)
+        self.assertIn('@code lang="ts"\nconst ok = true;', formatted)
+        self.assertIn('@callout kind="warning"\nWatch this.', formatted)
+        self.assertIn('@definition term="API"\nApplication programming interface.', formatted)
+        self.assertIn('@table columns="Name|Value"\nStage|alpha', formatted)
+        self.assertIn('@metadata key="project.stage"', formatted)
+        self.assertIn('@link href="https://example.com"', formatted)
+        self.assertIn('@footnote id="note"', formatted)
+        self.assertEqual(validate_source(formatted), [])
+
+    def test_ignores_leading_blank_lines_inside_body_capable_blocks(self):
+        source = """@task done
+
+hey
+
+@metadata rfc.id
+
+RFC-0042
+"""
+        self.assertEqual(format_lessmark(source), '@task status="done"\nhey\n\n@metadata key="rfc.id"\nRFC-0042\n')
 
     def test_rejects_empty_headings(self):
         with self.assertRaisesRegex(LessmarkError, "Invalid heading syntax"):
@@ -95,6 +175,30 @@ class LessmarkPythonTests(unittest.TestCase):
             parse_lessmark('@page output="../index.html"\n')
         with self.assertRaisesRegex(LessmarkError, "safe relative, http, or https URL"):
             parse_lessmark('@image src="javascript:alert(1)" alt="Bad"\n')
+        with self.assertRaisesRegex(LessmarkError, "safe relative path"):
+            parse_lessmark('@nav label="Docs" href="javascript:alert(1)"\n')
+        with self.assertRaisesRegex(LessmarkError, "primary or footer"):
+            parse_lessmark('@nav label="Docs" href="index.html" slot="sidebar"\n')
+        with self.assertRaisesRegex(LessmarkError, "primary or footer"):
+            parse_lessmark('@nav label="Docs" href="index.html" slot=""\n')
+        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
+            parse_lessmark('@nav label="Docs" href="index.html"\nBody.\n')
+        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
+            parse_lessmark('@page output="index.html"\nBody.\n')
+        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
+            parse_lessmark("@toc\nBody.\n")
+        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
+            parse_lessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n')
+        with self.assertRaisesRegex(LessmarkError, "lowercase slug"):
+            parse_lessmark('@reference target="../secret"\nBad target.\n')
+        with self.assertRaisesRegex(LessmarkError, "Unknown local reference target"):
+            parse_lessmark('@reference target="missing-section"\nBad target.\n')
+        with self.assertRaisesRegex(LessmarkError, "raw HTML"):
+            parse_lessmark('@definition term="Term<T>"\nBad term.\n')
+        with self.assertRaisesRegex(LessmarkError, "row cell count"):
+            parse_lessmark('@table columns="Feature|Status"\nOnly one cell\n')
+        with self.assertRaisesRegex(LessmarkError, "flat in v0"):
+            parse_lessmark('@list kind="unordered"\n- Parent\n  - Child\n')
 
     def test_can_include_source_positions_without_changing_default_ast(self):
         source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
@@ -111,7 +215,7 @@ class LessmarkPythonTests(unittest.TestCase):
         errors = validate_source("@summary\nDo not use <script>alert(1)</script> here.\n")
         self.assertEqual(
             errors,
-            [{"message": "@summary contains raw HTML/JSX-like syntax", "line": 2, "column": 1}],
+            [{"code": "raw_html", "message": "@summary contains raw HTML/JSX-like syntax", "line": 2, "column": 1}],
         )
 
     def test_validates_required_attrs_on_direct_ast_input(self):
@@ -145,11 +249,45 @@ class LessmarkPythonTests(unittest.TestCase):
         self.assertEqual(
             errors,
             [
-                {"message": "@file path must be a relative project path"},
-                {"message": "@api name must be an identifier"},
-                {"message": "@link href must be http, https, mailto, or a safe relative path"},
+                {"code": "validation_error", "message": "@file path must be a relative project path"},
+                {"code": "validation_error", "message": "@api name must be an identifier"},
+                {"code": "unsafe_link_or_path", "message": "@link href must be http, https, mailto, or a safe relative path"},
             ],
         )
+
+    def test_rejects_duplicate_local_anchor_slugs_on_direct_ast_input(self):
+        errors = validate_ast(
+            {
+                "type": "document",
+                "children": [
+                    {"type": "heading", "level": 1, "text": "Build System"},
+                    {"type": "block", "name": "decision", "attrs": {"id": "build-system"}, "text": "Collision."},
+                ],
+            }
+        )
+        self.assertEqual(errors, [{"code": "duplicate_local_anchor", "message": 'Duplicate local anchor slug "build-system"'}])
+        rendered_footnote_errors = validate_ast(
+            {
+                "type": "document",
+                "children": [
+                    {"type": "heading", "level": 1, "text": "Fn Build System"},
+                    {"type": "block", "name": "footnote", "attrs": {"id": "build-system"}, "text": "Collision."},
+                ],
+            }
+        )
+        self.assertEqual(rendered_footnote_errors, [{"code": "duplicate_local_anchor", "message": 'Duplicate local anchor slug "fn-build-system"'}])
+
+    def test_rejects_unknown_local_reference_targets_on_direct_ast_input(self):
+        errors = validate_ast(
+            {
+                "type": "document",
+                "children": [
+                    {"type": "heading", "level": 1, "text": "Build System"},
+                    {"type": "block", "name": "reference", "attrs": {"target": "missing-section"}, "text": "Bad target."},
+                ],
+            }
+        )
+        self.assertEqual(errors, [{"code": "unknown_reference_target", "message": 'Unknown local reference target "missing-section"'}])
 
     def test_validates_non_string_attrs_without_treating_present_values_as_missing(self):
         errors = validate_ast(
@@ -164,9 +302,9 @@ class LessmarkPythonTests(unittest.TestCase):
         self.assertEqual(
             errors,
             [
-                {"message": 'Attribute "mood" must be a string'},
-                {"message": '@summary does not allow attribute "mood"'},
-                {"message": 'Attribute "status" must be a string'},
+                {"code": "invalid_ast_value", "message": 'Attribute "mood" must be a string'},
+                {"code": "unknown_attribute", "message": '@summary does not allow attribute "mood"'},
+                {"code": "invalid_ast_value", "message": 'Attribute "status" must be a string'},
             ],
         )
 
@@ -177,10 +315,10 @@ class LessmarkPythonTests(unittest.TestCase):
         self.assertEqual(
             errors,
             [
-                {"message": 'document has unknown property "extra"'},
-                {"message": 'heading has unknown property "extra"'},
-                {"message": "heading level must be an integer from 1 to 6"},
-                {"message": "heading text must be a non-empty string"},
+                {"code": "invalid_ast_shape", "message": 'document has unknown property "extra"'},
+                {"code": "invalid_ast_shape", "message": 'heading has unknown property "extra"'},
+                {"code": "validation_error", "message": "heading level must be an integer from 1 to 6"},
+                {"code": "validation_error", "message": "heading text must be a non-empty string"},
             ],
         )
 
@@ -193,6 +331,26 @@ class LessmarkPythonTests(unittest.TestCase):
         self.assertEqual(validate_source(lessmark), [])
         ast = parse_lessmark(lessmark)
         self.assertEqual(ast["children"][1]["text"], "const a = 1;\n\nconst b = 2;")
+
+    def test_imports_common_gfm_blocks_into_typed_lessmark_blocks(self):
+        lessmark = from_markdown(
+            '# Project\n\n'
+            '![Build pipeline](assets/diagram.svg "Pipeline")\n\n'
+            '> [!WARNING] Migration\n'
+            '> Check imported content.\n\n'
+            '> Keep source safe.\n'
+            '> Preserve the quote.\n\n'
+            '| Feature | Status |\n'
+            '| --- | --- |\n'
+            '| Images | done |\n'
+            '| Tables \\| escaped | done |\n'
+        )
+        self.assertIn('@image alt="Build pipeline" caption="Pipeline" src="assets/diagram.svg"', lessmark)
+        self.assertIn('@callout kind="warning" title="Migration"\nCheck imported content.', lessmark)
+        self.assertIn("@quote\nKeep source safe.\nPreserve the quote.", lessmark)
+        self.assertIn('@table columns="Feature|Status"', lessmark)
+        self.assertIn(r"Tables \| escaped|done", lessmark)
+        self.assertEqual(validate_source(lessmark), [])
 
     def test_rejects_unclosed_markdown_code_fences(self):
         with self.assertRaisesRegex(ValueError, "Unclosed fenced code block"):
@@ -207,11 +365,37 @@ class LessmarkPythonTests(unittest.TestCase):
     def test_exports_docs_blocks_to_markdown(self):
         source = (ROOT / "fixtures/valid/docs-page.mu").read_text(encoding="utf-8")
         markdown = to_markdown(source)
-        self.assertTrue(markdown.startswith("# Docs"))
+        self.assertIn("# Docs Home", markdown)
         self.assertIn("**explicit**", markdown)
+        self.assertIn("==marked text==", markdown)
+        self.assertIn("[^strict-syntax]: Lessmark keeps one explicit spelling", markdown)
+        self.assertIn("### renderer-contract", markdown)
+        self.assertIn("**Build system**", markdown)
+        self.assertIn("[Build system section](#build-system)", markdown)
+        self.assertIn("[Renderer contract decision](#renderer-contract)", markdown)
+        self.assertIn("[Strict syntax footnote](#fn-strict-syntax)", markdown)
+        self.assertIn("- [Home](index.html)", markdown)
+        self.assertIn("- [API](api.html)", markdown)
         self.assertIn("> [!TIP] No hooks by default", markdown)
         self.assertIn("| Feature | Status |", markdown)
+        self.assertIn("| Typed blocks\\|agents | done |", markdown)
         self.assertIn("![Build pipeline](assets/diagram.svg)", markdown)
+
+    def test_rejects_invalid_inline_local_targets_during_markdown_export(self):
+        with self.assertRaisesRegex(ValueError, "lowercase slug"):
+            to_markdown("@paragraph\n{{ref:Build|Build System}}\n")
+        with self.assertRaisesRegex(ValueError, "lowercase slug"):
+            to_markdown("@paragraph\n{{ref:Build| build-system}}\n")
+        with self.assertRaisesRegex(ValueError, "lowercase slug"):
+            to_markdown("@paragraph\n{{footnote:}}\n")
+        with self.assertRaisesRegex(ValueError, "lowercase slug"):
+            to_markdown("# {{ref:Build|Build System}}\n")
+        with self.assertRaisesRegex(ValueError, "lowercase slug"):
+            to_markdown('@callout kind="note" title="{{footnote: strict-syntax}}"\nBody.\n')
+
+    def test_exports_literal_code_and_example_inline_syntax(self):
+        self.assertIn("{{ref:Build|Build System}}", to_markdown("@code\n{{ref:Build|Build System}}\n"))
+        self.assertIn("{{footnote: bad id}}", to_markdown("@example\n{{footnote: bad id}}\n"))
 
     def test_cli_check_json_prints_agent_readable_errors(self):
         output = StringIO()
@@ -221,13 +405,14 @@ class LessmarkPythonTests(unittest.TestCase):
         result = json.loads(output.getvalue())
         self.assertEqual(status, 1)
         self.assertFalse(result["ok"])
+        self.assertEqual(result["errors"][0]["code"], "raw_html")
         self.assertIn("raw HTML", result["errors"][0]["message"])
         self.assertEqual(result["errors"][0]["line"], 2)
         self.assertEqual(result["errors"][0]["column"], 1)
 
     def test_cli_converts_markdown_to_lessmark(self):
         output = StringIO()
-        path = ROOT / "fixtures/valid/markdown-import.md"
+        path = ROOT / "fixtures/valid/markdown-import.fixture"
         with redirect_stdout(output):
             status = main(["from-markdown", str(path)])
         self.assertEqual(status, 0)
@@ -240,6 +425,29 @@ class LessmarkPythonTests(unittest.TestCase):
             status = main(["to-markdown", str(path)])
         self.assertEqual(status, 0)
         self.assertIn("- [ ] Add export settings.", output.getvalue())
+
+    def test_cli_fix_is_formatter_alias(self):
+        output = StringIO()
+        path = ROOT / "fixtures/valid/project-context.mu"
+        with redirect_stdout(output):
+            status = main(["fix", str(path)])
+        self.assertEqual(status, 0)
+        self.assertTrue(output.getvalue().startswith("# Project Context"))
+
+    def test_capabilities_and_cli_info_are_machine_readable(self):
+        info = get_capabilities()
+        self.assertEqual(info["language"], "lessmark")
+        self.assertEqual(info["astVersion"], "v0")
+        self.assertTrue(info["syntaxPolicy"]["aliases"])
+        self.assertIn("summary", info["blocks"])
+
+        output = StringIO()
+        with redirect_stdout(output):
+            status = main(["info", "--json"])
+        result = json.loads(output.getvalue())
+        self.assertEqual(status, 0)
+        self.assertEqual(result["language"], "lessmark")
+        self.assertIn("ref", result["inlineFunctions"])
 
 
 if __name__ == "__main__":

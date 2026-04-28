@@ -1,5 +1,28 @@
 import { CORE_BLOCKS } from "./grammar.js";
-import { CONTROL_WHITESPACE_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors } from "./rules.js";
+import { CONTROL_WHITESPACE_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLocalAnchorErrors } from "./rules.js";
+
+const BLOCK_ALIASES = {
+  p: { name: "paragraph", attrs: {} },
+  ul: { name: "list", attrs: { kind: "unordered" } },
+  ol: { name: "list", attrs: { kind: "ordered" } }
+};
+
+const SHORTHAND_ATTRS = {
+  api: "name",
+  callout: "kind",
+  code: "lang",
+  decision: "id",
+  definition: "term",
+  "depends-on": "target",
+  file: "path",
+  footnote: "id",
+  link: "href",
+  metadata: "key",
+  reference: "target",
+  risk: "level",
+  table: "columns",
+  task: "status"
+};
 
 export class LessmarkError extends Error {
   constructor(message, line = 1, column = 1) {
@@ -42,6 +65,10 @@ export function parseLessmark(source, options = {}) {
     throw new LessmarkError("Loose text is not allowed outside a typed block", index + 1, 1);
   }
 
+  const [anchorError] = getLocalAnchorErrors(children);
+  if (anchorError) {
+    throw new LessmarkError(anchorError, 1, 1);
+  }
   return { type: "document", children };
 }
 
@@ -76,12 +103,13 @@ function parseBlock(lines, startIndex, sourcePositions) {
     throw new LessmarkError("Invalid typed block header", startIndex + 1, 1);
   }
 
-  const name = headerMatch[1];
+  const normalized = normalizeBlockHeader(headerMatch[1], headerMatch[2], startIndex + 1);
+  const name = normalized.name;
   if (!CORE_BLOCKS.has(name)) {
     throw new LessmarkError(`Unknown typed block "${name}"`, startIndex + 1, 2);
   }
 
-  const attrs = parseAttrs(headerMatch[2], startIndex + 1, 1 + name.length + 1);
+  const attrs = { ...normalized.attrs, ...parseAttrs(normalized.rest, startIndex + 1, 1 + name.length + 1) };
   validateBlockAttrs(name, attrs, startIndex + 1);
   const body = [];
   let index = startIndex + 1;
@@ -90,6 +118,10 @@ function parseBlock(lines, startIndex, sourcePositions) {
 
   while (index < lines.length) {
     const line = lines[index];
+    if (body.length === 0 && line.trim() === "" && name !== "code" && name !== "example") {
+      index += 1;
+      continue;
+    }
     if (isBlockTerminator(lines, index, name)) {
       break;
     }
@@ -100,12 +132,14 @@ function parseBlock(lines, startIndex, sourcePositions) {
     index += 1;
   }
 
+  const text = body.join("\n");
   const node = {
     type: "block",
     name,
     attrs,
-    text: body.join("\n")
+    text: name === "code" || name === "example" ? text : canonicalizeInlineSyntax(text)
   };
+  validateBlockBody(node, startIndex + 1);
   if (sourcePositions) {
     node.position = position(startIndex + 1, 1, endLine, endColumn);
   }
@@ -114,6 +148,23 @@ function parseBlock(lines, startIndex, sourcePositions) {
     node,
     nextIndex: index
   };
+}
+
+function normalizeBlockHeader(rawName, rawRest, lineNumber) {
+  const alias = BLOCK_ALIASES[rawName];
+  if (alias && rawRest.trim() !== "") {
+    throw new LessmarkError(`@${rawName} does not accept attributes`, lineNumber, 1);
+  }
+  const name = alias?.name || rawName;
+  const attrs = { ...(alias?.attrs || {}) };
+  let rest = rawRest;
+  const shorthandAttr = SHORTHAND_ATTRS[name];
+  const shorthandValue = rawRest.trim();
+  if (shorthandAttr && shorthandValue && !/[=\s]/.test(shorthandValue)) {
+    attrs[shorthandAttr] = shorthandValue;
+    rest = "";
+  }
+  return { name, attrs, rest };
 }
 
 function isBlockTerminator(lines, index, name) {
@@ -208,6 +259,13 @@ function validateBlockAttrs(name, attrs, lineNumber) {
   }
 }
 
+function validateBlockBody(node, lineNumber) {
+  const [firstError] = getBlockBodyErrors(node);
+  if (firstError) {
+    throw new LessmarkError(firstError, lineNumber, 1);
+  }
+}
+
 function assertSafeText(text, location, lineNumber, column) {
   if (HTML_TAG_PATTERN.test(text)) {
     throw new LessmarkError(`${location} contains raw HTML/JSX-like syntax`, lineNumber, column);
@@ -219,4 +277,100 @@ function assertSafeAttrValue(key, value, lineNumber, column) {
     throw new LessmarkError(`Attribute "${key}" cannot contain control whitespace`, lineNumber, column);
   }
   assertSafeText(value, `attribute "${key}"`, lineNumber, column);
+}
+
+function canonicalizeInlineSyntax(text) {
+  const source = String(text);
+  let output = "";
+  let index = 0;
+  while (index < source.length) {
+    const start = source.indexOf("{{", index);
+    if (start === -1) {
+      output += canonicalizeInlineSegment(source.slice(index));
+      break;
+    }
+    output += canonicalizeInlineSegment(source.slice(index, start));
+    const end = findInlineFunctionEnd(source, start);
+    if (end === -1) {
+      output += source.slice(start);
+      break;
+    }
+    output += source.slice(start, end + 2);
+    index = end + 2;
+  }
+  return output;
+}
+
+function canonicalizeInlineSegment(segment) {
+  const source = String(segment);
+  let output = "";
+  let index = 0;
+  const patterns = [
+    {
+      regex: /^`([^`\n]+)`/,
+      render: (match) => `{{code:${match[1]}}}`
+    },
+    {
+      regex: /^\[([^\]\n]+)\]\(([^)\s]+)\)/,
+      render: (match) => {
+        if (/^#[a-z0-9]+(?:-[a-z0-9]+)*$/.test(match[2])) {
+          return `{{ref:${match[1]}|${match[2].slice(1)}}}`;
+        }
+        return `{{link:${match[1]}|${match[2]}}}`;
+      }
+    },
+    {
+      regex: /^\[\^([a-z0-9]+(?:-[a-z0-9]+)*)\]/,
+      render: (match) => `{{footnote:${match[1]}}}`
+    },
+    {
+      regex: /^\*\*([^*\n]+)\*\*/,
+      render: (match) => `{{strong:${match[1]}}}`
+    },
+    {
+      regex: /^\*([^*\n]+)\*/,
+      render: (match) => `{{em:${match[1]}}}`
+    },
+    {
+      regex: /^~~([^~\n]+)~~/,
+      render: (match) => `{{del:${match[1]}}}`
+    },
+    {
+      regex: /^==([^=\n]+)==/,
+      render: (match) => `{{mark:${match[1]}}}`
+    }
+  ];
+  while (index < source.length) {
+    const rest = source.slice(index);
+    const matched = patterns.map((pattern) => [pattern, pattern.regex.exec(rest)]).find(([, match]) => match);
+    if (matched) {
+      const [pattern, match] = matched;
+      output += pattern.render(match);
+      index += match[0].length;
+      continue;
+    }
+    output += source[index];
+    index += 1;
+  }
+  return output;
+}
+
+function findInlineFunctionEnd(source, start) {
+  let depth = 1;
+  let index = start + 2;
+  while (index < source.length) {
+    if (source.startsWith("{{", index)) {
+      depth += 1;
+      index += 2;
+      continue;
+    }
+    if (source.startsWith("}}", index)) {
+      depth -= 1;
+      if (depth === 0) return index;
+      index += 2;
+      continue;
+    }
+    index += 1;
+  }
+  return -1;
 }

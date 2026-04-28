@@ -3,8 +3,10 @@ use crate::error::ValidationError;
 use crate::parser::parse_lessmark;
 use crate::rules::{
     contains_control_whitespace, contains_html_like_tag, get_block_attr_errors_from_value,
+    get_block_body_errors_from_value,
 };
 use serde_json::Value;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub fn validate_source(source: &str) -> Vec<ValidationError> {
     match parse_lessmark(source) {
@@ -39,6 +41,9 @@ pub fn validate_value(value: &Value) -> Vec<ValidationError> {
     if let Some(children) = root.get("children").and_then(Value::as_array) {
         for child in children {
             validate_child(child, &mut errors);
+        }
+        for message in get_local_anchor_errors(children) {
+            errors.push(ValidationError::message(message));
         }
     }
     errors
@@ -112,7 +117,127 @@ fn validate_block(node: &serde_json::Map<String, Value>, errors: &mut Vec<Valida
         return;
     };
     validate_text_safety(text, errors, &format!("@{}", name));
+    validate_block_body(
+        name,
+        node.get("attrs").and_then(Value::as_object),
+        text,
+        errors,
+    );
     validate_attrs(name, node.get("attrs"), errors);
+}
+
+fn validate_block_body(
+    name: &str,
+    attrs: Option<&serde_json::Map<String, Value>>,
+    text: &str,
+    errors: &mut Vec<ValidationError>,
+) {
+    for message in get_block_body_errors_from_value(name, attrs, text) {
+        errors.push(ValidationError::message(message));
+    }
+}
+
+fn get_local_anchor_errors(children: &[Value]) -> Vec<String> {
+    let mut errors = Vec::new();
+    let mut seen = BTreeSet::new();
+    let mut targets = BTreeSet::new();
+    let mut heading_counts: BTreeMap<String, usize> = BTreeMap::new();
+    for node in children {
+        let Some(object) = node.as_object() else {
+            continue;
+        };
+        let slugs = match object.get("type").and_then(Value::as_str) {
+            Some("heading") => {
+                let base =
+                    slugify_local_anchor(object.get("text").and_then(Value::as_str).unwrap_or(""));
+                let next = heading_counts.get(&base).copied().unwrap_or(0) + 1;
+                heading_counts.insert(base.clone(), next);
+                vec![if next == 1 {
+                    base
+                } else {
+                    format!("{}-{}", base, next)
+                }]
+            }
+            Some("block") if object.get("name").and_then(Value::as_str) == Some("decision") => {
+                vec![object
+                    .get("attrs")
+                    .and_then(Value::as_object)
+                    .and_then(|attrs| attrs.get("id"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string()]
+            }
+            Some("block") if object.get("name").and_then(Value::as_str) == Some("footnote") => {
+                let id = object
+                    .get("attrs")
+                    .and_then(Value::as_object)
+                    .and_then(|attrs| attrs.get("id"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string();
+                vec![
+                    id.clone(),
+                    if id.is_empty() {
+                        String::new()
+                    } else {
+                        format!("fn-{}", id)
+                    },
+                ]
+            }
+            _ => Vec::new(),
+        };
+        for slug in slugs {
+            if slug.is_empty() {
+                continue;
+            }
+            if !seen.insert(slug.clone()) {
+                errors.push(format!("Duplicate local anchor slug \"{}\"", slug));
+            } else {
+                targets.insert(slug);
+            }
+        }
+    }
+    for node in children {
+        let Some(object) = node.as_object() else {
+            continue;
+        };
+        if object.get("type").and_then(Value::as_str) != Some("block")
+            || object.get("name").and_then(Value::as_str) != Some("reference")
+        {
+            continue;
+        }
+        let target = object
+            .get("attrs")
+            .and_then(Value::as_object)
+            .and_then(|attrs| attrs.get("target"))
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let footnote_target = format!("fn-{}", target);
+        if !target.is_empty() && !targets.contains(target) && !targets.contains(&footnote_target) {
+            errors.push(format!("Unknown local reference target \"{}\"", target));
+        }
+    }
+    errors
+}
+
+fn slugify_local_anchor(text: &str) -> String {
+    let mut slug = String::new();
+    let mut last_dash = false;
+    for ch in text.chars().flat_map(char::to_lowercase) {
+        if ch.is_ascii_alphanumeric() {
+            slug.push(ch);
+            last_dash = false;
+        } else if !last_dash {
+            slug.push('-');
+            last_dash = true;
+        }
+    }
+    let slug = slug.trim_matches('-').to_string();
+    if slug.is_empty() {
+        "section".to_string()
+    } else {
+        slug
+    }
 }
 
 fn validate_attrs(name: &str, value: Option<&Value>, errors: &mut Vec<ValidationError>) {

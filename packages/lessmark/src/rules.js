@@ -6,6 +6,8 @@ export const CODE_LANG_PATTERN = /^[A-Za-z0-9_.+-]+$/;
 export const CONTROL_WHITESPACE_PATTERN = /[\r\n\t]/;
 export const DECISION_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const METADATA_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
+export const DEFINITION_TERM_PATTERN = /^(?=.*\S)[^\r\n\t<>]+$/;
+export const NAV_SLOTS = new Set(["primary", "footer"]);
 
 export function isRelativeProjectPath(path) {
   return (
@@ -61,6 +63,20 @@ export function getBlockAttrErrors(name, attrs) {
   return errors;
 }
 
+export function getBlockBodyErrors(node) {
+  const attrs = node.attrs ?? {};
+  if (["image", "nav", "page", "toc"].includes(node.name) && node.text.trim() !== "") {
+    return [`@${node.name} must not have a body`];
+  }
+  if (node.name === "list") {
+    return getListBodyErrors(node.text);
+  }
+  if (node.name === "table") {
+    return getTableBodyErrors(attrs.columns ?? "", node.text);
+  }
+  return [];
+}
+
 function getSemanticAttrError(name, attrs) {
   if (name === "task" && typeof attrs.status === "string" && attrs.status && !TASK_STATUSES.has(attrs.status)) {
     return "@task status must be one of: todo, doing, done, blocked";
@@ -98,6 +114,24 @@ function getSemanticAttrError(name, attrs) {
   if (name === "image" && typeof attrs.src === "string" && attrs.src && !isSafeResource(attrs.src)) {
     return "@image src must be a safe relative, http, or https URL";
   }
+  if (name === "nav" && typeof attrs.label === "string" && attrs.label && !DEFINITION_TERM_PATTERN.test(attrs.label)) {
+    return "@nav label must be plain single-line text";
+  }
+  if (name === "nav" && typeof attrs.href === "string" && attrs.href && !isSafeHref(attrs.href)) {
+    return "@nav href must be http, https, mailto, or a safe relative path";
+  }
+  if (name === "nav" && Object.hasOwn(attrs, "slot") && typeof attrs.slot === "string" && !NAV_SLOTS.has(attrs.slot)) {
+    return "@nav slot must be primary or footer";
+  }
+  if (name === "footnote" && typeof attrs.id === "string" && attrs.id && !DECISION_ID_PATTERN.test(attrs.id)) {
+    return "@footnote id must be a lowercase slug";
+  }
+  if (name === "definition" && typeof attrs.term === "string" && attrs.term && !DEFINITION_TERM_PATTERN.test(attrs.term)) {
+    return "@definition term must be plain single-line text";
+  }
+  if (name === "reference" && typeof attrs.target === "string" && attrs.target && !DECISION_ID_PATTERN.test(attrs.target)) {
+    return "@reference target must be a lowercase slug";
+  }
   if (name === "page" && typeof attrs.output === "string" && attrs.output && !isSafePageOutput(attrs.output)) {
     return "@page output must be a safe relative .html path";
   }
@@ -111,7 +145,104 @@ export function isSafePageOutput(output) {
   return isRelativeProjectPath(output) && output.endsWith(".html");
 }
 
+export function getLocalAnchorErrors(children) {
+  const errors = [];
+  const seen = new Set();
+  const headingCounts = new Map();
+  const targets = new Set();
+  for (const node of children) {
+    if (node === null || typeof node !== "object") continue;
+    let slugs = [];
+    if (node.type === "heading") {
+      const base = slugifyLocalAnchor(node.text);
+      const next = (headingCounts.get(base) || 0) + 1;
+      headingCounts.set(base, next);
+      slugs = [next === 1 ? base : `${base}-${next}`];
+    } else if (node.type === "block" && node.name === "decision") {
+      slugs = [node.attrs?.id || ""];
+    } else if (node.type === "block" && node.name === "footnote") {
+      const id = node.attrs?.id || "";
+      slugs = [id, id ? `fn-${id}` : ""];
+    }
+    for (const slug of slugs) {
+      if (!slug) continue;
+      if (seen.has(slug)) {
+        errors.push(`Duplicate local anchor slug "${slug}"`);
+      } else {
+        seen.add(slug);
+        targets.add(slug);
+      }
+    }
+  }
+  for (const node of children) {
+    if (node?.type !== "block" || node.name !== "reference") continue;
+    const target = node.attrs?.target || "";
+    const footnoteTarget = target ? `fn-${target}` : "";
+    if (target && !targets.has(target) && !targets.has(footnoteTarget)) {
+      errors.push(`Unknown local reference target "${target}"`);
+    }
+  }
+  return errors;
+}
+
 function isValidTableColumns(columns) {
   const labels = columns.split("|").map((column) => column.trim());
   return labels.length >= 1 && labels.every(Boolean);
+}
+
+function getListBodyErrors(text) {
+  const lines = String(text).split("\n").filter((line) => line.trim() !== "");
+  for (const line of lines) {
+    if (/^\s+-\s+/.test(line) && !line.startsWith("- ")) {
+      return ["@list is flat in v0; nested or indented items are not supported"];
+    }
+    if (!line.startsWith("- ")) {
+      return ["@list items must use one explicit '- ' item marker per line"];
+    }
+  }
+  return [];
+}
+
+function getTableBodyErrors(columns, text) {
+  const columnCount = splitTableRow(columns).length;
+  for (const line of String(text).split("\n").filter((row) => row.trim() !== "")) {
+    const cells = splitTableRow(line);
+    if (cells.some((cell) => cell === "")) return ["@table cells cannot be empty"];
+    if (cells.length !== columnCount) return ["@table row cell count must match columns"];
+  }
+  return [];
+}
+
+export function splitTableRow(value) {
+  const cells = [];
+  let cell = "";
+  let escaping = false;
+  for (const char of String(value)) {
+    if (escaping) {
+      if (char !== "|" && char !== "\\") cell += "\\";
+      cell += char;
+      escaping = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+    if (char === "|") {
+      cells.push(cell.trim());
+      cell = "";
+      continue;
+    }
+    cell += char;
+  }
+  if (escaping) cell += "\\";
+  cells.push(cell.trim());
+  return cells;
+}
+
+function slugifyLocalAnchor(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "section";
 }

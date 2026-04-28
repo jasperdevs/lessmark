@@ -1,0 +1,10 @@
+# Inline Functions
+
+@paragraph
+{{strong:Bold {{em:inside}}}} and {{link:docs|https://example.com}}.
+
+@decision id="renderer"
+Supports nesting.
+
+@reference target="renderer" label="{{strong:Renderer}} decision"
+

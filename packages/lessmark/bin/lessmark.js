@@ -1,7 +1,17 @@
 #!/usr/bin/env node
-import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { LessmarkError, formatLessmark, fromMarkdown, parseLessmark, renderHtml, toMarkdown, validateSource } from "lessmark";
+import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import {
+  LessmarkError,
+  errorCodeForMessage,
+  formatLessmark,
+  fromMarkdown,
+  getCapabilities,
+  parseLessmark,
+  renderHtml,
+  toMarkdown,
+  validateSource
+} from "lessmark";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -30,7 +40,7 @@ try {
       process.exit(1);
     }
     console.log(`${file}: ok`);
-  } else if (command === "format") {
+  } else if (command === "format" || command === "fix") {
     const write = args.includes("--write");
     const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--write"));
     const source = await readFile(file, "utf8");
@@ -54,9 +64,20 @@ try {
     const source = await readFile(file, "utf8");
     process.stdout.write(renderHtml(source, { document }));
   } else if (command === "build") {
-    const inputDir = requireFile(args[1]);
-    const outputDir = requireFile(args[2]);
-    await buildSite(inputDir, outputDir);
+    const strict = args.includes("--strict");
+    const positional = args.filter((arg, index) => index > 0 && arg !== "--strict");
+    const inputDir = requireFile(positional[0]);
+    const outputDir = requireFile(positional[1]);
+    await buildSite(inputDir, outputDir, { strict });
+  } else if (command === "info") {
+    if (args.includes("--json")) {
+      console.log(JSON.stringify(getCapabilities(), null, 2));
+    } else {
+      const info = getCapabilities();
+      console.log(`Lessmark ${info.version} (${info.astVersion})`);
+      console.log(`Blocks: ${info.blocks.join(", ")}`);
+      console.log(`Inline functions: ${info.inlineFunctions.join(", ")}`);
+    }
   } else {
     throw new Error(`Unknown command: ${command}`);
   }
@@ -69,20 +90,143 @@ try {
   process.exit(1);
 }
 
-async function buildSite(inputDir, outputDir) {
+async function buildSite(inputDir, outputDir, options = {}) {
   const inputRoot = resolve(inputDir);
   const outputRoot = resolve(outputDir);
-  await copyStaticAssets(inputRoot, inputRoot, outputRoot);
   const files = await listLessmarkFiles(inputRoot, outputRoot);
+  const pages = [];
   for (const file of files) {
     const source = await readFile(file, "utf8");
     const ast = parseLessmark(source);
     const pageOutput = ast.children.find((node) => node.type === "block" && node.name === "page")?.attrs?.output;
     const relativeOutput = pageOutput || relative(inputRoot, file).replace(/\.mu$|\.lessmark$/i, ".html");
-    const outPath = join(outputRoot, relativeOutput);
-    await mkdir(dirname(outPath), { recursive: true });
-    await writeFile(outPath, renderHtml(ast, { document: true }), "utf8");
+    pages.push({ file, ast, relativeOutput: normalizeRelativePath(relativeOutput) });
   }
+  if (options.strict) {
+    const errors = await getStrictBuildErrors(inputRoot, outputRoot, pages);
+    if (errors.length > 0) {
+      const error = new Error(`Strict build failed:\n${errors.map((item) => `- ${item}`).join("\n")}`);
+      error.strictBuildErrors = errors;
+      throw error;
+    }
+  }
+  await copyStaticAssets(inputRoot, inputRoot, outputRoot);
+  for (const page of pages) {
+    const outPath = join(outputRoot, page.relativeOutput);
+    await mkdir(dirname(outPath), { recursive: true });
+    await writeFile(outPath, renderHtml(page.ast, { document: true }), "utf8");
+  }
+}
+
+async function getStrictBuildErrors(inputRoot, outputRoot, pages) {
+  const errors = [];
+  const outputs = new Map();
+  for (const page of pages) {
+    const outputKey = outputCollisionKey(page.relativeOutput);
+    if (outputs.has(outputKey)) {
+      errors.push(`${page.file}: duplicate @page output "${page.relativeOutput}" also used by ${outputs.get(outputKey)}`);
+    } else {
+      outputs.set(outputKey, page.file);
+    }
+  }
+  const staticAssets = await listStaticAssets(inputRoot, inputRoot, outputRoot);
+  const assetOutputs = new Map();
+  for (const asset of staticAssets) {
+    const outputKey = outputCollisionKey(asset.relativeOutput);
+    if (outputs.has(outputKey)) {
+      errors.push(`${asset.file}: static asset output "${asset.relativeOutput}" conflicts with generated page ${outputs.get(outputKey)}`);
+    }
+    if (assetOutputs.has(outputKey)) {
+      errors.push(`${asset.file}: duplicate static asset output "${asset.relativeOutput}" also used by ${assetOutputs.get(outputKey)}`);
+    } else {
+      assetOutputs.set(outputKey, asset.file);
+    }
+  }
+
+  for (const page of pages) {
+    const sourceDir = dirname(page.file);
+    try {
+      renderHtml(page.ast, { document: true });
+    } catch (error) {
+      errors.push(`${page.file}: render failed: ${error.message ?? String(error)}`);
+    }
+    for (const node of page.ast.children) {
+      if (node.type !== "block") continue;
+      if (node.name === "image") {
+        await checkAsset(inputRoot, sourceDir, page.file, node.attrs.src, "@image src", errors);
+      }
+      if (node.name === "nav") {
+        await checkBuildHref(page.file, node.attrs.href, "@nav href", outputs, inputRoot, errors, { pageOnly: true });
+      }
+      if (node.name === "link") {
+        await checkBuildHref(page.file, node.attrs.href, "@link href", outputs, inputRoot, errors);
+      }
+    }
+  }
+  return errors;
+}
+
+async function checkAsset(inputRoot, sourceDir, file, value, label, errors) {
+  if (isExternalHref(value)) return;
+  const pathPart = stripTargetSuffix(value);
+  if (!pathPart) return;
+  const assetPath = resolve(sourceDir, pathPart);
+  if (!isInsideOrEqual(assetPath, inputRoot)) {
+    errors.push(`${file}: ${label} "${value}" points outside the input directory`);
+    return;
+  }
+  try {
+    const info = await stat(assetPath);
+    if (!info.isFile()) errors.push(`${file}: ${label} "${value}" is not a file`);
+  } catch {
+    errors.push(`${file}: ${label} "${value}" does not exist`);
+  }
+}
+
+async function checkBuildHref(file, value, label, outputs, inputRoot, errors, options = {}) {
+  if (isExternalHref(value)) return;
+  const pathPart = stripTargetSuffix(value);
+  if (!pathPart) return;
+  const normalized = normalizeRelativePath(pathPart);
+  if (normalized.startsWith("../") || isAbsolute(normalized)) {
+    errors.push(`${file}: ${label} "${value}" points outside the built site`);
+    return;
+  }
+  if (extname(normalized).toLowerCase() === ".html") {
+    if (!outputs.has(outputCollisionKey(normalized))) errors.push(`${file}: ${label} "${value}" has no built page target`);
+    return;
+  }
+  if (options.pageOnly) {
+    errors.push(`${file}: ${label} "${value}" must point to a built .html page`);
+    return;
+  }
+  const assetPath = resolve(inputRoot, normalized);
+  if (!isInsideOrEqual(assetPath, inputRoot)) {
+    errors.push(`${file}: ${label} "${value}" points outside the input directory`);
+    return;
+  }
+  try {
+    const info = await stat(assetPath);
+    if (!info.isFile()) errors.push(`${file}: ${label} "${value}" is not a file`);
+  } catch {
+    errors.push(`${file}: ${label} "${value}" does not exist`);
+  }
+}
+
+function isExternalHref(value) {
+  return /^(https?|mailto):/i.test(String(value));
+}
+
+function stripTargetSuffix(value) {
+  return String(value).split(/[?#]/, 1)[0];
+}
+
+function normalizeRelativePath(path) {
+  return String(path).replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function outputCollisionKey(path) {
+  return normalizeRelativePath(path).toLowerCase();
 }
 
 async function copyStaticAssets(dir, inputRoot, outputRoot) {
@@ -98,6 +242,21 @@ async function copyStaticAssets(dir, inputRoot, outputRoot) {
       await copyFile(path, outPath);
     }
   }
+}
+
+async function listStaticAssets(dir, inputRoot, skipRoot) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const assets = [];
+  for (const entry of entries) {
+    const path = join(dir, entry.name);
+    if (isInsideOrEqual(path, skipRoot)) continue;
+    if (entry.isDirectory()) {
+      assets.push(...await listStaticAssets(path, inputRoot, skipRoot));
+    } else if (entry.isFile() && !/\.(mu|lessmark)$/i.test(entry.name)) {
+      assets.push({ file: path, relativeOutput: normalizeRelativePath(relative(inputRoot, path)) });
+    }
+  }
+  return assets.sort((left, right) => left.relativeOutput.localeCompare(right.relativeOutput));
 }
 
 async function listLessmarkFiles(dir, skipRoot) {
@@ -136,11 +295,14 @@ Usage:
   lessmark check --json file.mu
   lessmark format file.mu
   lessmark format --write file.mu
+  lessmark fix --write file.mu
   lessmark from-markdown README.md
   lessmark to-markdown file.mu
   lessmark render file.mu
   lessmark render --document file.mu
-  lessmark build docs out`);
+  lessmark build docs out
+  lessmark build --strict docs out
+  lessmark info --json`);
 }
 
 function formatError(error) {
@@ -151,7 +313,8 @@ function formatError(error) {
 }
 
 function toJsonError(error) {
-  const result = { message: error instanceof LessmarkError ? error.message : error.message ?? String(error) };
+  const message = error instanceof LessmarkError ? error.message : error.message ?? String(error);
+  const result = { code: errorCodeForMessage(message), message };
   if (Number.isInteger(error.line)) result.line = error.line;
   if (Number.isInteger(error.column)) result.column = error.column;
   return result;

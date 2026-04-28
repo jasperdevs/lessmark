@@ -6,7 +6,9 @@
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
-    "./schemas/ast-v0.schema.json": "./schemas/ast-v0.schema.json"
+    "./schemas/ast-v0.schema.json": "./schemas/ast-v0.schema.json",
+    "./schemas/language-v0.contract.json": "./schemas/language-v0.contract.json",
+    "./schemas/profiles-v0.contract.json": "./schemas/profiles-v0.contract.json"
   },
   "bin": {
     "lessmark": "bin/lessmark.js"
@@ -19,7 +21,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node --check src/index.js && node --check src/grammar.js && node --check src/rules.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check src/markdown.js && node --check src/render.js && node --check bin/lessmark.js",
+    "build": "node --check src/index.js && node --check src/capabilities.js && node --check src/grammar.js && node --check src/rules.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check src/markdown.js && node --check src/render.js && node --check bin/lessmark.js",
     "test": "node --test"
   },
   "keywords": [

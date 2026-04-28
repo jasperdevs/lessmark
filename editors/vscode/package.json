@@ -5,10 +5,16 @@
   "version": "0.1.0",
   "publisher": "jasperdevs",
   "license": "MIT",
+  "main": "./extension.js",
   "engines": {
     "vscode": "^1.90.0"
   },
   "categories": ["Programming Languages"],
+  "activationEvents": [
+    "onLanguage:lessmark",
+    "onCommand:lessmark.check",
+    "onCommand:lessmark.preview"
+  ],
   "contributes": {
     "languages": [
       {
@@ -23,6 +29,16 @@
         "language": "lessmark",
         "scopeName": "source.lessmark",
         "path": "./syntaxes/lessmark.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "lessmark.check",
+        "title": "Lessmark: Check Document"
+      },
+      {
+        "command": "lessmark.preview",
+        "title": "Lessmark: Preview Document"
       }
     ]
   }

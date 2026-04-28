@@ -1,11 +1,16 @@
 import { parseLessmark } from "./parser.js";
-import { isSafeHref, isSafeResource } from "./rules.js";
+import { DECISION_ID_PATTERN, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
 
-const VOID_BLOCKS = new Set(["metadata", "page"]);
+const VOID_BLOCKS = new Set(["metadata", "page", "nav"]);
 
 export function renderHtml(lessmark, options = {}) {
   const ast = typeof lessmark === "string" ? parseLessmark(lessmark) : lessmark;
-  const body = ast.children.map((node) => renderNode(node, ast)).filter(Boolean).join("\n");
+  const context = { headingIds: assignHeadingIds(ast), footnoteIds: collectFootnoteIds(ast), nav: collectNav(ast) };
+  const body = [
+    renderNav(context.nav.primary, "Primary"),
+    ...ast.children.map((node) => renderNode(node, ast, context)).filter(Boolean),
+    renderNav(context.nav.footer, "Footer")
+  ].filter(Boolean).join("\n");
   if (options.document === true) {
     const title = options.title ?? documentTitle(ast);
     return htmlDocument(title, body);
@@ -13,10 +18,10 @@ export function renderHtml(lessmark, options = {}) {
   return body ? `${body}\n` : "";
 }
 
-function renderNode(node, ast) {
+function renderNode(node, ast, context) {
   if (node.type === "heading") {
     const level = Math.min(Math.max(node.level, 1), 6);
-    return `<h${level} id="${escapeAttr(slugify(node.text))}">${renderInline(node.text)}</h${level}>`;
+    return `<h${level} id="${escapeAttr(context.headingIds.get(node) || slugify(node.text))}">${renderInline(node.text)}</h${level}>`;
   }
   if (node.type !== "block" || VOID_BLOCKS.has(node.name)) return "";
 
@@ -30,7 +35,7 @@ function renderNode(node, ast) {
     case "constraint":
       return `<aside class="lessmark-constraint">${renderInline(node.text)}</aside>`;
     case "decision":
-      return `<section class="lessmark-decision" data-id="${escapeAttr(node.attrs.id)}"><p>${renderInline(node.text)}</p></section>`;
+      return `<section class="lessmark-decision" id="${escapeAttr(node.attrs.id)}" data-id="${escapeAttr(node.attrs.id)}"><p>${renderInline(node.text)}</p></section>`;
     case "task":
       return `<p class="lessmark-task" data-status="${escapeAttr(node.attrs.status)}">${node.attrs.status === "done" ? "[x]" : "[ ]"} ${renderInline(node.text)}</p>`;
     case "file":
@@ -41,7 +46,7 @@ function renderNode(node, ast) {
       assertSafeHref(node.attrs.href);
       return `<p><a href="${escapeAttr(node.attrs.href)}">${renderInline(node.text || node.attrs.href)}</a></p>`;
     case "code":
-      return `<pre><code${node.attrs.lang ? ` class="language-${escapeAttr(node.attrs.lang)}"` : ""}>${escapeHtml(node.text)}</code></pre>`;
+      return `<pre><code${node.attrs.lang ? ` class="language-${escapeAttr(node.attrs.lang)}"` : ""}>${highlightCode(node.text, node.attrs.lang)}</code></pre>`;
     case "example":
       return `<figure class="lessmark-example"><pre>${escapeHtml(node.text)}</pre></figure>`;
     case "risk":
@@ -59,19 +64,61 @@ function renderNode(node, ast) {
     case "image":
       return renderImage(node);
     case "toc":
-      return renderToc(ast);
+      return renderToc(ast, context);
+    case "footnote":
+      return renderFootnote(node);
+    case "definition":
+      return renderDefinition(node);
+    case "reference":
+      return renderReference(node, context);
     default:
       return `<p>${renderInline(node.text)}</p>`;
   }
 }
 
-function renderToc(ast) {
+function collectNav(ast) {
+  const groups = { primary: [], footer: [] };
+  for (const node of ast.children) {
+    if (node.type !== "block" || node.name !== "nav") continue;
+    assertSafeHref(node.attrs.href);
+    groups[node.attrs.slot === "footer" ? "footer" : "primary"].push(node);
+  }
+  return groups;
+}
+
+function collectFootnoteIds(ast) {
+  return new Set(ast.children
+    .filter((node) => node.type === "block" && node.name === "footnote")
+    .map((node) => node.attrs.id));
+}
+
+function renderNav(items, label) {
+  if (items.length === 0) return "";
+  const links = items
+    .map((item) => `<a href="${escapeAttr(item.attrs.href)}">${renderInline(item.attrs.label)}</a>`)
+    .join("");
+  return `<nav class="lessmark-nav" aria-label="${escapeAttr(label)}">${links}</nav>`;
+}
+
+function renderToc(ast, context) {
   const headings = ast.children.filter((node) => node.type === "heading");
   if (headings.length === 0) return "";
   const items = headings
-    .map((heading) => `<li class="level-${heading.level}"><a href="#${escapeAttr(slugify(heading.text))}">${renderInline(heading.text)}</a></li>`)
+    .map((heading) => `<li class="level-${heading.level}"><a href="#${escapeAttr(context.headingIds.get(heading) || slugify(heading.text))}">${renderInline(heading.text)}</a></li>`)
     .join("");
   return `<nav class="lessmark-toc"><ol>${items}</ol></nav>`;
+}
+
+function assignHeadingIds(ast) {
+  const counts = new Map();
+  const ids = new WeakMap();
+  for (const heading of ast.children.filter((node) => node.type === "heading")) {
+    const base = slugify(heading.text);
+    const next = (counts.get(base) || 0) + 1;
+    counts.set(base, next);
+    ids.set(heading, next === 1 ? base : `${base}-${next}`);
+  }
+  return ids;
 }
 
 function renderQuote(node) {
@@ -106,6 +153,9 @@ function renderTable(node) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map(splitTableRow);
+  if (columns.some((cell) => cell === "") || rows.some((row) => row.some((cell) => cell === ""))) {
+    throw new Error("@table cells cannot be empty");
+  }
   for (const row of rows) {
     if (row.length !== columns.length) {
       throw new Error("@table row cell count must match columns");
@@ -122,6 +172,22 @@ function renderImage(node) {
   }
   const caption = node.attrs.caption || node.text;
   return `<figure><img src="${escapeAttr(node.attrs.src)}" alt="${escapeAttr(node.attrs.alt)}">${caption ? `<figcaption>${renderInline(caption)}</figcaption>` : ""}</figure>`;
+}
+
+function renderFootnote(node) {
+  const id = node.attrs.id;
+  return `<aside class="lessmark-footnote" id="fn-${escapeAttr(id)}"><sup>${escapeHtml(node.attrs.id)}</sup> ${renderInline(node.text)}</aside>`;
+}
+
+function renderDefinition(node) {
+  return `<dl class="lessmark-definition"><dt>${renderInline(node.attrs.term)}</dt><dd>${renderLinesAsParagraphs(node.text)}</dd></dl>`;
+}
+
+function renderReference(node, context) {
+  const anchor = context.footnoteIds.has(node.attrs.target) ? `fn-${node.attrs.target}` : node.attrs.target;
+  const target = `#${anchor}`;
+  const label = node.attrs.label || node.text || node.attrs.target;
+  return `<p class="lessmark-reference"><a href="${escapeAttr(target)}">${renderInline(label)}</a></p>`;
 }
 
 function renderLinesAsParagraphs(text) {
@@ -144,7 +210,7 @@ export function renderInline(text) {
       break;
     }
     output += escapeHtml(source.slice(index, start));
-    const end = source.indexOf("}}", start + 2);
+    const end = findInlineFunctionEnd(source, start);
     if (end === -1) {
       throw new Error("Unclosed inline function");
     }
@@ -152,6 +218,26 @@ export function renderInline(text) {
     index = end + 2;
   }
   return output;
+}
+
+function findInlineFunctionEnd(source, start) {
+  let depth = 1;
+  let index = start + 2;
+  while (index < source.length) {
+    if (source.startsWith("{{", index)) {
+      depth += 1;
+      index += 2;
+      continue;
+    }
+    if (source.startsWith("}}", index)) {
+      depth -= 1;
+      if (depth === 0) return index;
+      index += 2;
+      continue;
+    }
+    index += 1;
+  }
+  return -1;
 }
 
 function renderFunction(source) {
@@ -164,6 +250,19 @@ function renderFunction(source) {
   if (name === "em") return `<em>${renderInline(value)}</em>`;
   if (name === "code") return `<code>${escapeHtml(value)}</code>`;
   if (name === "kbd") return `<kbd>${escapeHtml(value)}</kbd>`;
+  if (name === "del") return `<del>${renderInline(value)}</del>`;
+  if (name === "mark") return `<mark>${renderInline(value)}</mark>`;
+  if (name === "sup") return `<sup>${escapeHtml(value)}</sup>`;
+  if (name === "sub") return `<sub>${escapeHtml(value)}</sub>`;
+  if (name === "ref") {
+    const [label, target] = splitInlineRef(value);
+    assertLocalTarget(target, "Inline ref target");
+    return `<a href="#${escapeAttr(target)}">${renderInline(label)}</a>`;
+  }
+  if (name === "footnote") {
+    assertLocalTarget(value, "Inline footnote target");
+    return `<sup><a href="#fn-${escapeAttr(value)}">${escapeHtml(value)}</a></sup>`;
+  }
   if (name === "link") {
     const [label, href] = splitOnce(value, "|");
     assertSafeHref(href);
@@ -172,16 +271,22 @@ function renderFunction(source) {
   throw new Error(`Unknown inline function "${name}"`);
 }
 
+function splitInlineRef(value) {
+  const index = value.indexOf("|");
+  if (index === -1) throw new Error('Expected "|" in inline ref function');
+  return [value.slice(0, index), value.slice(index + 1)];
+}
+
 function splitOnce(value, delimiter) {
   const index = value.indexOf(delimiter);
   if (index === -1) throw new Error(`Expected "${delimiter}" in inline function`);
   return [value.slice(0, index).trim(), value.slice(index + delimiter.length).trim()];
 }
 
-function splitTableRow(value) {
-  const cells = value.split("|").map((cell) => cell.trim());
-  if (cells.some((cell) => cell === "")) throw new Error("@table cells cannot be empty");
-  return cells;
+function assertLocalTarget(target, label) {
+  if (!DECISION_ID_PATTERN.test(target)) {
+    throw new Error(`${label} must be a lowercase slug`);
+  }
 }
 
 function assertSafeHref(href) {
@@ -208,6 +313,112 @@ ${body}
 </body>
 </html>
 `;
+}
+
+function highlightCode(text, lang = "") {
+  const normalized = String(lang).toLowerCase();
+  if (["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(normalized)) {
+    return highlightScript(text);
+  }
+  if (["json", "jsonc"].includes(normalized)) {
+    return highlightJson(text);
+  }
+  if (["sh", "shell", "bash", "zsh", "powershell", "ps1"].includes(normalized)) {
+    return highlightShell(text);
+  }
+  return escapeHtml(text);
+}
+
+function highlightScript(text) {
+  const keywords = new Set([
+    "async", "await", "break", "case", "catch", "class", "const", "continue", "default", "do",
+    "else", "export", "extends", "finally", "for", "from", "function", "if", "import", "in",
+    "instanceof", "let", "new", "of", "return", "static", "switch", "throw", "try", "typeof",
+    "var", "void", "while", "yield", "true", "false", "null", "undefined"
+  ]);
+  return tokenizeCode(text, (source, index) => {
+    const string = readStringToken(source, index, ["'", '"', "`"]);
+    if (string) return ["string", string];
+    if (source.startsWith("//", index)) return ["comment", readUntilNewline(source, index)];
+    if (source.startsWith("/*", index)) return ["comment", readBlockComment(source, index)];
+    const word = /^[A-Za-z_$][A-Za-z0-9_$]*/.exec(source.slice(index))?.[0];
+    if (word && keywords.has(word)) return ["key", word];
+    const number = /^(?:0x[0-9a-fA-F]+|\d+(?:\.\d+)?)/.exec(source.slice(index))?.[0];
+    if (number) return ["number", number];
+    return null;
+  });
+}
+
+function highlightJson(text) {
+  return tokenizeCode(text, (source, index) => {
+    const string = readStringToken(source, index, ['"']);
+    if (string) return ["string", string];
+    const keyword = /^(?:true|false|null)\b/.exec(source.slice(index))?.[0];
+    if (keyword) return ["key", keyword];
+    const number = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/i.exec(source.slice(index))?.[0];
+    if (number) return ["number", number];
+    return null;
+  });
+}
+
+function highlightShell(text) {
+  return tokenizeCode(text, (source, index) => {
+    const string = readStringToken(source, index, ["'", '"']);
+    if (string) return ["string", string];
+    if (source[index] === "#") return ["comment", readUntilNewline(source, index)];
+    const flag = /^--?[A-Za-z0-9][A-Za-z0-9-]*/.exec(source.slice(index))?.[0];
+    if (flag) return ["key", flag];
+    return null;
+  });
+}
+
+function tokenizeCode(text, readToken) {
+  const source = String(text);
+  let index = 0;
+  let output = "";
+  while (index < source.length) {
+    const token = readToken(source, index);
+    if (token) {
+      const [kind, value] = token;
+      output += `<span class="tok-${kind}">${escapeHtml(value)}</span>`;
+      index += value.length;
+      continue;
+    }
+    output += escapeHtml(source[index]);
+    index += 1;
+  }
+  return output;
+}
+
+function readStringToken(source, index, quotes) {
+  const quote = source[index];
+  if (!quotes.includes(quote)) return null;
+  let cursor = index + 1;
+  let escaping = false;
+  while (cursor < source.length) {
+    const char = source[cursor];
+    cursor += 1;
+    if (escaping) {
+      escaping = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+    if (char === quote) break;
+  }
+  return source.slice(index, cursor);
+}
+
+function readUntilNewline(source, index) {
+  const end = source.indexOf("\n", index);
+  return end === -1 ? source.slice(index) : source.slice(index, end);
+}
+
+function readBlockComment(source, index) {
+  const end = source.indexOf("*/", index + 2);
+  return end === -1 ? source.slice(index) : source.slice(index, end + 2);
 }
 
 function escapeHtml(value) {

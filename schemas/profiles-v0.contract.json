@@ -1,0 +1,31 @@
+{
+  "language": "lessmark",
+  "version": "v0",
+  "profiles": [
+    {
+      "name": "agent-context",
+      "status": "accepted",
+      "audience": "agents and tools reading project context",
+      "renderer": "none required",
+      "securityModel": "non-executable source; no raw HTML, hooks, custom blocks, or path traversal",
+      "requiredBlocks": ["summary"],
+      "recommendedBlocks": ["metadata", "decision", "constraint", "file", "api", "task", "risk", "depends-on", "note", "warning", "example"],
+      "disallowedFeatures": ["rawHtml", "hooks", "customBlocks", "privateFlavors", "rendererSpecificSyntax"]
+    },
+    {
+      "name": "docs",
+      "status": "accepted",
+      "audience": "strict static docs and simple documentation sites",
+      "renderer": "npm CLI safe HTML renderer",
+      "securityModel": "escaped HTML output; safe href/resource policy; strict build checks for pages, links, images, and output collisions",
+      "requiredBlocks": [],
+      "recommendedBlocks": ["page", "nav", "paragraph", "image", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
+      "disallowedFeatures": ["rawHtml", "hooks", "customComponents", "styleDirectives", "layoutDirectives", "privateFlavors"]
+    }
+  ],
+  "changePolicy": {
+    "newProfileRequires": ["profileName", "audience", "renderer", "securityModel", "validFixtures", "invalidFixtures", "specUpdate", "conformanceUpdate"],
+    "privateFlavorsAllowed": false,
+    "silentDialectSwitchesAllowed": false
+  }
+}
