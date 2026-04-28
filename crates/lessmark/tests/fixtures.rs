@@ -1,4 +1,7 @@
-use lessmark::{format_lessmark, parse_lessmark, validate_value};
+use lessmark::{
+    format_lessmark, parse_lessmark, parse_lessmark_with_positions, validate_document,
+    validate_value,
+};
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -54,6 +57,27 @@ fn formatter_preserves_indented_example_text() {
     let source = fs::read_to_string(repo_root().join("fixtures/valid/example-code.lmk"))
         .expect("fixture is readable");
     assert_eq!(format_lessmark(&source).expect("format example"), source);
+}
+
+#[test]
+fn can_include_source_positions_without_changing_default_ast() {
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
+        .expect("fixture is readable");
+    let plain = serde_json::to_value(parse_lessmark(&source).expect("valid fixture parses"))
+        .expect("document serializes");
+    let positioned = parse_lessmark_with_positions(&source).expect("valid fixture parses");
+    let positioned_json = serde_json::to_value(&positioned).expect("document serializes");
+
+    assert!(plain["children"][0].get("position").is_none());
+    assert_eq!(
+        positioned_json["children"][0]["position"]["start"]["line"],
+        1
+    );
+    assert_eq!(
+        positioned_json["children"][0]["position"]["end"]["column"],
+        18
+    );
+    assert!(validate_document(&positioned).is_empty());
 }
 
 #[test]

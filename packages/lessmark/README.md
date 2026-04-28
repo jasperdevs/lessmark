@@ -9,6 +9,7 @@ import { parseLessmark, validateSource, formatLessmark } from "lessmark";
 
 const source = "@summary\nTyped context for humans and agents.\n";
 const ast = parseLessmark(source);
+const astWithPositions = parseLessmark(source, { sourcePositions: true });
 const errors = validateSource(source);
 const formatted = formatLessmark(source);
 ```

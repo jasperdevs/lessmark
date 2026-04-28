@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ShapeProvider } from "@/lib/shape-context";
-import { IconProvider } from "@/lib/icon-context";
 import { Playground } from "@/components/Playground";
 import { Features } from "@/components/Features";
 import { Docs } from "@/components/Docs";
@@ -33,7 +32,10 @@ unless the user explicitly asks.
 Add export settings.
 
 @file path="src/Capture/Service.cs"
-Owns stitching and capture state.`;
+Owns stitching and capture state.
+
+@risk level="medium"
+Changing capture flow can break existing workflows.`;
 
 function MarkdownH2({ children }: { children: React.ReactNode }) {
   return (
@@ -74,8 +76,7 @@ function CopyPill({ label, command }: { label: string; command: string }) {
 
 function App() {
   return (
-    <IconProvider defaultLibrary="lucide">
-      <ShapeProvider defaultShape="pill">
+    <ShapeProvider defaultShape="pill">
         {/* edge fades */}
         <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 h-24 z-30 bg-gradient-to-b from-bg via-bg/70 to-transparent" />
         <div aria-hidden className="pointer-events-none fixed inset-x-0 bottom-0 h-24 z-30 bg-gradient-to-t from-bg via-bg/70 to-transparent" />
@@ -92,7 +93,7 @@ function App() {
               <a href="#features" className="hover:text-fg transition-colors">features</a>
               <a href="#docs" className="hover:text-fg transition-colors">docs</a>
               <a href="#compare" className="hover:text-fg transition-colors">compare</a>
-              <a href="https://github.com/" rel="noopener" className="hover:text-fg transition-colors inline-flex items-center gap-1.5">
+              <a href="https://github.com/jasperdevs/lessmark" rel="noopener" className="hover:text-fg transition-colors inline-flex items-center gap-1.5">
                 <Github className="size-4" />
                 github
               </a>
@@ -159,7 +160,7 @@ function App() {
             <div className="mb-6">
               <MarkdownH2>compared</MarkdownH2>
               <p className="mt-2 text-fg-muted max-w-[60ch]">
-                Markdoc and Djot are the closest peers. Lessmark is narrower by design — fewer features, smaller surface.
+                Markdoc and Djot are the closest peers. Lessmark is narrower by design: fewer features, smaller surface.
               </p>
             </div>
             <div className="overflow-x-auto -mx-2 px-2">
@@ -210,15 +211,14 @@ function App() {
           <div className="mx-auto max-w-[920px] px-6 pt-6 border-t border-border-soft flex flex-wrap items-baseline justify-between gap-4">
             <span>lessmark · mit</span>
             <div className="flex items-center gap-5">
-              <a href="https://github.com/" className="hover:text-fg transition-colors">github</a>
+              <a href="https://github.com/jasperdevs/lessmark" className="hover:text-fg transition-colors">github</a>
               <a href="#playground" className="hover:text-fg transition-colors">playground</a>
               <a href="#docs" className="hover:text-fg transition-colors">docs</a>
               <a href="#compare" className="hover:text-fg transition-colors">compare</a>
             </div>
           </div>
         </footer>
-      </ShapeProvider>
-    </IconProvider>
+    </ShapeProvider>
   );
 }
 

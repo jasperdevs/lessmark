@@ -3,17 +3,29 @@ from dataclasses import dataclass
 from typing import Literal, Mapping, TypedDict, Union
 
 
-class HeadingNode(TypedDict):
+class PositionPoint(TypedDict):
+    line: int
+    column: int
+
+
+class PositionRange(TypedDict):
+    start: PositionPoint
+    end: PositionPoint
+
+
+class HeadingNode(TypedDict, total=False):
     type: Literal["heading"]
     level: int
     text: str
+    position: PositionRange
 
 
-class BlockNode(TypedDict):
+class BlockNode(TypedDict, total=False):
     type: Literal["block"]
     name: str
     attrs: dict[str, str]
     text: str
+    position: PositionRange
 
 
 LessmarkNode = Union[HeadingNode, BlockNode]
@@ -43,29 +55,40 @@ CORE_BLOCKS = {
     "constraint",
     "task",
     "file",
+    "code",
     "example",
     "note",
     "warning",
     "api",
     "link",
+    "metadata",
+    "risk",
+    "depends-on",
 }
 
 TASK_STATUSES = {"todo", "doing", "done", "blocked"}
+RISK_LEVELS = {"low", "medium", "high", "critical"}
 HTML_TAG_PATTERN = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>")
 API_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
+CODE_LANG_PATTERN = re.compile(r"^[A-Za-z0-9_.+-]+$")
 CONTROL_WHITESPACE_PATTERN = re.compile(r"[\r\n\t]")
 DECISION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+METADATA_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "summary": {"allowed": set(), "required": set()},
     "decision": {"allowed": {"id"}, "required": {"id"}},
     "constraint": {"allowed": set(), "required": set()},
     "task": {"allowed": {"status"}, "required": {"status"}},
     "file": {"allowed": {"path"}, "required": {"path"}},
+    "code": {"allowed": {"lang"}, "required": set()},
     "example": {"allowed": set(), "required": set()},
     "note": {"allowed": set(), "required": set()},
     "warning": {"allowed": set(), "required": set()},
     "api": {"allowed": {"name"}, "required": {"name"}},
     "link": {"allowed": {"href"}, "required": {"href"}},
+    "metadata": {"allowed": {"key"}, "required": {"key"}},
+    "risk": {"allowed": {"level"}, "required": {"level"}},
+    "depends-on": {"allowed": {"target"}, "required": {"target"}},
 }
 
 
@@ -79,7 +102,7 @@ class LessmarkError(Exception):
         return f"{self.message} at {self.line}:{self.column}"
 
 
-def parse_lessmark(source: str) -> DocumentNode:
+def parse_lessmark(source: str, source_positions: bool = False) -> DocumentNode:
     normalized = str(source).lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n")
     lines = normalized.split("\n")
     children: list[LessmarkNode] = []
@@ -93,12 +116,12 @@ def parse_lessmark(source: str) -> DocumentNode:
             continue
 
         if line.startswith("#"):
-            children.append(_parse_heading(line, index + 1))
+            children.append(_parse_heading(line, index + 1, source_positions))
             index += 1
             continue
 
         if line.startswith("@"):
-            node, next_index = _parse_block(lines, index)
+            node, next_index = _parse_block(lines, index, source_positions)
             children.append(node)
             index = next_index
             continue
@@ -108,7 +131,7 @@ def parse_lessmark(source: str) -> DocumentNode:
     return {"type": "document", "children": children}
 
 
-def _parse_heading(line: str, line_number: int) -> HeadingNode:
+def _parse_heading(line: str, line_number: int, source_positions: bool) -> HeadingNode:
     match = re.match(r"^(#{1,6}) ([^\s].*)$", line)
     if not match:
         raise LessmarkError("Invalid heading syntax", line_number, 1)
@@ -116,10 +139,13 @@ def _parse_heading(line: str, line_number: int) -> HeadingNode:
     if re.search(r"\s#+\s*$", text):
         raise LessmarkError("Closing heading markers are not supported", line_number, len(line))
     _assert_safe_text(text, "heading", line_number, line.find(text) + 1)
-    return {"type": "heading", "level": len(match.group(1)), "text": text}
+    node: HeadingNode = {"type": "heading", "level": len(match.group(1)), "text": text}
+    if source_positions:
+        node["position"] = _position(line_number, 1, line_number, len(line) + 1)
+    return node
 
 
-def _parse_block(lines: list[str], start_index: int) -> tuple[BlockNode, int]:
+def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> tuple[BlockNode, int]:
     header = lines[start_index]
     match = re.match(r"^@([a-z][a-z0-9_-]*)(.*)$", header)
     if not match:
@@ -133,6 +159,8 @@ def _parse_block(lines: list[str], start_index: int) -> tuple[BlockNode, int]:
     _validate_block_attrs(name, attrs, start_index + 1)
     body: list[str] = []
     index = start_index + 1
+    end_line = start_index + 1
+    end_column = len(header) + 1
 
     while index < len(lines):
         line = lines[index]
@@ -140,9 +168,21 @@ def _parse_block(lines: list[str], start_index: int) -> tuple[BlockNode, int]:
             break
         _assert_safe_text(line, f"@{name}", index + 1, 1)
         body.append(line.rstrip())
+        end_line = index + 1
+        end_column = len(line) + 1
         index += 1
 
-    return {"type": "block", "name": name, "attrs": attrs, "text": "\n".join(body)}, index
+    node: BlockNode = {"type": "block", "name": name, "attrs": attrs, "text": "\n".join(body)}
+    if source_positions:
+        node["position"] = _position(start_index + 1, 1, end_line, end_column)
+    return node, index
+
+
+def _position(start_line: int, start_column: int, end_line: int, end_column: int) -> PositionRange:
+    return {
+        "start": {"line": start_line, "column": start_column},
+        "end": {"line": end_line, "column": end_column},
+    }
 
 
 def _parse_attrs(input_text: str, line_number: int, start_column: int) -> dict[str, str]:
@@ -220,7 +260,8 @@ def validate_ast(ast: object) -> list[ValidationError]:
             continue
 
         if node.get("type") == "heading":
-            _validate_exact_keys(node, {"type", "level", "text"}, errors, "heading")
+            _validate_exact_keys(node, {"type", "level", "text"}, errors, "heading", {"position"})
+            _validate_position(node.get("position"), errors, "heading")
             if not isinstance(node.get("level"), int) or node["level"] < 1 or node["level"] > 6:
                 errors.append({"message": "heading level must be an integer from 1 to 6"})
             if not isinstance(node.get("text"), str) or len(node["text"]) == 0:
@@ -234,7 +275,8 @@ def validate_ast(ast: object) -> list[ValidationError]:
             continue
 
         name = node.get("name")
-        _validate_exact_keys(node, {"type", "name", "attrs", "text"}, errors, f"@{name}")
+        _validate_exact_keys(node, {"type", "name", "attrs", "text"}, errors, f"@{name}", {"position"})
+        _validate_position(node.get("position"), errors, f"@{name}")
         if not isinstance(node.get("text"), str):
             errors.append({"message": f"@{name} text must be a string"})
             continue
@@ -319,16 +361,50 @@ def _get_semantic_attr_error(name: str, attrs: Mapping[str, object]) -> str | No
         return "@api name must be an identifier"
     if name == "link" and isinstance(attrs.get("href"), str) and not _is_safe_href(attrs["href"]):
         return "@link href must not use an executable URL scheme"
+    if name == "code" and isinstance(attrs.get("lang"), str) and not CODE_LANG_PATTERN.match(attrs["lang"]):
+        return "@code lang must be a compact language identifier"
+    if name == "metadata" and isinstance(attrs.get("key"), str) and not METADATA_KEY_PATTERN.match(attrs["key"]):
+        return "@metadata key must be a lowercase dotted key"
+    if name == "risk" and isinstance(attrs.get("level"), str) and attrs["level"] not in RISK_LEVELS:
+        return "@risk level must be one of: low, medium, high, critical"
+    if name == "depends-on" and isinstance(attrs.get("target"), str) and not DECISION_ID_PATTERN.match(attrs["target"]):
+        return "@depends-on target must be a lowercase slug"
     return None
 
 
 def _validate_exact_keys(
-    value: Mapping[str, object], expected: set[str], errors: list[ValidationError], location: str
+    value: Mapping[str, object],
+    expected: set[str],
+    errors: list[ValidationError],
+    location: str,
+    optional: set[str] | None = None,
 ) -> None:
-    for key in value.keys() - expected:
+    allowed = expected | (optional or set())
+    for key in value.keys() - allowed:
         errors.append({"message": f'{location} has unknown property "{key}"'})
     for key in expected - value.keys():
         errors.append({"message": f'{location} is missing property "{key}"'})
+
+
+def _validate_position(value: object, errors: list[ValidationError], location: str) -> None:
+    if value is None:
+        return
+    if not (
+        isinstance(value, dict)
+        and _is_position_point(value.get("start"))
+        and _is_position_point(value.get("end"))
+    ):
+        errors.append({"message": f"{location} position must have start/end line and column numbers"})
+
+
+def _is_position_point(value: object) -> bool:
+    return (
+        isinstance(value, dict)
+        and isinstance(value.get("line"), int)
+        and value["line"] > 0
+        and isinstance(value.get("column"), int)
+        and value["column"] > 0
+    )
 
 
 def _validation_error(error: LessmarkError) -> ValidationError:

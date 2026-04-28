@@ -11,11 +11,12 @@ export class LessmarkError extends Error {
   }
 }
 
-export function parseLessmark(source) {
+export function parseLessmark(source, options = {}) {
   const normalized = normalizeSource(source);
   const lines = normalized.split("\n");
   const children = [];
   let index = 0;
+  const sourcePositions = options.sourcePositions === true;
 
   while (index < lines.length) {
     const line = lines[index];
@@ -26,13 +27,13 @@ export function parseLessmark(source) {
     }
 
     if (line.startsWith("#")) {
-      children.push(parseHeading(line, index + 1));
+      children.push(parseHeading(line, index + 1, sourcePositions));
       index += 1;
       continue;
     }
 
     if (line.startsWith("@")) {
-      const parsed = parseBlock(lines, index);
+      const parsed = parseBlock(lines, index, sourcePositions);
       children.push(parsed.node);
       index = parsed.nextIndex;
       continue;
@@ -48,7 +49,7 @@ function normalizeSource(source) {
   return String(source).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
 }
 
-function parseHeading(line, lineNumber) {
+function parseHeading(line, lineNumber, sourcePositions) {
   const match = /^(#{1,6}) ([^\s].*)$/.exec(line);
   if (!match) {
     throw new LessmarkError("Invalid heading syntax", lineNumber, 1);
@@ -57,14 +58,18 @@ function parseHeading(line, lineNumber) {
     throw new LessmarkError("Closing heading markers are not supported", lineNumber, line.length);
   }
   assertSafeText(match[2], "heading", lineNumber, line.indexOf(match[2]) + 1);
-  return {
+  const node = {
     type: "heading",
     level: match[1].length,
     text: match[2].trimEnd()
   };
+  if (sourcePositions) {
+    node.position = position(lineNumber, 1, lineNumber, line.length + 1);
+  }
+  return node;
 }
 
-function parseBlock(lines, startIndex) {
+function parseBlock(lines, startIndex, sourcePositions) {
   const header = lines[startIndex];
   const headerMatch = /^@([a-z][a-z0-9_-]*)(.*)$/.exec(header);
   if (!headerMatch) {
@@ -80,6 +85,8 @@ function parseBlock(lines, startIndex) {
   validateBlockAttrs(name, attrs, startIndex + 1);
   const body = [];
   let index = startIndex + 1;
+  let endLine = startIndex + 1;
+  let endColumn = header.length + 1;
 
   while (index < lines.length) {
     const line = lines[index];
@@ -88,17 +95,31 @@ function parseBlock(lines, startIndex) {
     }
     assertSafeText(line, `@${name}`, index + 1, 1);
     body.push(line.trimEnd());
+    endLine = index + 1;
+    endColumn = line.length + 1;
     index += 1;
   }
 
+  const node = {
+    type: "block",
+    name,
+    attrs,
+    text: body.join("\n")
+  };
+  if (sourcePositions) {
+    node.position = position(startIndex + 1, 1, endLine, endColumn);
+  }
+
   return {
-    node: {
-      type: "block",
-      name,
-      attrs,
-      text: body.join("\n")
-    },
+    node,
     nextIndex: index
+  };
+}
+
+function position(startLine, startColumn, endLine, endColumn) {
+  return {
+    start: { line: startLine, column: startColumn },
+    end: { line: endLine, column: endColumn }
   };
 }
 

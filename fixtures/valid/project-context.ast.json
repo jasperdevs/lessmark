@@ -41,6 +41,38 @@
         "path": "src/Capture/ScrollingCaptureService.cs"
       },
       "text": "Owns stitching and capture state."
+    },
+    {
+      "type": "block",
+      "name": "code",
+      "attrs": {
+        "lang": "csharp"
+      },
+      "text": "await captureService.StartAsync();"
+    },
+    {
+      "type": "block",
+      "name": "metadata",
+      "attrs": {
+        "key": "project.stage"
+      },
+      "text": "pre-alpha"
+    },
+    {
+      "type": "block",
+      "name": "risk",
+      "attrs": {
+        "level": "medium"
+      },
+      "text": "Changing capture behavior can break user muscle memory."
+    },
+    {
+      "type": "block",
+      "name": "depends-on",
+      "attrs": {
+        "target": "manual-scrolling"
+      },
+      "text": "Export settings must preserve the manual scrolling decision."
     }
   ]
 }

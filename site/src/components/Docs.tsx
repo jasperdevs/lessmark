@@ -12,11 +12,15 @@ const ROWS: Row[] = [
   { name: "constraint", source: "@constraint\nDo not auto-scroll or auto-end\nthe capture." },
   { name: "task", source: '@task status="todo"\nAdd export settings.' },
   { name: "file", source: '@file path="src/Capture/Service.cs"\nOwns stitching and capture state.' },
+  { name: "code", source: '@code lang="ts"\nconst ok = parseLessmark(source);' },
   { name: "example", source: "@example\nGiven a 1080p screen, capture\nthe top half only." },
   { name: "note", source: "@note\nThe parser ignores trailing\nwhitespace inside block bodies." },
   { name: "warning", source: "@warning\nUnknown block names fail the\nparser; they don't pass through." },
   { name: "api", source: '@api name="parseLessmark"\nTakes a string, returns the AST.' },
   { name: "link", source: '@link href="https://example.com"\nExample homepage' },
+  { name: "metadata", source: '@metadata key="project.stage"\npre-alpha' },
+  { name: "risk", source: '@risk level="medium"\nDocs and website parser must stay in sync.' },
+  { name: "depends-on", source: '@depends-on target="manual-scrolling"\nThis decision affects capture settings.' },
 ];
 
 function Pair({ row }: { row: Row }) {

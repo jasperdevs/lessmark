@@ -4,6 +4,10 @@
 A strict, agent-readable markdown alternative. Typed blocks, a stable
 JSON AST, validation and formatting, and no raw HTML or JSX.
 
+@warning
+Lessmark is intentionally narrower than Markdown. It is better for agent
+context files and worse for general prose publishing.
+
 @note
 The canonical implementation is the Rust crate. The npm and Python packages
 stay fixture-compatible with it.
@@ -11,6 +15,9 @@ stay fixture-compatible with it.
 @constraint
 Lessmark rejects raw HTML, JSX, execution hooks, custom block syntax,
 and undefined attributes. Unknown blocks fail the parser.
+
+@metadata key="format.version"
+v0
 
 ## Install
 
@@ -30,6 +37,12 @@ lessmark check file.lmk
 
 @example
 lessmark format file.lmk
+
+## Blocks
+
+@note
+summary, decision, constraint, task, file, code, example, note, warning,
+api, link, metadata, risk, and depends-on.
 
 ## API
 

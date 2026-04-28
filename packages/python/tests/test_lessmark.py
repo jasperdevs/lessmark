@@ -62,6 +62,27 @@ class LessmarkPythonTests(unittest.TestCase):
         with self.assertRaisesRegex(LessmarkError, "executable URL scheme"):
             parse_lessmark('@link href="javascript:alert(1)"\nExecutable URL schemes are not allowed.\n')
 
+    def test_rejects_invalid_agent_context_attrs(self):
+        with self.assertRaisesRegex(LessmarkError, "compact language identifier"):
+            parse_lessmark('@code lang="bad lang"\nLanguage identifiers must be compact.\n')
+        with self.assertRaisesRegex(LessmarkError, "lowercase dotted key"):
+            parse_lessmark('@metadata key="Project Stage"\nMetadata keys must be lowercase dotted keys.\n')
+        with self.assertRaisesRegex(LessmarkError, "risk level"):
+            parse_lessmark('@risk level="later"\nRisk levels must stay in the fixed set.\n')
+        with self.assertRaisesRegex(LessmarkError, "lowercase slug"):
+            parse_lessmark('@depends-on target="../secret"\nDependency targets must be lowercase slugs.\n')
+
+    def test_can_include_source_positions_without_changing_default_ast(self):
+        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
+        plain = parse_lessmark(source)
+        positioned = parse_lessmark(source, source_positions=True)
+        self.assertNotIn("position", plain["children"][0])
+        self.assertEqual(
+            positioned["children"][0]["position"],
+            {"start": {"line": 1, "column": 1}, "end": {"line": 1, "column": 18}},
+        )
+        self.assertEqual(validate_ast(positioned), [])
+
     def test_validate_source_reports_parse_errors_as_data(self):
         errors = validate_source("@summary\nDo not use <script>alert(1)</script> here.\n")
         self.assertEqual(

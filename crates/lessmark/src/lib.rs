@@ -6,8 +6,8 @@ pub mod parser;
 pub mod rules;
 pub mod validate;
 
-pub use ast::{Document, Node};
+pub use ast::{Document, Node, PositionPoint, PositionRange};
 pub use error::{LessmarkError, ValidationError};
 pub use format::{format_document, format_lessmark};
-pub use parser::parse_lessmark;
+pub use parser::{parse_lessmark, parse_lessmark_with_positions};
 pub use validate::{validate_document, validate_source, validate_value};

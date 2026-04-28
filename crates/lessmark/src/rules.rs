@@ -1,4 +1,4 @@
-use crate::grammar::{BlockAttrSpec, BLOCK_ATTR_SPECS, TASK_STATUSES};
+use crate::grammar::{BlockAttrSpec, BLOCK_ATTR_SPECS, RISK_LEVELS, TASK_STATUSES};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -14,9 +14,19 @@ fn api_name_pattern() -> &'static Regex {
     PATTERN.get_or_init(|| Regex::new(r#"^[A-Za-z_][A-Za-z0-9_.-]*$"#).unwrap())
 }
 
+fn code_lang_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r#"^[A-Za-z0-9_.+-]+$"#).unwrap())
+}
+
 fn decision_id_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     PATTERN.get_or_init(|| Regex::new(r#"^[a-z0-9]+(?:-[a-z0-9]+)*$"#).unwrap())
+}
+
+fn metadata_key_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r#"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"#).unwrap())
 }
 
 fn windows_drive_pattern() -> &'static Regex {
@@ -147,6 +157,34 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
         if let Some(href) = attrs.get("href") {
             if !is_safe_href(href) {
                 return Some("@link href must not use an executable URL scheme".to_string());
+            }
+        }
+    }
+    if name == "code" {
+        if let Some(lang) = attrs.get("lang") {
+            if !code_lang_pattern().is_match(lang) {
+                return Some("@code lang must be a compact language identifier".to_string());
+            }
+        }
+    }
+    if name == "metadata" {
+        if let Some(key) = attrs.get("key") {
+            if !metadata_key_pattern().is_match(key) {
+                return Some("@metadata key must be a lowercase dotted key".to_string());
+            }
+        }
+    }
+    if name == "risk" {
+        if let Some(level) = attrs.get("level") {
+            if !RISK_LEVELS.contains(&level.as_str()) {
+                return Some("@risk level must be one of: low, medium, high, critical".to_string());
+            }
+        }
+    }
+    if name == "depends-on" {
+        if let Some(target) = attrs.get("target") {
+            if !decision_id_pattern().is_match(target) {
+                return Some("@depends-on target must be a lowercase slug".to_string());
             }
         }
     }

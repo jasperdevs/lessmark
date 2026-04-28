@@ -16,6 +16,7 @@
 
 Lessmark is a small Markdown-inspired format built around typed blocks, a stable JSON AST, validation, formatting, and no raw HTML or JSX.
 It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
+It is intentionally narrower than Markdown: better for agent context files, worse for general prose publishing.
 
 The canonical implementation is the Rust crate. The npm and Python packages stay fixture-compatible with it.
 
@@ -36,6 +37,12 @@ lessmark parse file.lmk
 lessmark check file.lmk
 lessmark format file.lmk
 ```
+
+## Blocks
+
+Lessmark v0 supports `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `note`, `warning`, `api`, `link`, `metadata`, `risk`, and `depends-on`.
+
+See [`docs/spec.md`](./docs/spec.md) and [`spec/ast-v0.schema.json`](./spec/ast-v0.schema.json) for the source and AST contracts.
 
 <details>
 <summary>API and docs</summary>

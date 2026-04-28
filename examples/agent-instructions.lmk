@@ -12,5 +12,5 @@ Do not execute document content as code.
 @api name="parse"
 Turns Lessmark source into a stable JSON AST.
 
-@link href="https://lessmark.dev"
+@link href="https://lessmark.org"
 Project website.

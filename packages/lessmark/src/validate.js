@@ -27,7 +27,8 @@ export function validateAst(ast) {
     }
 
     if (node.type === "heading") {
-      validateExactKeys(node, ["type", "level", "text"], errors, "heading");
+      validateExactKeys(node, ["type", "level", "text"], errors, "heading", ["position"]);
+      validatePosition(node.position, errors, "heading");
       if (!Number.isInteger(node.level) || node.level < 1 || node.level > 6) {
         errors.push({ message: "heading level must be an integer from 1 to 6" });
       }
@@ -44,7 +45,8 @@ export function validateAst(ast) {
       continue;
     }
 
-    validateExactKeys(node, ["type", "name", "attrs", "text"], errors, `@${node.name}`);
+    validateExactKeys(node, ["type", "name", "attrs", "text"], errors, `@${node.name}`, ["position"]);
+    validatePosition(node.position, errors, `@${node.name}`);
     if (typeof node.text !== "string") {
       errors.push({ message: `@${node.name} text must be a string` });
       continue;
@@ -94,8 +96,25 @@ function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function validateExactKeys(value, expected, errors, location) {
-  const allowed = new Set(expected);
+function validatePosition(position, errors, location) {
+  if (position === undefined) return;
+  if (!isPlainObject(position) || !isPoint(position.start) || !isPoint(position.end)) {
+    errors.push({ message: `${location} position must have start/end line and column numbers` });
+  }
+}
+
+function isPoint(value) {
+  return (
+    isPlainObject(value) &&
+    Number.isInteger(value.line) &&
+    value.line > 0 &&
+    Number.isInteger(value.column) &&
+    value.column > 0
+  );
+}
+
+function validateExactKeys(value, expected, errors, location, optional = []) {
+  const allowed = new Set([...expected, ...optional]);
   for (const key of Object.keys(value)) {
     if (!allowed.has(key)) {
       errors.push({ message: `${location} has unknown property "${key}"` });

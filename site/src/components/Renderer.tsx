@@ -6,11 +6,15 @@ const blockMeta: Record<string, { label: string; tone: "default" | "warn" | "inf
   constraint: { label: "constraint", tone: "default" },
   task: { label: "task", tone: "default" },
   file: { label: "file", tone: "default" },
+  code: { label: "code", tone: "default" },
   example: { label: "example", tone: "default" },
   note: { label: "note", tone: "info" },
   warning: { label: "warning", tone: "warn" },
   api: { label: "api", tone: "default" },
   link: { label: "link", tone: "default" },
+  metadata: { label: "metadata", tone: "info" },
+  risk: { label: "risk", tone: "warn" },
+  "depends-on": { label: "depends-on", tone: "default" },
 };
 
 const taskTone: Record<string, string> = {
@@ -67,6 +71,19 @@ export function Renderer({ ast }: { ast: LessmarkAst }) {
                 {node.text || node.attrs.href}
               </a>
             </p>
+          );
+        }
+
+        if (node.name === "code") {
+          return (
+            <div key={i} className="rounded-[12px] overflow-hidden border border-border-soft bg-code-bg">
+              <div className="px-3 py-2 border-b border-code-line font-mono text-[11px] text-code-faint">
+                {node.attrs.lang || "text"}
+              </div>
+              <pre className="m-0 p-4 overflow-auto whitespace-pre-wrap text-code-fg font-mono text-[13px] leading-[1.55]">
+                {node.text}
+              </pre>
+            </div>
           );
         }
 

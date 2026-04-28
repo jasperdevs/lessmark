@@ -81,6 +81,25 @@ test("rejects unsafe file paths, API names, and links", async () => {
   await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-link-href.lmk")), /executable URL scheme/);
 });
 
+test("rejects invalid agent-context attrs", async () => {
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-code-lang.lmk")), /compact language identifier/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-metadata-key.lmk")), /lowercase dotted key/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-risk-level.lmk")), /risk level/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-depends-on-target.lmk")), /lowercase slug/);
+});
+
+test("can include source positions without changing the default AST", async () => {
+  const source = await read("fixtures/valid/project-context.lmk");
+  const plain = parseLessmark(source);
+  const positioned = parseLessmark(source, { sourcePositions: true });
+  assert.equal(Object.hasOwn(plain.children[0], "position"), false);
+  assert.deepEqual(positioned.children[0].position, {
+    start: { line: 1, column: 1 },
+    end: { line: 1, column: 18 }
+  });
+  assert.equal(validateAst(positioned).length, 0);
+});
+
 test("validateSource reports parse errors as data", async () => {
   const source = await read("fixtures/invalid/raw-html.lmk");
   assert.deepEqual(validateSource(source), [

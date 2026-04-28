@@ -34,7 +34,7 @@ pub fn validate_value(value: &Value) -> Vec<ValidationError> {
             "AST root must be a document with children",
         )];
     }
-    validate_exact_keys(root, &["type", "children"], &mut errors, "document");
+    validate_exact_keys(root, &["type", "children"], &[], &mut errors, "document");
 
     if let Some(children) = root.get("children").and_then(Value::as_array) {
         for child in children {
@@ -61,7 +61,14 @@ fn validate_child(value: &Value, errors: &mut Vec<ValidationError>) {
 }
 
 fn validate_heading(node: &serde_json::Map<String, Value>, errors: &mut Vec<ValidationError>) {
-    validate_exact_keys(node, &["type", "level", "text"], errors, "heading");
+    validate_exact_keys(
+        node,
+        &["type", "level", "text"],
+        &["position"],
+        errors,
+        "heading",
+    );
+    validate_position(node.get("position"), errors, "heading");
     if !node
         .get("level")
         .and_then(Value::as_i64)
@@ -91,9 +98,11 @@ fn validate_block(node: &serde_json::Map<String, Value>, errors: &mut Vec<Valida
     validate_exact_keys(
         node,
         &["type", "name", "attrs", "text"],
+        &["position"],
         errors,
         &format!("@{}", name),
     );
+    validate_position(node.get("position"), errors, &format!("@{}", name));
 
     let Some(text) = node.get("text").and_then(Value::as_str) else {
         errors.push(ValidationError::message(format!(
@@ -149,11 +158,12 @@ fn validate_text_safety(text: &str, errors: &mut Vec<ValidationError>, location:
 fn validate_exact_keys(
     object: &serde_json::Map<String, Value>,
     expected: &[&str],
+    optional: &[&str],
     errors: &mut Vec<ValidationError>,
     location: &str,
 ) {
     for key in object.keys() {
-        if !expected.contains(&key.as_str()) {
+        if !expected.contains(&key.as_str()) && !optional.contains(&key.as_str()) {
             errors.push(ValidationError::message(format!(
                 "{} has unknown property \"{}\"",
                 location, key
@@ -168,4 +178,33 @@ fn validate_exact_keys(
             )));
         }
     }
+}
+
+fn validate_position(value: Option<&Value>, errors: &mut Vec<ValidationError>, location: &str) {
+    let Some(value) = value else {
+        return;
+    };
+    let valid = value
+        .as_object()
+        .and_then(|position| Some((position.get("start")?, position.get("end")?)))
+        .is_some_and(|(start, end)| is_position_point(start) && is_position_point(end));
+    if !valid {
+        errors.push(ValidationError::message(format!(
+            "{} position must have start/end line and column numbers",
+            location
+        )));
+    }
+}
+
+fn is_position_point(value: &Value) -> bool {
+    value.as_object().is_some_and(|point| {
+        point
+            .get("line")
+            .and_then(Value::as_i64)
+            .is_some_and(|line| line > 0)
+            && point
+                .get("column")
+                .and_then(Value::as_i64)
+                .is_some_and(|column| column > 0)
+    })
 }

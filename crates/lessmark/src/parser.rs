@@ -1,10 +1,18 @@
-use crate::ast::{Document, Node};
+use crate::ast::{Document, Node, PositionPoint, PositionRange};
 use crate::error::LessmarkError;
 use crate::grammar::is_core_block;
 use crate::rules::{contains_control_whitespace, contains_html_like_tag, get_block_attr_errors};
 use std::collections::BTreeMap;
 
 pub fn parse_lessmark(source: &str) -> Result<Document, LessmarkError> {
+    parse_source(source, false)
+}
+
+pub fn parse_lessmark_with_positions(source: &str) -> Result<Document, LessmarkError> {
+    parse_source(source, true)
+}
+
+fn parse_source(source: &str, source_positions: bool) -> Result<Document, LessmarkError> {
     let normalized = normalize_source(source);
     let lines: Vec<&str> = normalized.split('\n').collect();
     let mut children = Vec::new();
@@ -17,12 +25,12 @@ pub fn parse_lessmark(source: &str) -> Result<Document, LessmarkError> {
             continue;
         }
         if line.starts_with('#') {
-            children.push(parse_heading(line, index + 1)?);
+            children.push(parse_heading(line, index + 1, source_positions)?);
             index += 1;
             continue;
         }
         if line.starts_with('@') {
-            let parsed = parse_block(&lines, index)?;
+            let parsed = parse_block(&lines, index, source_positions)?;
             children.push(parsed.node);
             index = parsed.next_index;
             continue;
@@ -42,7 +50,11 @@ fn normalize_source(source: &str) -> String {
     source.replace("\r\n", "\n").replace('\r', "\n")
 }
 
-fn parse_heading(line: &str, line_number: usize) -> Result<Node, LessmarkError> {
+fn parse_heading(
+    line: &str,
+    line_number: usize,
+    source_positions: bool,
+) -> Result<Node, LessmarkError> {
     let level = line.chars().take_while(|ch| *ch == '#').count();
     if level == 0 || level > 6 || !line[level..].starts_with(' ') {
         return Err(LessmarkError::new("Invalid heading syntax", line_number, 1));
@@ -62,6 +74,7 @@ fn parse_heading(line: &str, line_number: usize) -> Result<Node, LessmarkError> 
     Ok(Node::Heading {
         level: level as u8,
         text: raw_text.trim_end().to_string(),
+        position: source_positions.then(|| position(line_number, 1, line_number, line.len() + 1)),
     })
 }
 
@@ -78,7 +91,11 @@ struct ParsedBlock {
     next_index: usize,
 }
 
-fn parse_block(lines: &[&str], start_index: usize) -> Result<ParsedBlock, LessmarkError> {
+fn parse_block(
+    lines: &[&str],
+    start_index: usize,
+    source_positions: bool,
+) -> Result<ParsedBlock, LessmarkError> {
     let header = lines[start_index];
     let (name, rest) = read_block_header(header)
         .ok_or_else(|| LessmarkError::new("Invalid typed block header", start_index + 1, 1))?;
@@ -95,6 +112,8 @@ fn parse_block(lines: &[&str], start_index: usize) -> Result<ParsedBlock, Lessma
 
     let mut body = Vec::new();
     let mut index = start_index + 1;
+    let mut end_line = start_index + 1;
+    let mut end_column = header.len() + 1;
     while index < lines.len() {
         let line = lines[index];
         if line.trim().is_empty() || line.starts_with('#') || line.starts_with('@') {
@@ -102,6 +121,8 @@ fn parse_block(lines: &[&str], start_index: usize) -> Result<ParsedBlock, Lessma
         }
         assert_safe_text(line, &format!("@{}", name), index + 1, 1)?;
         body.push(line.trim_end().to_string());
+        end_line = index + 1;
+        end_column = line.len() + 1;
         index += 1;
     }
 
@@ -110,9 +131,28 @@ fn parse_block(lines: &[&str], start_index: usize) -> Result<ParsedBlock, Lessma
             name: name.to_string(),
             attrs,
             text: body.join("\n"),
+            position: source_positions.then(|| position(start_index + 1, 1, end_line, end_column)),
         },
         next_index: index,
     })
+}
+
+fn position(
+    start_line: usize,
+    start_column: usize,
+    end_line: usize,
+    end_column: usize,
+) -> PositionRange {
+    PositionRange {
+        start: PositionPoint {
+            line: start_line,
+            column: start_column,
+        },
+        end: PositionPoint {
+            line: end_line,
+            column: end_column,
+        },
+    }
 }
 
 fn read_block_header(header: &str) -> Option<(&str, &str)> {

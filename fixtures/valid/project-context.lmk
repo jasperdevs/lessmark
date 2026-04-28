@@ -14,3 +14,15 @@ Add export settings.
 
 @file path="src/Capture/ScrollingCaptureService.cs"
 Owns stitching and capture state.
+
+@code lang="csharp"
+await captureService.StartAsync();
+
+@metadata key="project.stage"
+pre-alpha
+
+@risk level="medium"
+Changing capture behavior can break user muscle memory.
+
+@depends-on target="manual-scrolling"
+Export settings must preserve the manual scrolling decision.

@@ -28,8 +28,12 @@ fn render_document(document: &Document) -> String {
 
 fn format_node(node: &Node) -> String {
     match node {
-        Node::Heading { level, text } => format!("{} {}", "#".repeat(*level as usize), text.trim()),
-        Node::Block { name, attrs, text } => {
+        Node::Heading { level, text, .. } => {
+            format!("{} {}", "#".repeat(*level as usize), text.trim())
+        }
+        Node::Block {
+            name, attrs, text, ..
+        } => {
             let attrs = attrs
                 .iter()
                 .map(|(key, value)| format!("{}=\"{}\"", key, escape_attr(value)))
