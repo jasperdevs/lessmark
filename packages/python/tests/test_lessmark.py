@@ -194,6 +194,10 @@ RFC-0042
         self.assertEqual([(node["name"], node["text"]) for node in ast["children"]], [
             ("paragraph", "@mention\n#hashtag"),
         ])
+        source = "\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n"
+        formatted = format_lessmark(source)
+        self.assertEqual(formatted, source)
+        self.assertEqual(parse_lessmark(formatted), parse_lessmark(source))
 
     def test_literal_blocks_keep_first_column_block_sigils_until_blank_separator(self):
         source = '@code lang="py"\n@decorator\ndef f():\n  pass\n\n@code lang="c"\n#include <stdio.h>\nint main() { return 0; }\n'
@@ -599,6 +603,13 @@ def f(): pass
         self.assertEqual(status, 0)
         self.assertEqual(result["language"], "lessmark")
         self.assertIn("ref", result["inlineFunctions"])
+
+        output = StringIO()
+        with redirect_stdout(output):
+            status = main(["info"])
+        self.assertEqual(status, 0)
+        self.assertTrue(output.getvalue().startswith("Lessmark 0.1.5\n"))
+        self.assertNotIn("(v", output.getvalue())
 
 
 if __name__ == "__main__":

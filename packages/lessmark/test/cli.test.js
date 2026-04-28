@@ -53,6 +53,13 @@ test("CLI info --json prints machine-readable capabilities", async () => {
   assert.ok(info.inlineFunctions.includes("ref"));
 });
 
+test("CLI info prints human-readable capabilities without internal labels", async () => {
+  const { stdout } = await exec(process.execPath, [cli, "info"]);
+  assert.match(stdout, /^Lessmark 0\.1\.5\n/);
+  assert.doesNotMatch(stdout, /\(v/);
+  assert.match(stdout, /Blocks: /);
+});
+
 test("CLI format prints normalized source", async () => {
   const { stdout } = await exec(process.execPath, [cli, "format", fixture]);
   assert.match(stdout, /^# Project Context/);

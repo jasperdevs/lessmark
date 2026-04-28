@@ -106,7 +106,7 @@ try {
       console.log(JSON.stringify(getCapabilities(), null, 2));
     } else {
       const info = getCapabilities();
-      console.log(`Lessmark ${info.version} (${info.astVersion})`);
+      console.log(`Lessmark ${info.version}`);
       console.log(`Blocks: ${info.blocks.join(", ")}`);
       console.log(`Inline functions: ${info.inlineFunctions.join(", ")}`);
     }

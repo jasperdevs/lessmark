@@ -13,6 +13,7 @@ type Props = {
 type Popup = {
   x: number;
   y: number;
+  lineHeight: number;
   from: number;
   items: LessmarkCompletion[];
   active: number;
@@ -24,14 +25,12 @@ type Hover = {
   text: string;
 };
 
-const LINE_HEIGHT = 20.8;
-const CHAR_WIDTH = 7.85;
-
 export function LessmarkEditor({ value, onChange, className = "", autoFocus }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const highlighted = useMemo(() => highlightLessmark(value), [value]);
   const lineCount = useMemo(() => value.split("\n").length, [value]);
@@ -91,8 +90,7 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
       setPopup(null);
       return;
     }
-    const rect = wrap.getBoundingClientRect();
-    const caret = caretPosition(source, ta.selectionStart, ta.scrollLeft, ta.scrollTop, rect);
+    const caret = caretPosition(source, ta.selectionStart, ta, measureRef.current);
     setPopup({ ...result, ...caret, active: 0 });
   };
 
@@ -156,11 +154,12 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
     const ta = taRef.current;
     const wrap = wrapRef.current;
     if (!ta || !wrap) return;
-    const rect = wrap.getBoundingClientRect();
-    const x = e.clientX - rect.left - 12 + ta.scrollLeft;
-    const y = e.clientY - rect.top - 12 + ta.scrollTop;
-    const lineIndex = Math.max(0, Math.floor(y / LINE_HEIGHT));
-    const column = Math.max(0, Math.floor(x / CHAR_WIDTH));
+    const metrics = editorMetrics(ta, measureRef.current);
+    const rect = ta.getBoundingClientRect();
+    const x = e.clientX - rect.left - metrics.paddingLeft + ta.scrollLeft;
+    const y = e.clientY - rect.top - metrics.paddingTop + ta.scrollTop;
+    const lineIndex = Math.max(0, Math.floor(y / metrics.lineHeight));
+    const column = Math.max(0, Math.floor(x / metrics.charWidth));
     const line = value.split("\n")[lineIndex] ?? "";
     const text = docForToken(line, column);
     setHover(text ? { text, x: clamp(e.clientX + 12, 8, window.innerWidth - 360), y: clamp(e.clientY + 12, 8, window.innerHeight - 120) } : null);
@@ -171,7 +170,7 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
       {popup && (
         <div
           className="lessmark-completion"
-          style={{ left: popup.x, top: popup.y + LINE_HEIGHT }}
+          style={{ left: popup.x, top: popup.y + popup.lineHeight }}
           role="listbox"
         >
           {popup.items.map((item, index) => (
@@ -221,6 +220,11 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
           className="lessmark-editor-code lessmark-scrollbar absolute inset-0 z-0 m-0 p-3 overflow-auto whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6] text-code-fg pointer-events-none"
           dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
         />
+        <div
+          ref={measureRef}
+          aria-hidden
+          className="lessmark-editor-code lessmark-editor-measure whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6]"
+        />
         <textarea
           ref={taRef}
           value={value}
@@ -246,15 +250,33 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
   );
 }
 
-function caretPosition(value: string, cursor: number, scrollLeft: number, scrollTop: number, rect: DOMRect) {
+function caretPosition(value: string, cursor: number, ta: HTMLTextAreaElement, measure: HTMLDivElement | null) {
+  const rect = ta.getBoundingClientRect();
+  const metrics = editorMetrics(ta, measure);
   const before = value.slice(0, cursor);
   const lines = before.split("\n");
   const line = lines.length - 1;
   const column = lines[lines.length - 1].length;
   return {
-    x: clamp(rect.left + 12 + column * CHAR_WIDTH - scrollLeft, 8, window.innerWidth - 380),
-    y: clamp(rect.top + 12 + line * LINE_HEIGHT - scrollTop, 8, window.innerHeight - 260),
+    x: clamp(rect.left + metrics.paddingLeft + column * metrics.charWidth - ta.scrollLeft, 8, window.innerWidth - 380),
+    y: clamp(rect.top + metrics.paddingTop + line * metrics.lineHeight - ta.scrollTop, 8, window.innerHeight - 260),
+    lineHeight: metrics.lineHeight,
   };
+}
+
+function editorMetrics(ta: HTMLTextAreaElement, measure: HTMLDivElement | null) {
+  const style = getComputedStyle(ta);
+  const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.6 || 20;
+  const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+  let charWidth = 0;
+  if (measure) {
+    measure.style.font = style.font;
+    measure.style.letterSpacing = style.letterSpacing;
+    measure.textContent = "mmmmmmmmmm";
+    charWidth = measure.getBoundingClientRect().width / 10;
+  }
+  return { charWidth: Number.isFinite(charWidth) && charWidth > 0 ? charWidth : 8, lineHeight, paddingLeft, paddingTop };
 }
 
 function clamp(value: number, min: number, max: number) {

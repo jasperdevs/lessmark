@@ -165,6 +165,6 @@ The {{code:lessmark}} binary. Documented in full on the
 - {{code:lessmark parse FILE}}: print the AST as JSON.
 - {{code:lessmark check FILE}}: parse and validate. Exits non-zero on failure.
 - {{code:lessmark format FILE}}: print the canonical formatted source.
-- {{code:lessmark from-markdown FILE}}: convert a safe Markdown subset to lessmark.
+- {{code:lessmark from-markdown FILE}}: convert a safe Markdown subset to lessmark for migration. It preserves common document shapes, not every Markdown token.
 - {{code:lessmark to-markdown FILE}}: convert lessmark to Markdown.
 - {{code:lessmark info --json}}: package and contract version.

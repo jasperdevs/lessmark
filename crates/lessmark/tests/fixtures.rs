@@ -309,6 +309,14 @@ fn supports_escaped_leading_block_sigils_inside_prose() {
     let value = serde_json::to_value(document).expect("document serializes");
     assert_eq!(value["children"][0]["name"], "paragraph");
     assert_eq!(value["children"][0]["text"], "@mention\n#hashtag");
+
+    let source = "\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n";
+    let formatted = format_lessmark(source).expect("escaped sigils format");
+    assert_eq!(formatted, source);
+    assert_eq!(
+        serde_json::to_value(parse_lessmark(&formatted).expect("formatted parses")).unwrap(),
+        serde_json::to_value(parse_lessmark(source).expect("source parses")).unwrap()
+    );
 }
 
 #[test]

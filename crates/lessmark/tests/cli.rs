@@ -48,6 +48,23 @@ fn cli_check_json_reports_parse_errors() {
 }
 
 #[test]
+fn cli_info_text_hides_internal_ast_label() {
+    let output = Command::new(lessmark_bin())
+        .args(["info"])
+        .output()
+        .expect("lessmark info runs");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).expect("stdout is utf8");
+    assert!(stdout.starts_with("Lessmark 0.1.5\n"));
+    assert!(!stdout.contains("(v"));
+    assert!(stdout.contains("Blocks: "));
+}
+
+#[test]
 fn cli_check_text_matches_public_contract() {
     let valid = repo_root().join("fixtures/valid/project-context.lmk");
     let valid_output = Command::new(lessmark_bin())

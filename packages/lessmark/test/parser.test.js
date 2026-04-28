@@ -246,6 +246,9 @@ test("supports escaped leading block sigils inside prose", () => {
   assert.deepEqual(ast.children.map((node) => [node.name, node.text]), [
     ["paragraph", "@mention\n#hashtag"]
   ]);
+  const formatted = formatLessmark("\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n");
+  assert.equal(formatted, "\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n");
+  assert.deepEqual(parseLessmark(formatted), parseLessmark("\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n"));
 });
 
 test("rejects empty headings", async () => {

@@ -214,6 +214,16 @@ img, svg { max-width: 100%; }
   text-indent: 0;
   text-rendering: optimizeSpeed;
 }
+
+.lessmark-editor-measure {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre;
+}
+
 .lessmark-editor-code span {
   font-family: inherit;
   font-size: inherit;

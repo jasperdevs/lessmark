@@ -21,7 +21,7 @@ function formatNode(node) {
 
   if (node.type === "block") {
     if (node.name === "paragraph" && Object.keys(node.attrs).length === 0) {
-      return stripTrailingWhitespace(String(node.text ?? ""));
+      return escapeLeadingBlockSigils(stripTrailingWhitespace(String(node.text ?? "")));
     }
     const attrs = Object.keys(node.attrs)
       .sort()
@@ -29,10 +29,22 @@ function formatNode(node) {
       .join(" ");
     const header = attrs ? `@${node.name} ${attrs}` : `@${node.name}`;
     const text = stripTrailingWhitespace(String(node.text ?? ""));
-    return text ? `${header}\n${stripTrailingWhitespace(text)}` : header;
+    const body = isLiteralBlock(node.name) ? text : escapeLeadingBlockSigils(text);
+    return body ? `${header}\n${body}` : header;
   }
 
   throw new Error(`Cannot format unknown AST node type: ${node.type}`);
+}
+
+function isLiteralBlock(name) {
+  return name === "code" || name === "example" || name === "math" || name === "diagram";
+}
+
+function escapeLeadingBlockSigils(text) {
+  return String(text)
+    .split("\n")
+    .map((line) => (line.startsWith("@") || line.startsWith("#") ? `\\${line}` : line))
+    .join("\n");
 }
 
 function stripTrailingWhitespace(text) {

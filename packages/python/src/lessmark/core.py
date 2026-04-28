@@ -1134,19 +1134,24 @@ def _format_node(node: LessmarkNode) -> str:
 
     if node.get("type") == "block":
         if node.get("name") == "paragraph" and not node.get("attrs", {}):
-            return _strip_trailing_whitespace(str(node.get("text", "")))
+            return _escape_leading_block_sigils(_strip_trailing_whitespace(str(node.get("text", ""))))
         attrs = " ".join(
             f'{key}="{_escape_attr(value)}"' for key, value in sorted(node.get("attrs", {}).items())
         )
         header = f"@{node['name']}" + (f" {attrs}" if attrs else "")
         text = _strip_trailing_whitespace(str(node.get("text", "")))
-        return f"{header}\n{_strip_trailing_whitespace(text)}" if text else header
+        body = text if _is_literal_block(str(node.get("name", ""))) else _escape_leading_block_sigils(text)
+        return f"{header}\n{body}" if body else header
 
     raise ValueError(f"Cannot format unknown AST node type: {node.get('type')}")
 
 
 def _strip_trailing_whitespace(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"))
+
+
+def _escape_leading_block_sigils(text: str) -> str:
+    return "\n".join(f"\\{line}" if line.startswith(("@", "#")) else line for line in str(text).split("\n"))
 
 
 def _escape_attr(value: str) -> str:

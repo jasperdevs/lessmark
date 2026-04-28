@@ -32,7 +32,7 @@ lessmark info --json
 - format prints canonical lessmark to stdout.
 - format --check returns a failure when the file is not canonical.
 - fix --write rewrites the file in place when format diverges.
-- from-markdown converts safe common markdown shapes into typed lessmark blocks.
+- from-markdown converts a safe Markdown subset into typed lessmark blocks. It is a migration helper, not a lossless Markdown parser.
 - to-markdown converts lessmark into safe markdown.
 - render --document produces a complete HTML document in the npm CLI.
 - build --strict walks a directory and writes a static site in the npm CLI.

@@ -52,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.json:
                 print(json.dumps(info, indent=2))
             else:
-                print(f"Lessmark {info['version']} ({info['astVersion']})")
+                print(f"Lessmark {info['version']}")
                 print(f"Blocks: {', '.join(info['blocks'])}")
                 print(f"Inline functions: {', '.join(info['inlineFunctions'])}")
             return 0

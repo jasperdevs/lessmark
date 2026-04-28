@@ -35,7 +35,7 @@ fn format_node(node: &Node) -> String {
             name, attrs, text, ..
         } => {
             if name == "paragraph" && attrs.is_empty() {
-                return strip_trailing_whitespace(text);
+                return escape_leading_block_sigils(&strip_trailing_whitespace(text));
             }
             let attrs = attrs
                 .iter()
@@ -48,13 +48,22 @@ fn format_node(node: &Node) -> String {
                 format!("@{} {}", name, attrs)
             };
             let text = strip_trailing_whitespace(text);
-            if text.is_empty() {
+            let body = if is_literal_block(name) {
+                text
+            } else {
+                escape_leading_block_sigils(&text)
+            };
+            if body.is_empty() {
                 header
             } else {
-                format!("{}\n{}", header, text)
+                format!("{}\n{}", header, body)
             }
         }
     }
+}
+
+fn is_literal_block(name: &str) -> bool {
+    matches!(name, "code" | "example" | "math" | "diagram")
 }
 
 fn strip_trailing_whitespace(text: &str) -> String {
@@ -62,6 +71,19 @@ fn strip_trailing_whitespace(text: &str) -> String {
         .replace('\r', "\n")
         .split('\n')
         .map(str::trim_end)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn escape_leading_block_sigils(text: &str) -> String {
+    text.split('\n')
+        .map(|line| {
+            if line.starts_with('@') || line.starts_with('#') {
+                format!("\\{}", line)
+            } else {
+                line.to_string()
+            }
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
