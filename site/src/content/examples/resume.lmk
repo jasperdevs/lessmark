@@ -21,7 +21,7 @@ anchors and machine-checkable validation.
 @list kind="unordered"
 - Cut docs CI from 14 minutes to 90 seconds.
 - Shipped an editor extension consumed across the org.
-- Drafted the internal RFC for a typed-blocks document spec.
+- Drafted the RFC for a typed-blocks document spec.
 
 ### Senior engineer, Globex
 
@@ -38,4 +38,3 @@ Editing|Tree-sitter, language servers, AST refactors
 ## Education
 
 B.S. Computer Science, University of Somewhere, 2014.
-

@@ -12,7 +12,7 @@ prose form, which is what {{code:lessmark format}} writes by default.
 
 The shorthand set is part of the language contract exposed by
 {{code:lessmark info --json}}, so tools can implement completion without
-guessing from parser internals.
+guessing from implementation details.
 
 @table columns="Short|Long|Notes"
 plain prose|`@paragraph`|prose with full inline syntax

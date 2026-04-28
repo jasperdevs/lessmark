@@ -62,9 +62,9 @@ across every runtime, and added only when existing blocks cannot express a
 real document shape. Issues, ideas, and pull requests are welcome on
 {{link:GitHub|https://github.com/jasperdevs/lessmark}}.
 
-## What is stable?
+## What can I rely on?
 
 Valid documents, the shared AST shape, validation error codes, and
-canonical formatting are the compatibility surface. Patch releases keep
-those surfaces compatible. The {{link:Compatibility page|docs/compatibility}}
-spells out what can change and what requires a migration note.
+canonical formatting are the stable surface. Patch updates keep those
+surfaces working, and larger language changes are documented in the
+syntax and validation references.

@@ -32,10 +32,9 @@ Notable changes to the project, newest first. Versioning follows semver.
 
 @list kind="unordered"
 - First Python package.
-- Shared test fixtures across packages.
+- Matching parse and format behavior across packages.
 
 ## 0.1.0
 
 @list kind="unordered"
-- Initial release. Ten core blocks, JSON tree output, JavaScript package, CLI.
-
+- First public version with typed blocks, JSON tree output, JavaScript package, and CLI.

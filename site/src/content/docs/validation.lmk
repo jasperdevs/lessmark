@@ -3,7 +3,7 @@
 @summary
 Lessmark separates parsing from validation. Parsing fails on anything outside
 the grammar. Validation enforces deeper rules: required attributes, safe URLs,
-unique anchors, and language-rule conformance.
+unique anchors, and cross-package language rules.
 
 @diagram kind="mermaid"
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
 ## Same checks in every package
 
 Lessmark ships JavaScript, Python, and Rust packages. They share the same
-test fixtures and produce the same JSON tree for the same source.
+rules and produce the same JSON tree for the same source.
 
 ## Errors are typed
 

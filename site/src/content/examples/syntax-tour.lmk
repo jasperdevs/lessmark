@@ -10,7 +10,7 @@ This paragraph uses {{strong:bold}}, {{em:italic}}, {{code:inline code}},
 {{kbd:Ctrl+S}}, {{mark:highlight}}, and {{del:strikethrough}}. Visit
 {{link:GitHub|https://github.com/jasperdevs/lessmark}} for an external
 link. See {{ref:the block-list decision|block-list-fixed}} for an
-internal cross reference.
+in-document cross reference.
 
 ## Decisions and constraints
 
