@@ -79,5 +79,6 @@ lessmark check notes.lmk
 @list kind="unordered"
 - Read the syntax reference for headings, blocks, and inline functions.
 - Read the block reference for every block in the language.
+- Read compatibility before depending on lessmark in CI or an agent workflow.
 - Browse examples to see real documents (resumes, RFCs, postmortems).
 - Open the playground to edit live in the browser.

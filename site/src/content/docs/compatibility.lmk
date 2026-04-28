@@ -1,0 +1,60 @@
+# Compatibility
+
+@summary
+The compatibility contract for lessmark documents, AST output, formatter
+output, and package releases.
+
+## Source compatibility
+
+Lessmark treats valid source documents as the main compatibility surface.
+Patch releases must keep valid documents valid and must not change the
+meaning of existing syntax.
+
+Minor releases may add a block, attribute, inline function, or validation
+rule only when old documents keep parsing and validating. A minor release
+can tighten behavior only for input that was already unsafe, ambiguous, or
+outside the documented syntax.
+
+Breaking syntax changes require a migration note, a formatter or checker
+that points at the change, and a new release note that names the affected
+syntax directly.
+
+## Formatter compatibility
+
+The formatter writes canonical lessmark. Patch releases may fix formatter
+bugs, but they should not churn documents for style-only reasons.
+
+Formatter output is allowed to change when the old output could parse with
+a different meaning, lose an escape, expose unsafe syntax, or disagree
+across JavaScript, Python, and Rust.
+
+## AST compatibility
+
+The AST is the tooling contract. Every runtime must emit the same tree for
+the same source.
+
+Patch releases must keep node types, required fields, attribute names,
+error codes, and source-position fields compatible. Additive fields belong
+in a minor release and must not remove existing fields.
+
+## Validation compatibility
+
+Validation errors are data. Error codes should stay stable so editors,
+CI, and agents can branch on them. New validation rules should be
+documented and covered by conformance fixtures.
+
+## Package compatibility
+
+All public packages share one version number. A release is not complete
+until npm, PyPI, crates.io, and the VS Code extension are built from the
+same commit and pass the release check.
+
+@code lang="sh"
+npm run check:release
+
+## Extension compatibility
+
+Lessmark source files use {{code:.lmk}}. The {{code:.lessmark}} extension
+is a readable alias. Both must remain supported by the VS Code extension
+and by docs, examples, and package metadata.
+

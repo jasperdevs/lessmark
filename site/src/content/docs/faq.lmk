@@ -61,3 +61,10 @@ Lessmark keeps the block set small. New blocks should be rare, tested
 across every runtime, and added only when existing blocks cannot express a
 real document shape. Issues, ideas, and pull requests are welcome on
 {{link:GitHub|https://github.com/jasperdevs/lessmark}}.
+
+## What is stable?
+
+Valid documents, the shared AST shape, validation error codes, and
+canonical formatting are the compatibility surface. Patch releases keep
+those surfaces compatible. The {{link:Compatibility page|docs/compatibility}}
+spells out what can change and what requires a migration note.

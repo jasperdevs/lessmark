@@ -84,7 +84,7 @@ function readByName(modules: Record<string, string>, name: string): string {
   return "";
 }
 
-const DOCS_ORDER = ["getting-started", "switching", "syntax", "blocks", "validation", "render", "phases", "ast", "api", "cli", "hacks", "faq"];
+const DOCS_ORDER = ["getting-started", "switching", "syntax", "blocks", "validation", "render", "phases", "ast", "api", "cli", "compatibility", "release", "hacks", "faq"];
 const EXAMPLES_ORDER = ["syntax-tour", "blog-maker", "skill", "resume", "changelog"];
 
 function order(entries: Entry[], priority: string[]): Entry[] {

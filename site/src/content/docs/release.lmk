@@ -1,0 +1,59 @@
+# Release
+
+@summary
+How lessmark is checked, packaged, and published across npm, PyPI,
+crates.io, and the VS Code Marketplace.
+
+## Local release check
+
+Run the release check before publishing. It runs the full test gate,
+package dry-runs, security audits, the site build, and VSIX packaging.
+
+@code lang="sh"
+npm run check:release
+
+The check covers:
+
+@list kind="unordered"
+- JavaScript syntax checks, unit tests, conformance, fuzz, stress, soak, security, docs, and readiness checks.
+- Python source and wheel builds.
+- Rust workspace tests and crate packaging.
+- npm package dry-run.
+- site install, audit, typecheck, and production build.
+- VS Code extension packaging.
+
+## GitHub release workflow
+
+The {{code:release}} workflow can run as a dry run or publish run from
+GitHub Actions.
+
+@list kind="unordered"
+- Run with {{code:publish=false}} to build and upload artifacts only.
+- Run with {{code:publish=true}} to publish all package surfaces.
+
+## Required secrets
+
+Publishing needs these GitHub Actions secrets:
+
+@table columns="Secret|Used for"
+NPM_TOKEN|npm package publish
+PYPI_API_TOKEN|PyPI upload through twine
+CARGO_REGISTRY_TOKEN|crates.io publish
+VSCE_PAT|VS Code Marketplace publish
+
+## Release order
+
+The workflow publishes npm, PyPI, crates.io, then VS Code Marketplace.
+All packages must already carry the same version before the workflow runs.
+
+@callout kind="warning"
+Publishing the same version twice will fail on public registries. Bump the
+version first, run the release check, commit the version bump, and publish
+from that commit.
+
+## After publishing
+
+Check the public package pages and the VS Code Marketplace listing. If a
+registry is delayed, wait for the package page to update before announcing
+the release.
+

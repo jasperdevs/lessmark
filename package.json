@@ -20,6 +20,8 @@
     "test:stress": "node scripts/stress.mjs",
     "test:security": "node scripts/security.mjs",
     "test:readiness": "node scripts/readiness.mjs",
-    "check": "npm run build && npm test && npm run test:docs && npm run test:editors && npm run test:conformance && npm run test:security && npm run test:fuzz && npm run test:stress && npm run test:readiness"
+    "test:soak": "node scripts/soak.mjs",
+    "check:release": "node scripts/release-check.mjs",
+    "check": "npm run build && npm test && npm run test:docs && npm run test:editors && npm run test:conformance && npm run test:security && npm run test:fuzz && npm run test:stress && npm run test:soak && npm run test:readiness"
   }
 }
