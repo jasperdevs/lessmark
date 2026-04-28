@@ -17,7 +17,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node --check src/index.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check bin/lessmark.js",
+    "build": "node --check src/index.js && node --check src/grammar.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check bin/lessmark.js",
     "test": "node --test"
   },
   "keywords": [

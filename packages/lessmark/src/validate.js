@@ -1,19 +1,5 @@
 import { LessmarkError, parseLessmark } from "./parser.js";
-
-const BLOCK_ATTRS = {
-  summary: { allowed: new Set(), required: new Set() },
-  decision: { allowed: new Set(["id"]), required: new Set(["id"]) },
-  constraint: { allowed: new Set(), required: new Set() },
-  task: { allowed: new Set(["status"]), required: new Set(["status"]) },
-  file: { allowed: new Set(["path"]), required: new Set(["path"]) },
-  example: { allowed: new Set(), required: new Set() },
-  note: { allowed: new Set(), required: new Set() },
-  warning: { allowed: new Set(), required: new Set() },
-  api: { allowed: new Set(["name"]), required: new Set(["name"]) },
-  link: { allowed: new Set(["href"]), required: new Set(["href"]) }
-};
-
-const TASK_STATUSES = new Set(["todo", "doing", "done", "blocked"]);
+import { BLOCK_ATTRS, TASK_STATUSES } from "./grammar.js";
 const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
 
 export function validateSource(source) {
