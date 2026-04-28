@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./lessmarklogowhitebackground.svg" alt="Lessmark" width="180" />
+  <img src="./banner.png" alt="lessmark" />
 </p>
 
 <h1 align="center">lessmark</h1>
