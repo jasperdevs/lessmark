@@ -39,11 +39,6 @@ import { parseLessmark } from "lessmark";
 from lessmark import parse_lessmark
 ```
 
-### Docs
-
-- [V0 spec](./spec/lessmark-v0.md)
-- [AST schema](./spec/ast-v0.schema.json)
-
 </details>
 
 ## License

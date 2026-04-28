@@ -18,5 +18,3 @@ lessmark parse file.lmk
 lessmark check file.lmk
 lessmark format file.lmk
 ```
-
-See the repository README and `spec/lessmark-v0.md` for the v0 language spec.
