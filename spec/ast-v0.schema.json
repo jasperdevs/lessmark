@@ -21,23 +21,120 @@
               "text": { "type": "string" }
             }
           },
-          {
-            "type": "object",
-            "required": ["type", "name", "attrs", "text"],
-            "additionalProperties": false,
-            "properties": {
-              "type": { "const": "block" },
-              "name": {
-                "enum": ["summary", "decision", "constraint", "task", "file", "example", "note", "warning", "api", "link"]
-              },
-              "attrs": {
-                "type": "object",
-                "additionalProperties": { "type": "string" }
-              },
-              "text": { "type": "string" }
-            }
-          }
+          { "$ref": "#/$defs/noAttrBlock" },
+          { "$ref": "#/$defs/decisionBlock" },
+          { "$ref": "#/$defs/taskBlock" },
+          { "$ref": "#/$defs/fileBlock" },
+          { "$ref": "#/$defs/apiBlock" },
+          { "$ref": "#/$defs/linkBlock" }
         ]
+      }
+    }
+  },
+  "$defs": {
+    "emptyAttrs": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "noAttrBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "enum": ["summary", "constraint", "example", "note", "warning"] },
+        "attrs": { "$ref": "#/$defs/emptyAttrs" },
+        "text": { "type": "string" }
+      }
+    },
+    "decisionBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "decision" },
+        "attrs": {
+          "type": "object",
+          "required": ["id"],
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+          }
+        },
+        "text": { "type": "string" }
+      }
+    },
+    "taskBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "task" },
+        "attrs": {
+          "type": "object",
+          "required": ["status"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "enum": ["todo", "doing", "done", "blocked"] }
+          }
+        },
+        "text": { "type": "string" }
+      }
+    },
+    "fileBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "file" },
+        "attrs": {
+          "type": "object",
+          "required": ["path"],
+          "additionalProperties": false,
+          "properties": {
+            "path": { "type": "string", "minLength": 1 }
+          }
+        },
+        "text": { "type": "string" }
+      }
+    },
+    "apiBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "api" },
+        "attrs": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1 }
+          }
+        },
+        "text": { "type": "string" }
+      }
+    },
+    "linkBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "link" },
+        "attrs": {
+          "type": "object",
+          "required": ["href"],
+          "additionalProperties": false,
+          "properties": {
+            "href": { "type": "string", "minLength": 1 }
+          }
+        },
+        "text": { "type": "string" }
       }
     }
   }

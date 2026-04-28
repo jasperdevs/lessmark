@@ -17,6 +17,18 @@ CORE_BLOCKS = {
 
 TASK_STATUSES = {"todo", "doing", "done", "blocked"}
 HTML_TAG_PATTERN = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>")
+BLOCK_ATTRS = {
+    "summary": {"allowed": set(), "required": set()},
+    "decision": {"allowed": {"id"}, "required": {"id"}},
+    "constraint": {"allowed": set(), "required": set()},
+    "task": {"allowed": {"status"}, "required": {"status"}},
+    "file": {"allowed": {"path"}, "required": {"path"}},
+    "example": {"allowed": set(), "required": set()},
+    "note": {"allowed": set(), "required": set()},
+    "warning": {"allowed": set(), "required": set()},
+    "api": {"allowed": {"name"}, "required": {"name"}},
+    "link": {"allowed": {"href"}, "required": {"href"}},
+}
 
 
 @dataclass
@@ -65,6 +77,7 @@ def _parse_heading(line: str, line_number: int) -> dict[str, Any]:
     text = match.group(2).rstrip()
     if re.search(r"\s#+\s*$", text):
         raise LessmarkError("Closing heading markers are not supported", line_number, len(line))
+    _assert_safe_text(text, "heading", line_number, line.find(text) + 1)
     return {"type": "heading", "level": len(match.group(1)), "text": text}
 
 
@@ -79,6 +92,7 @@ def _parse_block(lines: list[str], start_index: int) -> tuple[dict[str, Any], in
         raise LessmarkError(f'Unknown typed block "{name}"', start_index + 1, 2)
 
     attrs = _parse_attrs(match.group(2), start_index + 1, len(name) + 2)
+    _validate_block_attrs(name, attrs, start_index + 1)
     body: list[str] = []
     index = start_index + 1
 
@@ -86,6 +100,7 @@ def _parse_block(lines: list[str], start_index: int) -> tuple[dict[str, Any], in
         line = lines[index]
         if line.strip() == "" or line.startswith("#") or line.startswith("@"):
             break
+        _assert_safe_text(line, f"@{name}", index + 1, 1)
         body.append(line.rstrip())
         index += 1
 
@@ -118,6 +133,7 @@ def _parse_attrs(input_text: str, line_number: int, start_column: int) -> dict[s
         value, index = _read_quoted(input_text, index, line_number, start_column)
         if key in attrs:
             raise LessmarkError(f'Duplicate attribute "{key}"', line_number, start_column + index)
+        _assert_safe_attr_value(key, value, line_number, start_column + index)
         attrs[key] = value
 
     return attrs
@@ -137,10 +153,6 @@ def _read_quoted(input_text: str, quote_index: int, line_number: int, start_colu
             next_char = input_text[index + 1]
             if next_char in {'"', "\\"}:
                 value += next_char
-            elif next_char == "n":
-                value += "\n"
-            elif next_char == "t":
-                value += "\t"
             else:
                 raise LessmarkError(f"Unsupported escape \\{next_char}", line_number, start_column + index)
             index += 2
@@ -173,14 +185,7 @@ def validate_ast(ast: dict[str, Any]) -> list[dict[str, str]]:
         attrs = node.get("attrs", {})
         _validate_text_safety(node.get("text", ""), errors, f"@{name}")
 
-        if name == "file" and not attrs.get("path"):
-            errors.append({"message": "@file requires path"})
-        if name == "link" and not attrs.get("href"):
-            errors.append({"message": "@link requires href"})
-        if name == "task" and attrs.get("status") and attrs["status"] not in TASK_STATUSES:
-            errors.append({"message": "@task status must be one of: todo, doing, done, blocked"})
-        if name == "decision" and attrs.get("id") and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
-            errors.append({"message": "@decision id must be a lowercase slug"})
+        _validate_attrs(node, errors)
 
     return errors
 
@@ -188,6 +193,54 @@ def validate_ast(ast: dict[str, Any]) -> list[dict[str, str]]:
 def _validate_text_safety(text: str, errors: list[dict[str, str]], location: str) -> None:
     if HTML_TAG_PATTERN.search(text):
         errors.append({"message": f"{location} contains raw HTML/JSX-like syntax"})
+
+
+def _validate_block_attrs(name: str, attrs: dict[str, str], line_number: int) -> None:
+    spec = BLOCK_ATTRS[name]
+    for key in attrs:
+        if key not in spec["allowed"]:
+            raise LessmarkError(f'@{name} does not allow attribute "{key}"', line_number, 1)
+    for key in spec["required"]:
+        if not attrs.get(key):
+            raise LessmarkError(f"@{name} requires {key}", line_number, 1)
+    if name == "task" and attrs["status"] not in TASK_STATUSES:
+        raise LessmarkError("@task status must be one of: todo, doing, done, blocked", line_number, 1)
+    if name == "decision" and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
+        raise LessmarkError("@decision id must be a lowercase slug", line_number, 1)
+
+
+def _assert_safe_text(text: str, location: str, line_number: int, column: int) -> None:
+    if HTML_TAG_PATTERN.search(text):
+        raise LessmarkError(f"{location} contains raw HTML/JSX-like syntax", line_number, column)
+
+
+def _assert_safe_attr_value(key: str, value: str, line_number: int, column: int) -> None:
+    if re.search(r"[\r\n\t]", value):
+        raise LessmarkError(f'Attribute "{key}" cannot contain control whitespace', line_number, column)
+    _assert_safe_text(value, f'attribute "{key}"', line_number, column)
+
+
+def _validate_attrs(node: dict[str, Any], errors: list[dict[str, str]]) -> None:
+    name = node.get("name")
+    spec = BLOCK_ATTRS.get(name)
+    if spec is None:
+        errors.append({"message": f'Unknown typed block "{name}"'})
+        return
+
+    attrs = node.get("attrs", {})
+    for key, value in attrs.items():
+        if key not in spec["allowed"]:
+            errors.append({"message": f'@{name} does not allow attribute "{key}"'})
+        _validate_text_safety(str(value), errors, f'attribute "{key}"')
+        if re.search(r"[\r\n\t]", str(value)):
+            errors.append({"message": f'Attribute "{key}" cannot contain control whitespace'})
+    for key in spec["required"]:
+        if not attrs.get(key):
+            errors.append({"message": f"@{name} requires {key}"})
+    if name == "task" and attrs.get("status") and attrs["status"] not in TASK_STATUSES:
+        errors.append({"message": "@task status must be one of: todo, doing, done, blocked"})
+    if name == "decision" and attrs.get("id") and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
+        errors.append({"message": "@decision id must be a lowercase slug"})
 
 
 def format_lessmark(source: str) -> str:

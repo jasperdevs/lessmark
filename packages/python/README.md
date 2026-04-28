@@ -2,7 +2,7 @@
 
 Python parser, validator, formatter, and CLI for Lessmark.
 
-Lessmark is a strict, agent-readable document format for project context. The Python package mirrors the v0 JavaScript package surface closely enough for Python tools to parse `.lmk` files into the same JSON AST shape.
+Lessmark is a strict, agent-readable document format for project context. It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
 
 ```py
 from lessmark import parse_lessmark

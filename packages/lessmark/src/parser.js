@@ -11,6 +11,22 @@ export const CORE_BLOCKS = new Set([
   "link"
 ]);
 
+const BLOCK_ATTRS = {
+  summary: { allowed: new Set(), required: new Set() },
+  decision: { allowed: new Set(["id"]), required: new Set(["id"]) },
+  constraint: { allowed: new Set(), required: new Set() },
+  task: { allowed: new Set(["status"]), required: new Set(["status"]) },
+  file: { allowed: new Set(["path"]), required: new Set(["path"]) },
+  example: { allowed: new Set(), required: new Set() },
+  note: { allowed: new Set(), required: new Set() },
+  warning: { allowed: new Set(), required: new Set() },
+  api: { allowed: new Set(["name"]), required: new Set(["name"]) },
+  link: { allowed: new Set(["href"]), required: new Set(["href"]) }
+};
+
+const TASK_STATUSES = new Set(["todo", "doing", "done", "blocked"]);
+const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
+
 export class LessmarkError extends Error {
   constructor(message, line = 1, column = 1) {
     super(`${message} at ${line}:${column}`);
@@ -66,6 +82,7 @@ function parseHeading(line, lineNumber) {
   if (/\s#+\s*$/.test(match[2])) {
     throw new LessmarkError("Closing heading markers are not supported", lineNumber, line.length);
   }
+  assertSafeText(match[2], "heading", lineNumber, line.indexOf(match[2]) + 1);
   return {
     type: "heading",
     level: match[1].length,
@@ -86,6 +103,7 @@ function parseBlock(lines, startIndex) {
   }
 
   const attrs = parseAttrs(headerMatch[2], startIndex + 1, 1 + name.length + 1);
+  validateBlockAttrs(name, attrs, startIndex + 1);
   const body = [];
   let index = startIndex + 1;
 
@@ -94,6 +112,7 @@ function parseBlock(lines, startIndex) {
     if (line.trim() === "" || line.startsWith("#") || line.startsWith("@")) {
       break;
     }
+    assertSafeText(line, `@${name}`, index + 1, 1);
     body.push(line.trimEnd());
     index += 1;
   }
@@ -140,6 +159,7 @@ function parseAttrs(input, lineNumber, startColumn) {
     if (Object.hasOwn(attrs, key)) {
       throw new LessmarkError(`Duplicate attribute "${key}"`, lineNumber, startColumn + index);
     }
+    assertSafeAttrValue(key, parsed.value, lineNumber, startColumn + index);
     attrs[key] = parsed.value;
     index = parsed.nextIndex;
   }
@@ -162,8 +182,6 @@ function readQuoted(input, quoteIndex, lineNumber, startColumn) {
         throw new LessmarkError("Unterminated escape sequence", lineNumber, startColumn + index);
       }
       if (next === '"' || next === "\\") value += next;
-      else if (next === "n") value += "\n";
-      else if (next === "t") value += "\t";
       else throw new LessmarkError(`Unsupported escape \\${next}`, lineNumber, startColumn + index);
       index += 2;
       continue;
@@ -173,4 +191,37 @@ function readQuoted(input, quoteIndex, lineNumber, startColumn) {
   }
 
   throw new LessmarkError("Unterminated quoted attribute", lineNumber, startColumn + quoteIndex);
+}
+
+function validateBlockAttrs(name, attrs, lineNumber) {
+  const spec = BLOCK_ATTRS[name];
+  for (const key of Object.keys(attrs)) {
+    if (!spec.allowed.has(key)) {
+      throw new LessmarkError(`@${name} does not allow attribute "${key}"`, lineNumber, 1);
+    }
+  }
+  for (const key of spec.required) {
+    if (!attrs[key]) {
+      throw new LessmarkError(`@${name} requires ${key}`, lineNumber, 1);
+    }
+  }
+  if (name === "task" && !TASK_STATUSES.has(attrs.status)) {
+    throw new LessmarkError("@task status must be one of: todo, doing, done, blocked", lineNumber, 1);
+  }
+  if (name === "decision" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(attrs.id)) {
+    throw new LessmarkError("@decision id must be a lowercase slug", lineNumber, 1);
+  }
+}
+
+function assertSafeText(text, location, lineNumber, column) {
+  if (HTML_TAG_PATTERN.test(text)) {
+    throw new LessmarkError(`${location} contains raw HTML/JSX-like syntax`, lineNumber, column);
+  }
+}
+
+function assertSafeAttrValue(key, value, lineNumber, column) {
+  if (/[\r\n\t]/.test(value)) {
+    throw new LessmarkError(`Attribute "${key}" cannot contain control whitespace`, lineNumber, column);
+  }
+  assertSafeText(value, `attribute "${key}"`, lineNumber, column);
 }

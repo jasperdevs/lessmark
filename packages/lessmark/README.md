@@ -2,6 +2,8 @@
 
 Strict, agent-readable documents for project context.
 
+Lessmark rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
+
 ```js
 import { parseLessmark, validateSource, formatLessmark } from "lessmark";
 

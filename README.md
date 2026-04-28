@@ -7,6 +7,7 @@
 <p align="center">A strict, agent-readable document format for project context.</p>
 
 Lessmark is a small Markdown-inspired format built around typed blocks, a stable JSON AST, validation, formatting, and no raw HTML or JSX.
+It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
 
 ## Install
 
