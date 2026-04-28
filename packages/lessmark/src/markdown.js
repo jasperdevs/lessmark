@@ -126,8 +126,8 @@ export function fromMarkdown(markdown) {
 
     const rawText = paragraph.join(" ");
     const text = plainText(rawText);
-    const link = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+|mailto:[^)\s]+)\)$/.exec(rawText);
-    if (link) {
+    const link = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(rawText);
+    if (link && isSafeHref(link[2])) {
       children.push({ type: "block", name: "link", attrs: { href: link[2] }, text: link[1] });
     } else {
       children.push({ type: "block", name: firstParagraph ? "summary" : "note", attrs: {}, text });
@@ -349,11 +349,15 @@ function readMarkdownList(lines, startIndex) {
   const first = readMarkdownListItem(lines[startIndex]);
   if (!first) return null;
   const kind = first.kind;
+  const marker = first.marker;
   const items = [];
   let index = startIndex;
   while (index < lines.length) {
     const item = readMarkdownListItem(lines[index]);
     if (!item || item.kind !== kind) break;
+    if (item.marker !== marker) {
+      throw new Error("Mixed Markdown list markers are not supported by Lessmark import");
+    }
     items.push(`${"  ".repeat(item.level)}- ${plainText(item.text)}`);
     index += 1;
   }
@@ -374,6 +378,7 @@ function readMarkdownListItem(line) {
   return {
     level: Math.floor(match[1].length / 2),
     kind: match[3] ? "ordered" : "unordered",
+    marker: match[2] || match[3].replace(/\d+/g, "1"),
     text: match[4]
   };
 }

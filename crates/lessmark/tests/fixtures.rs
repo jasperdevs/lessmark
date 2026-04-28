@@ -160,6 +160,7 @@ fn cli_info_json_prints_machine_readable_capabilities() {
     assert_eq!(info["astVersion"], "v0");
     assert_eq!(info["syntaxPolicy"]["aliases"], true);
     assert_eq!(info["cli"]["strictBuild"], false);
+    assert_eq!(info["cli"]["formatCheck"], true);
     assert!(info["blocks"]
         .as_array()
         .expect("blocks")
@@ -280,9 +281,29 @@ fn supports_strict_nested_lists() {
     assert!(format_lessmark(source)
         .expect("nested list formats")
         .contains("  - Child"));
-    assert!(to_markdown("@list kind=\"ordered\"\n- Parent\n  - Child\n- Sibling\n")
-        .expect("exports nested list")
-        .contains("1. Parent\n  1. Child\n2. Sibling"));
+    assert!(
+        to_markdown("@list kind=\"ordered\"\n- Parent\n  - Child\n- Sibling\n")
+            .expect("exports nested list")
+            .contains("1. Parent\n  1. Child\n2. Sibling")
+    );
+}
+
+#[test]
+fn rejects_legacy_markdown_block_syntax_inside_lessmark_prose() {
+    for source in [
+        "@paragraph\n[docs]: https://example.com\n",
+        "@paragraph\n---\n",
+        "@paragraph\n===\n",
+        "@paragraph\n-*- \n",
+        "@paragraph\n> quoted text\n",
+    ] {
+        let errors = validate_source(source);
+        assert_eq!(errors[0].code, "markdown_legacy_syntax");
+        assert!(parse_lessmark(source)
+            .expect_err("legacy Markdown syntax rejects")
+            .message
+            .contains("Markdown"));
+    }
 }
 
 #[test]
@@ -424,6 +445,22 @@ fn imports_normal_markdown_lists() {
     assert!(unordered.contains("@list kind=\"unordered\"\n- Parent\n  - Child\n- Sibling"));
     let ordered = from_markdown("1. First\n   1. Child\n2. Second\n").expect("imports ordered");
     assert!(ordered.contains("@list kind=\"ordered\"\n- First\n  - Child\n- Second"));
+    assert!(from_markdown("- One\n* Two\n")
+        .expect_err("mixed unordered markers reject")
+        .message
+        .contains("Mixed Markdown list markers"));
+    assert!(from_markdown("1. One\n2) Two\n")
+        .expect_err("mixed ordered markers reject")
+        .message
+        .contains("Mixed Markdown list markers"));
+}
+
+#[test]
+fn imports_safe_relative_standalone_markdown_links() {
+    assert_eq!(
+        from_markdown("[Guide](docs/guide.html)\n").expect("imports relative link"),
+        "@link href=\"docs/guide.html\"\nGuide\n"
+    );
 }
 
 #[test]
@@ -438,8 +475,7 @@ fn imports_and_exports_math_and_diagram_blocks() {
         "$$\nE = mc^2\n$$\n"
     );
     assert_eq!(
-        to_markdown("@diagram kind=\"mermaid\"\ngraph TD\n  A --> B\n")
-            .expect("exports diagram"),
+        to_markdown("@diagram kind=\"mermaid\"\ngraph TD\n  A --> B\n").expect("exports diagram"),
         "```mermaid\ngraph TD\n  A --> B\n```\n"
     );
 }
@@ -503,17 +539,45 @@ fn exports_docs_blocks_to_markdown() {
 }
 
 #[test]
+fn rejects_unresolved_inline_local_targets() {
+    let ref_errors = validate_source("@paragraph\n{{ref:Missing|missing-target}}\n");
+    assert_eq!(ref_errors[0].code, "unknown_inline_target");
+    assert!(ref_errors[0].message.contains("missing-target"));
+
+    let footnote_errors = validate_source("@paragraph\n{{footnote:missing-note}}\n");
+    assert_eq!(footnote_errors[0].code, "unknown_inline_target");
+    assert!(footnote_errors[0].message.contains("missing-note"));
+
+    parse_lessmark(
+        "@decision id=\"known-target\"\nDone.\n\n\
+         @paragraph\n{{ref:Known|known-target}}\n\n\
+         @footnote id=\"known-note\"\nA note.\n\n\
+         @paragraph\n{{footnote:known-note}}\n",
+    )
+    .expect("known inline local targets parse");
+}
+
+#[test]
 fn rejects_invalid_inline_local_targets_during_markdown_export() {
     for source in [
         "@paragraph\n{{ref:Build|Build System}}\n",
-        "@paragraph\n{{ref:Build| build-system}}\n",
         "@paragraph\n{{footnote:}}\n",
         "# {{ref:Build|Build System}}\n",
-        "@callout kind=\"note\" title=\"{{footnote: strict-syntax}}\"\nBody.\n",
     ] {
         let error = to_markdown(source).expect_err("invalid inline target rejects");
         assert!(
             error.message.contains("lowercase slug"),
+            "{}",
+            error.message
+        );
+    }
+    for source in [
+        "@paragraph\n{{ref:Build| build-system}}\n",
+        "@callout kind=\"note\" title=\"{{footnote: strict-syntax}}\"\nBody.\n",
+    ] {
+        let error = to_markdown(source).expect_err("unknown inline target rejects");
+        assert!(
+            error.message.contains("Unknown inline local target"),
             "{}",
             error.message
         );

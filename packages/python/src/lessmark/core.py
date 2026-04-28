@@ -138,6 +138,9 @@ HTML_TAG_PATTERN = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>")
 API_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
 CODE_LANG_PATTERN = re.compile(r"^[A-Za-z0-9_.+-]+$")
 CONTROL_WHITESPACE_PATTERN = re.compile(r"[\r\n\t]")
+MARKDOWN_REFERENCE_DEFINITION_PATTERN = re.compile(r"^\s{0,3}\[[^\]\n]+\]:\s+\S")
+MARKDOWN_THEMATIC_BREAK_PATTERN = re.compile(r"^(?:(?: {0,3})(?:[-*_]\s*){3,}|(?: {0,3})=+\s*)$")
+MARKDOWN_BLOCKQUOTE_PATTERN = re.compile(r"^\s{0,3}>\s?")
 DECISION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 METADATA_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 DEFINITION_TERM_PATTERN = re.compile(r"^(?=.*\S)[^\r\n\t<>]+$")
@@ -281,6 +284,10 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
         if _is_block_terminator(lines, index, name):
             break
         _assert_safe_text(line, f"@{name}", index + 1, 1)
+        if not _is_literal_block(name):
+            legacy_error = _legacy_markdown_line_error(line)
+            if legacy_error is not None:
+                raise LessmarkError(legacy_error, index + 1, 1)
         body.append(line.rstrip())
         end_line = index + 1
         end_column = len(line) + 1
@@ -451,6 +458,16 @@ def validate_ast(ast: object) -> list[ValidationError]:
 def _validate_text_safety(text: str, errors: list[ValidationError], location: str) -> None:
     if HTML_TAG_PATTERN.search(text):
         errors.append({"message": f"{location} contains raw HTML/JSX-like syntax"})
+
+
+def _legacy_markdown_line_error(line: str) -> str | None:
+    if MARKDOWN_REFERENCE_DEFINITION_PATTERN.search(line):
+        return "Markdown reference definitions are not supported; use @reference or {{ref:label|target}}"
+    if MARKDOWN_THEMATIC_BREAK_PATTERN.search(line):
+        return "Markdown thematic breaks and setext underlines are not supported; use @separator or # headings"
+    if MARKDOWN_BLOCKQUOTE_PATTERN.search(line):
+        return "Markdown blockquote markers are not supported in Lessmark source; use @quote or @callout"
+    return None
 
 
 def _validate_inline_text(text: str, errors: list[ValidationError], location: str) -> None:
@@ -688,6 +705,12 @@ def error_code_for_message(message: str) -> str:
         return "duplicate_attribute"
     if "raw HTML/JSX-like" in message:
         return "raw_html"
+    if (
+        "Markdown reference definitions" in message
+        or "Markdown thematic breaks" in message
+        or "Markdown blockquote markers" in message
+    ):
+        return "markdown_legacy_syntax"
     if "Loose text" in message:
         return "loose_text"
     if "Invalid heading" in message:
@@ -718,6 +741,8 @@ def error_code_for_message(message: str) -> str:
         return "invalid_slug"
     if "Unknown local reference target" in message:
         return "unknown_reference_target"
+    if "Unknown inline local target" in message:
+        return "unknown_inline_target"
     if "Duplicate local anchor" in message:
         return "duplicate_local_anchor"
     if "@list" in message:
@@ -738,7 +763,7 @@ def error_code_for_message(message: str) -> str:
 def get_capabilities() -> dict[str, object]:
     return {
         "language": "lessmark",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "astVersion": "v0",
         "extensions": [".mu", ".lessmark"],
         "mediaType": "text/vnd.lessmark; charset=utf-8",
@@ -755,6 +780,7 @@ def get_capabilities() -> dict[str, object]:
         "cli": {
             "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
             "jsonCommands": ["check --json", "info --json"],
+            "formatCheck": True,
             "strictBuild": False,
         },
         "renderer": {
@@ -766,6 +792,10 @@ def get_capabilities() -> dict[str, object]:
         },
         "syntaxPolicy": {
             "aliases": True,
+            "canonicalSource": True,
+            "documentedConveniencesOnly": True,
+            "maxSpellingsPerMeaning": 2,
+            "markdownLegacySyntax": False,
             "rawHtml": False,
             "hooks": False,
             "customBlocks": False,
@@ -812,6 +842,11 @@ def _get_block_body_errors(name: object, attrs: object, text: str) -> list[str]:
     if name == "table":
         columns = str(attrs.get("columns", "")) if isinstance(attrs, Mapping) else ""
         return _get_table_body_errors(columns, text)
+    if name not in {"code", "example", "math", "diagram"}:
+        for line in text.splitlines():
+            legacy_error = _legacy_markdown_line_error(line)
+            if legacy_error is not None:
+                return [legacy_error]
     return []
 
 
@@ -913,7 +948,76 @@ def _get_local_anchor_errors(children: list[object]) -> list[str]:
         footnote_target = f"fn-{target}" if target else ""
         if target and target not in targets and footnote_target not in targets:
             errors.append(f'Unknown local reference target "{target}"')
+    for target in _collect_inline_local_targets(children):
+        footnote_target = f"fn-{target}" if target else ""
+        if target and DECISION_ID_PATTERN.match(target) and target not in targets and footnote_target not in targets:
+            errors.append(f'Unknown inline local target "{target}"')
     return errors
+
+
+def _collect_inline_local_targets(children: list[object]) -> list[str]:
+    targets: list[str] = []
+    for node in children:
+        if not isinstance(node, dict):
+            continue
+        if node.get("type") == "heading":
+            targets.extend(_inline_targets_from_text(str(node.get("text", ""))))
+        elif node.get("type") == "block" and node.get("name") not in {"code", "example", "math", "diagram"}:
+            targets.extend(_inline_targets_from_text(str(node.get("text", ""))))
+            attrs = node.get("attrs", {})
+            if isinstance(attrs, Mapping):
+                for key in ["label", "cite", "title", "caption", "term"]:
+                    value = attrs.get(key)
+                    if isinstance(value, str):
+                        targets.extend(_inline_targets_from_text(value))
+    return targets
+
+
+def _inline_targets_from_text(text: str) -> list[str]:
+    targets: list[str] = []
+    index = 0
+    while index < len(text):
+        start = text.find("{{", index)
+        if start == -1:
+            break
+        end = _find_inline_function_end(text, start)
+        if end == -1:
+            break
+        inner = text[start + 2 : end]
+        separator = inner.find(":")
+        if separator > 0:
+            name = inner[:separator].strip()
+            value = inner[separator + 1 :]
+            if name == "ref":
+                delimiter = value.find("|")
+                if delimiter != -1:
+                    targets.append(value[delimiter + 1 :].strip())
+                    targets.extend(_inline_targets_from_text(value[:delimiter]))
+            elif name == "footnote":
+                targets.append(value.strip())
+            elif name in {"strong", "em", "del", "mark", "link"}:
+                label = value.split("|", 1)[0] if name == "link" else value
+                targets.extend(_inline_targets_from_text(label))
+        index = end + 2
+    return targets
+
+
+def _find_inline_function_end(source: str, start: int) -> int:
+    depth = 1
+    index = start + 2
+    while index < len(source):
+        if source.startswith("{{", index):
+            depth += 1
+            index += 2
+            continue
+        if source.startswith("}}", index):
+            depth -= 1
+            if depth == 0:
+                return index
+            index += 2
+            continue
+        index += 1
+    return -1
 
 
 def _slugify_local_anchor(text: str) -> str:
@@ -1152,8 +1256,8 @@ def from_markdown(markdown: str) -> str:
 
         raw_text = " ".join(paragraph)
         text = _plain_text(raw_text)
-        link = re.match(r"^\[([^\]]+)\]\((https?://[^)\s]+|mailto:[^)\s]+)\)$", raw_text)
-        if link:
+        link = re.match(r"^\[([^\]]+)\]\(([^)\s]+)\)$", raw_text)
+        if link and _is_safe_href(link.group(2)):
             children.append({"type": "block", "name": "link", "attrs": {"href": link.group(2)}, "text": link.group(1)})
         else:
             children.append({"type": "block", "name": "summary" if first_paragraph else "note", "attrs": {}, "text": text})
@@ -1396,12 +1500,15 @@ def _read_markdown_list(lines: list[str], start_index: int) -> dict[str, object]
     if first is None:
         return None
     kind = str(first["kind"])
+    marker = str(first["marker"])
     items: list[str] = []
     index = start_index
     while index < len(lines):
         item = _read_markdown_list_item(lines[index])
         if item is None or item["kind"] != kind:
             break
+        if str(item["marker"]) != marker:
+            raise ValueError("Mixed Markdown list markers are not supported by Lessmark import")
         items.append(f"{'  ' * int(item['level'])}- {_plain_text(str(item['text']))}")
         index += 1
     return {
@@ -1417,6 +1524,7 @@ def _read_markdown_list_item(line: str) -> dict[str, object] | None:
     return {
         "level": len(match.group(1)) // 2,
         "kind": "ordered" if match.group(3) else "unordered",
+        "marker": match.group(2) or ("1)" if str(match.group(3)).endswith(")") else "1."),
         "text": match.group(4),
     }
 

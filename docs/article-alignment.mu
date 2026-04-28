@@ -9,7 +9,7 @@ Source: https://bgslabs.org/blog/why-are-we-using-markdown/
 - Multiple spellings for one meaning: Lessmark keeps one heading form and one typed block form.
 - Inline HTML as an escape hatch: raw HTML and JSX-like tags are rejected.
 - Reference-style global resolution: Lessmark has no implicit reference definitions; notes and references are explicit typed blocks.
-- Parser ambiguity from old email-era syntax: Lessmark does not support setext headings, thematic-break collisions, or alternate list markers.
+- Parser ambiguity from old email-era syntax: Lessmark does not support setext headings, thematic-break collisions, blockquote markers inside prose, reference-definition syntax, or alternate list markers in canonical source.
 - Undefined extension points: unknown block names, unknown attributes, and unknown inline render functions fail.
 
 ## Fixed by This Docs Pass
@@ -19,7 +19,8 @@ Source: https://bgslabs.org/blog/why-are-we-using-markdown/
 - Missing agent contract: check --json returns stable error codes and info --json exposes the supported syntax and renderer capabilities.
 - Missing docs primitives: @page, @paragraph, @image, @separator, @list, @table, @quote, @callout, and @toc cover normal docs/site pages.
 - Missing safe inline markup: inline functions provide bold, emphasis, code, keyboard text, and links without Markdown delimiter ambiguity.
-- Missing semantic docs primitives: @definition, @reference, @footnote, local {{ref:label\|target}}, and {{footnote:id}} cover glossaries, local navigation, and notes without global reference resolution.
+- Markdown import ambiguity: mixed list markers now reject instead of silently guessing one canonical list shape, and safe relative standalone links import to @link.
+- Missing semantic docs primitives: @definition, @reference, @footnote, local inline refs, and inline footnotes cover glossaries, local navigation, and notes without global reference resolution.
 - Missing site chrome foundation: bodyless @nav items cover simple primary/footer navigation without raw HTML, layout directives, or component syntax.
 - Missing governance process: docs/governance.mu, docs/conformance.mu, schemas/profiles-v0.contract.json, and the GitHub format-change issue form make stewardship and profile changes explicit.
 

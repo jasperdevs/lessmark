@@ -42,10 +42,17 @@ try {
     console.log(`${file}: ok`);
   } else if (command === "format" || command === "fix") {
     const write = args.includes("--write");
-    const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--write"));
+    const check = args.includes("--check");
+    const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--write" && arg !== "--check"));
     const source = await readFile(file, "utf8");
     const formatted = formatLessmark(source);
-    if (write) {
+    if (check) {
+      if (formatted !== source) {
+        console.error(`${file}: needs formatting`);
+        process.exit(1);
+      }
+      console.log(`${file}: formatted`);
+    } else if (write) {
       await writeFile(file, formatted, "utf8");
     } else {
       process.stdout.write(formatted);
@@ -294,6 +301,7 @@ Usage:
   lessmark check file.mu
   lessmark check --json file.mu
   lessmark format file.mu
+  lessmark format --check file.mu
   lessmark format --write file.mu
   lessmark fix --write file.mu
   lessmark from-markdown README.md

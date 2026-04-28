@@ -225,7 +225,94 @@ fn get_local_anchor_errors(children: &[Value]) -> Vec<String> {
             errors.push(format!("Unknown local reference target \"{}\"", target));
         }
     }
+    for target in collect_inline_local_targets(children) {
+        let footnote_target = format!("fn-{}", target);
+        if !target.is_empty()
+            && is_local_slug(&target)
+            && !targets.contains(&target)
+            && !targets.contains(&footnote_target)
+        {
+            errors.push(format!("Unknown inline local target \"{}\"", target));
+        }
+    }
     errors
+}
+
+fn collect_inline_local_targets(children: &[Value]) -> Vec<String> {
+    let mut targets = Vec::new();
+    for node in children {
+        let Some(object) = node.as_object() else {
+            continue;
+        };
+        match object.get("type").and_then(Value::as_str) {
+            Some("heading") => {
+                targets.extend(inline_targets_from_text(
+                    object.get("text").and_then(Value::as_str).unwrap_or(""),
+                ));
+            }
+            Some("block") => {
+                let name = object.get("name").and_then(Value::as_str).unwrap_or("");
+                if matches!(name, "code" | "example" | "math" | "diagram") {
+                    continue;
+                }
+                targets.extend(inline_targets_from_text(
+                    object.get("text").and_then(Value::as_str).unwrap_or(""),
+                ));
+                if let Some(attrs) = object.get("attrs").and_then(Value::as_object) {
+                    for key in ["label", "cite", "title", "caption", "term"] {
+                        if let Some(value) = attrs.get(key).and_then(Value::as_str) {
+                            targets.extend(inline_targets_from_text(value));
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    targets
+}
+
+fn inline_targets_from_text(text: &str) -> Vec<String> {
+    let mut targets = Vec::new();
+    let mut index = 0;
+    while index < text.len() {
+        let Some(relative_start) = text[index..].find("{{") else {
+            break;
+        };
+        let start = index + relative_start;
+        let Some(end) = find_inline_function_end(text, start) else {
+            break;
+        };
+        let inner = &text[start + 2..end];
+        if let Some(separator) = inner.find(':') {
+            if separator > 0 {
+                let name = inner[..separator].trim();
+                let value = &inner[separator + 1..];
+                match name {
+                    "ref" => {
+                        if let Some(delimiter) = value.find('|') {
+                            targets.push(value[delimiter + 1..].trim().to_string());
+                            targets.extend(inline_targets_from_text(&value[..delimiter]));
+                        }
+                    }
+                    "footnote" => targets.push(value.trim().to_string()),
+                    "strong" | "em" | "del" | "mark" => {
+                        targets.extend(inline_targets_from_text(value));
+                    }
+                    "link" => {
+                        let label = value
+                            .split_once('|')
+                            .map(|(label, _)| label)
+                            .unwrap_or(value);
+                        targets.extend(inline_targets_from_text(label));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        index = end + 2;
+    }
+    targets
 }
 
 fn slugify_local_anchor(text: &str) -> String {
@@ -266,7 +353,10 @@ fn validate_attrs(name: &str, value: Option<&Value>, errors: &mut Vec<Validation
             continue;
         };
         validate_text_safety(text, errors, &format!("attribute \"{}\"", key));
-        if matches!(key.as_str(), "label" | "cite" | "title" | "caption" | "term") {
+        if matches!(
+            key.as_str(),
+            "label" | "cite" | "title" | "caption" | "term"
+        ) {
             validate_inline_text(text, errors, &format!("attribute \"{}\"", key));
         }
         if contains_control_whitespace(text) {

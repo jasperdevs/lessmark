@@ -1,5 +1,5 @@
 import { CORE_BLOCKS } from "./grammar.js";
-import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLocalAnchorErrors, isSafeHref } from "./rules.js";
+import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLegacyMarkdownLineError, getLocalAnchorErrors, isSafeHref } from "./rules.js";
 
 const BLOCK_ALIASES = {
   p: { name: "paragraph", attrs: {} },
@@ -128,6 +128,10 @@ function parseBlock(lines, startIndex, sourcePositions) {
       break;
     }
     assertSafeText(line, `@${name}`, index + 1, 1);
+    if (!isLiteralBlock(name)) {
+      const legacyError = getLegacyMarkdownLineError(line);
+      if (legacyError) throw new LessmarkError(legacyError, index + 1, 1);
+    }
     body.push(line.trimEnd());
     endLine = index + 1;
     endColumn = line.length + 1;

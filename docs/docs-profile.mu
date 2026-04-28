@@ -9,7 +9,7 @@ The docs profile is the publishing layer for Lessmark. It follows the same rule 
 - Use typed blocks, not punctuation tricks.
 - Render from the AST, not from source text.
 - Keep one canonical source spelling per structure. Documented authoring conveniences are allowed only when they format back to canonical blocks, attributes, or inline functions.
-- Keep inline markup as explicit functions: {{strong:text}}, {{em:text}}, {{code:text}}, {{kbd:text}}, {{del:text}}, {{mark:text}}, {{sup:text}}, {{sub:text}}, {{ref:label\|target}}, {{footnote:id}}, and {{link:label\|href}}.
+- Keep inline markup as explicit functions: strong, em, code, kbd, del, mark, sup, sub, ref, footnote, and link.
 - Reject unknown inline functions during rendering.
 - Keep links and assets safe: no executable URL schemes, no absolute local paths, and no .. path traversal.
 - Do not add user-defined execution hooks by default.
@@ -17,10 +17,13 @@ The docs profile is the publishing layer for Lessmark. It follows the same rule 
 ## Authoring Convenience Rule
 
 @paragraph
-Conveniences are not a second language. They are typing helpers that must compile into the canonical AST and formatter output. The accepted block conveniences are @p, @ul, @ol, and one-token attributes such as @task todo, @decision storage-backend, @risk high, @file src/app.ts, @api parseLessmark, @code ts, @callout warning, @math tex, @diagram mermaid, @definition API, @table Name\|Value, @metadata project.stage, @link https://example.com, @reference slug, @footnote note, and @depends-on slug.
+Conveniences are not a second language. They are typing helpers that must compile into the canonical AST and formatter output. Each meaning has one canonical spelling and at most one documented convenience spelling. The accepted block conveniences are @p, @ul, @ol, and one-token attributes such as @task todo, @decision storage-backend, @risk high, @file src/app.ts, @api parseLessmark, @code ts, @callout warning, @math tex, @diagram mermaid, @definition API, @table Name\|Value, @metadata project.stage, @link https://example.com, @reference slug, @footnote note, and @depends-on slug.
 
 @paragraph
-The accepted prose shortcuts are `code`, *emphasis*, **bold**, ~~deleted~~, ==marked==, [label](https://example.com), [label](#local-slug), and [^footnote-id]. @code and @example bodies stay literal. Anything outside that list is invalid or plain text.
+The accepted prose shortcuts are inline code, emphasis, bold, deleted text, marked text, web links, local hash links, and footnote pointers. @code and @example bodies stay literal. Anything outside that list is invalid or plain text.
+
+@paragraph
+Markdown reference definitions, > blockquote markers, and --- thematic-break or setext-style lines are invalid in prose bodies. Use @reference, @quote, @callout, @separator, or a # heading so the AST stays explicit.
 
 ## Page Metadata
 
@@ -46,7 +49,7 @@ href uses the same safe-link rules as @link. slot is optional and must be primar
 ## Local References
 
 @paragraph
-Local targets use lowercase slugs. Heading anchors are generated from heading text; duplicate generated anchors receive -2, -3, and later suffixes. @reference target must resolve to a local heading anchor, @decision id, or @footnote id; broken local references are invalid. @reference and {{ref:label\|target}} are explicit local links only, not global reference definitions.
+Local targets use lowercase slugs. Heading anchors are generated from heading text; duplicate generated anchors receive -2, -3, and later suffixes. @reference target must resolve to a local heading anchor, @decision id, or @footnote id; broken local references are invalid. @reference and inline ref functions are explicit local links only, not global reference definitions.
 
 ## Common Docs Blocks
 
@@ -118,6 +121,7 @@ render writes HTML to stdout. build recursively converts .mu and .lessmark files
 - reference-style links
 - implicit/global footnote syntax
 - implicit reference resolution
+- Markdown blockquote, reference-definition, thematic-break, or setext-heading syntax in prose bodies
 - layout, component, class, or style directives
 - arbitrary plugin hooks
 - expression syntax

@@ -4,11 +4,53 @@ const childProcess = require("node:child_process");
 const vscode = require("vscode");
 
 const diagnosticCollection = vscode.languages.createDiagnosticCollection("lessmark");
+const BLOCK_DOCS = new Map([
+  ["summary", "Document summary. Body is plain inline text."],
+  ["paragraph", "Paragraph body. Use explicit inline functions like {{strong:text}}, {{ref:Label|target}}, and {{link:Label|https://example.com}}."],
+  ["decision", "Decision block. Required: id=\"lowercase-slug\". The id becomes a local reference target."],
+  ["constraint", "Constraint body. Use for rules the document must preserve."],
+  ["task", "Task block. Required: status=\"todo|doing|done|blocked\"."],
+  ["risk", "Risk block. Required: level=\"low|medium|high|critical\"."],
+  ["depends-on", "Dependency block. Required: target=\"decision-id\"."],
+  ["code", "Literal code block. Optional: lang=\"js\". Inline syntax is not parsed inside the body."],
+  ["example", "Literal example block. Inline syntax is not parsed inside the body."],
+  ["list", "List block. Required: kind=\"unordered|ordered\". Body uses one '- ' marker per item; nest with two spaces."],
+  ["table", "Table block. Required: columns=\"Name|Value\". Body rows must match the column count."],
+  ["image", "Image block. Required: src and alt. Optional: caption."],
+  ["math", "Math block. Required: notation=\"tex|asciimath\". Body is literal."],
+  ["diagram", "Diagram block. Required: kind=\"mermaid|graphviz|plantuml\". Body is literal."],
+  ["footnote", "Footnote block. Required: id=\"lowercase-slug\". Can be referenced with {{footnote:id}}."],
+  ["reference", "Reference block. Required: target=\"local-anchor\". Target must resolve."],
+  ["link", "Standalone link block. Required: href. Body is the label."],
+  ["callout", "Callout block. Required: kind=\"note|tip|warning|caution\". Optional: title."],
+  ["quote", "Quote block. Optional: cite."],
+  ["definition", "Definition block. Required: term."],
+  ["metadata", "Metadata block. Required: key."],
+  ["page", "Page metadata. Optional: title, output. Body is not allowed."],
+  ["nav", "Navigation block. Required: label, href. Body is not allowed."],
+  ["api", "API block. Required: name."],
+  ["separator", "Separator block. No attributes or body."],
+  ["toc", "Table of contents marker. No body."]
+]);
+const INLINE_DOCS = new Map([
+  ["strong", "{{strong:text}} makes text strong."],
+  ["em", "{{em:text}} emphasizes text."],
+  ["code", "{{code:text}} marks inline code."],
+  ["kbd", "{{kbd:key}} marks keyboard input."],
+  ["del", "{{del:text}} marks deleted text."],
+  ["mark", "{{mark:text}} highlights text."],
+  ["sup", "{{sup:text}} marks superscript text."],
+  ["sub", "{{sub:text}} marks subscript text."],
+  ["ref", "{{ref:Label|target}} links to a local heading, @decision id, or @footnote id."],
+  ["footnote", "{{footnote:id}} links to a matching @footnote id."],
+  ["link", "{{link:Label|href}} creates a safe external or project-relative link."]
+]);
 
 function activate(context) {
   context.subscriptions.push(diagnosticCollection);
   context.subscriptions.push(vscode.commands.registerCommand("lessmark.check", checkActiveDocument));
   context.subscriptions.push(vscode.commands.registerCommand("lessmark.preview", previewActiveDocument));
+  context.subscriptions.push(vscode.languages.registerHoverProvider("lessmark", { provideHover }));
   context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((document) => {
     if (document.languageId === "lessmark") void checkDocument(document);
   }));
@@ -78,6 +120,35 @@ function diagnosticsFromResult(result) {
     diagnostic.source = "lessmark";
     return diagnostic;
   });
+}
+
+function provideHover(document, position) {
+  const line = document.lineAt(position.line).text;
+  const inlineName = inlineFunctionAt(line, position.character);
+  if (inlineName && INLINE_DOCS.has(inlineName)) {
+    return new vscode.Hover(new vscode.MarkdownString(INLINE_DOCS.get(inlineName)));
+  }
+
+  const block = /^@([a-z][a-z0-9-]*)\b/.exec(line);
+  if (block && position.character <= block[0].length && BLOCK_DOCS.has(block[1])) {
+    return new vscode.Hover(new vscode.MarkdownString(BLOCK_DOCS.get(block[1])));
+  }
+  return undefined;
+}
+
+function inlineFunctionAt(line, character) {
+  let index = 0;
+  while (index < line.length) {
+    const start = line.indexOf("{{", index);
+    if (start === -1) return null;
+    const nameStart = start + 2;
+    const separator = line.indexOf(":", nameStart);
+    if (separator === -1) return null;
+    const name = line.slice(nameStart, separator).trim();
+    if (character >= nameStart && character <= separator) return name;
+    index = separator + 1;
+  }
+  return null;
 }
 
 function getActiveLessmarkDocument() {

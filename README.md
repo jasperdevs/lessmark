@@ -39,6 +39,7 @@ lessmark parse file.mu
 lessmark check file.mu
 lessmark check --json file.mu
 lessmark format file.mu
+lessmark format --check file.mu
 lessmark fix --write file.mu
 lessmark from-markdown README.md
 lessmark to-markdown file.mu
@@ -47,15 +48,13 @@ lessmark build --strict docs public
 lessmark info --json
 ```
 
-`check --json` returns stable error `code` values for tools. `info --json` exposes the v0 block set, inline functions, CLI features, and syntax policy.
+`check --json` returns stable error `code` values for tools. `format --check` exits non-zero when source is not canonical. `info --json` exposes the v0 block set, inline functions, CLI features, and syntax policy.
 
 ## Blocks
 
 Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `api`, `metadata`, `risk`, and `depends-on`, plus docs blocks like `page`, `nav`, `paragraph`, `image`, `list`, `table`, `quote`, `callout`, `toc`, `definition`, `reference`, and `footnote`.
 
-See [`docs/spec.mu`](./docs/spec.mu), [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json), [`schemas/language-v0.contract.json`](./schemas/language-v0.contract.json), and [`schemas/profiles-v0.contract.json`](./schemas/profiles-v0.contract.json) for the source, AST, shared language, and profile contracts.
-
-Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.mu`](./docs/agent-context-profile.mu), [`docs/docs-profile.mu`](./docs/docs-profile.mu), [`docs/profiles.mu`](./docs/profiles.mu), [`docs/conformance.mu`](./docs/conformance.mu), [`docs/governance.mu`](./docs/governance.mu), [`docs/file-type-registration.mu`](./docs/file-type-registration.mu), [`docs/markdown-comparison.mu`](./docs/markdown-comparison.mu), [`docs/article-alignment.mu`](./docs/article-alignment.mu), [`docs/standardization.mu`](./docs/standardization.mu), and [`docs/markdown-chaos-timeline.mu`](./docs/markdown-chaos-timeline.mu).
+Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [`docs/spec.mu`](./docs/spec.mu) for the source format.
 
 <details>
 <summary>API and docs</summary>

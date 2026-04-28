@@ -33,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     format_parser = subparsers.add_parser("format", aliases=["fix"])
     format_parser.add_argument("file")
     format_parser.add_argument("--write", action="store_true")
+    format_parser.add_argument("--check", action="store_true")
 
     from_markdown_parser = subparsers.add_parser("from-markdown")
     from_markdown_parser.add_argument("file")
@@ -77,7 +78,12 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command in {"format", "fix"}:
             formatted = format_lessmark(source)
-            if args.write:
+            if args.check:
+                if formatted != source:
+                    print(f"{path}: needs formatting", file=sys.stderr)
+                    return 1
+                print(f"{path}: formatted")
+            elif args.write:
                 with path.open("w", encoding="utf-8", newline="\n") as file:
                     file.write(formatted)
             else:

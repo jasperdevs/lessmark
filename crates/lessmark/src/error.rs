@@ -74,6 +74,12 @@ pub fn error_code_for_message(message: &str) -> &'static str {
     if message.contains("raw HTML/JSX-like") {
         return "raw_html";
     }
+    if message.contains("Markdown reference definitions")
+        || message.contains("Markdown thematic breaks")
+        || message.contains("Markdown blockquote markers")
+    {
+        return "markdown_legacy_syntax";
+    }
     if message.contains("Loose text") {
         return "loose_text";
     }
@@ -118,6 +124,9 @@ pub fn error_code_for_message(message: &str) -> &'static str {
     }
     if message.contains("Unknown local reference target") {
         return "unknown_reference_target";
+    }
+    if message.contains("Unknown inline local target") {
+        return "unknown_inline_target";
     }
     if message.contains("Duplicate local anchor") {
         return "duplicate_local_anchor";

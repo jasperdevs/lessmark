@@ -63,10 +63,11 @@ Overall, if support/network effects are excluded:
 @list kind="unordered"
 - Known block names instead of ambiguous prose conventions.
 - Parser rejects loose text, unknown attributes, raw HTML, JSX-like tags, unsafe file paths, and unsafe link schemes.
+- Parser rejects Markdown reference definitions, blockquote markers, thematic-break lines, and setext-style underline lines inside prose blocks; those must be @reference, @quote, @callout, @separator, or # headings.
 - The docs profile renders pages, primary/footer navigation, images, math, diagrams, separators, lists, tables, quotes, callouts, TOCs, definitions, explicit references, footnotes, and explicit inline functions without raw HTML.
 - Table body cells can include literal pipes with \\|, and malformed list/table bodies are rejected during validation.
 - @reference targets are checked against local headings, decisions, and footnotes instead of leaving broken local links for render time.
-- Documented human authoring conveniences cover the common typing pain: @p, @ul, @ol, one-token block attributes, `code`, *emphasis*, **bold**, links, local refs, footnotes, marks, and deletion. They format back to canonical source instead of becoming a new dialect.
+- Documented human authoring conveniences cover the common typing pain: @p, @ul, @ol, one-token block attributes, `code`, *emphasis*, **bold**, links, local refs, footnotes, marks, and deletion. Each meaning has one canonical spelling and at most one documented convenience spelling; formatting always returns canonical source instead of a new dialect.
 - The AST shape is small and stable by default.
 - check --json returns stable error codes, and info --json tells agents which syntax, commands, and renderer features exist.
 - build --strict rejects unsafe inline render links, duplicate outputs, output collisions, and broken page, image, or relative asset links before writing pages.
@@ -90,6 +91,7 @@ Overall, if support/network effects are excluded:
 - GitHub does not render Lessmark repository home pages.
 - Existing editors, linters, package registries, and docs systems do not broadly support Lessmark.
 - Nested lists are supported only inside @list with exactly two spaces per level and one canonical - item marker.
+- Markdown import rejects ambiguous mixed list markers instead of guessing a canonical list.
 - Cross-page link and asset checking is handled by build --strict, not by source parsing.
 - Build-time hooks, custom components, style directives, and undocumented shorthand aliases are intentionally outside v0.
 - text/vnd.lessmark and GitHub Linguist recognition remain platform adoption work, not language semantics.

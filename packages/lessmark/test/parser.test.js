@@ -187,6 +187,20 @@ test("rejects unsafe shorthand links and ambiguous shortcut emphasis", () => {
   assert.throws(() => formatLessmark("@paragraph\n*em **bold***\n"), /shortcut emphasis/);
 });
 
+test("rejects legacy Markdown block syntax inside Lessmark prose", () => {
+  for (const source of [
+    "@paragraph\n[docs]: https://example.com\n",
+    "@paragraph\n---\n",
+    "@paragraph\n===\n",
+    "@paragraph\n-*- \n",
+    "@paragraph\n> quoted text\n"
+  ]) {
+    const errors = validateSource(source);
+    assert.equal(errors[0].code, "markdown_legacy_syntax");
+    assert.throws(() => parseLessmark(source), /Markdown/);
+  }
+});
+
 test("supports strict nested lists", () => {
   const source = `@list kind="unordered"
 - Parent
@@ -480,6 +494,12 @@ test("imports normal Markdown lists into typed Lessmark lists", () => {
 2. Second
 `);
   assert.match(ordered, /@list kind="ordered"\n- First\n  - Child\n- Second/);
+  assert.throws(() => fromMarkdown("- One\n* Two\n"), /Mixed Markdown list markers/);
+  assert.throws(() => fromMarkdown("1. One\n2) Two\n"), /Mixed Markdown list markers/);
+});
+
+test("imports safe relative standalone Markdown links", () => {
+  assert.equal(fromMarkdown("[Guide](docs/guide.html)\n"), '@link href="docs/guide.html"\nGuide\n');
 });
 
 test("rejects unclosed Markdown code fences", () => {
@@ -527,6 +547,20 @@ test("exports docs blocks to Markdown without losing structure", async () => {
   assert.match(markdown, /\| Typed blocks\\\|agents \| done \|/);
   assert.match(markdown, /!\[Build pipeline\]\(assets\/diagram.svg\)/);
   assert.match(toMarkdown("@separator\n"), /^---\n$/);
+});
+
+test("rejects unresolved inline local targets", () => {
+  const refErrors = validateSource("@paragraph\n{{ref:Missing|missing-target}}\n");
+  assert.equal(refErrors[0].code, "unknown_inline_target");
+  assert.match(refErrors[0].message, /missing-target/);
+
+  const footnoteErrors = validateSource("@paragraph\n{{footnote:missing-note}}\n");
+  assert.equal(footnoteErrors[0].code, "unknown_inline_target");
+  assert.match(footnoteErrors[0].message, /missing-note/);
+
+  assert.doesNotThrow(() =>
+    parseLessmark("@decision id=\"known-target\"\nDone.\n\n@paragraph\n{{ref:Known|known-target}}\n\n@footnote id=\"known-note\"\nA note.\n\n@paragraph\n{{footnote:known-note}}\n")
+  );
 });
 
 test("renders strict docs blocks to safe HTML", async () => {
@@ -577,12 +611,12 @@ test("renderer emits deterministic unique heading ids", () => {
 
 test("rejects invalid inline local targets during render and export", () => {
   assert.throws(() => renderHtml("@paragraph\n{{ref:Build|Build System}}\n"), /lowercase slug/);
-  assert.throws(() => renderHtml("@paragraph\n{{ref:Build| build-system}}\n"), /lowercase slug/);
+  assert.throws(() => renderHtml("@paragraph\n{{ref:Build| build-system}}\n"), /Unknown inline local target/);
   assert.throws(() => renderHtml("@paragraph\n{{footnote:}}\n"), /lowercase slug/);
   assert.throws(() => toMarkdown("@paragraph\n{{ref:Build|Build System}}\n"), /lowercase slug/);
-  assert.throws(() => toMarkdown("@paragraph\n{{footnote: strict-syntax}}\n"), /lowercase slug/);
+  assert.throws(() => toMarkdown("@paragraph\n{{footnote: strict-syntax}}\n"), /Unknown inline local target/);
   assert.throws(() => toMarkdown("# {{ref:Build|Build System}}\n"), /lowercase slug/);
-  assert.throws(() => toMarkdown('@callout kind="note" title="{{footnote: strict-syntax}}"\nBody.\n'), /lowercase slug/);
+  assert.throws(() => toMarkdown('@callout kind="note" title="{{footnote: strict-syntax}}"\nBody.\n'), /Unknown inline local target/);
 });
 
 test("renderer rejects unclosed inline functions", () => {

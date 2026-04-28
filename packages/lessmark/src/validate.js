@@ -246,6 +246,7 @@ export function errorCodeForMessage(message) {
   if (/requires /.test(message)) return "missing_required_attribute";
   if (/Duplicate attribute/.test(message)) return "duplicate_attribute";
   if (/raw HTML\/JSX-like/.test(message)) return "raw_html";
+  if (/Markdown reference definitions|Markdown thematic breaks|Markdown blockquote markers/.test(message)) return "markdown_legacy_syntax";
   if (/Loose text/.test(message)) return "loose_text";
   if (/Invalid heading/.test(message)) return "invalid_heading";
   if (/Closing heading markers/.test(message)) return "closing_heading_marker";
@@ -262,6 +263,7 @@ export function errorCodeForMessage(message) {
   if (/safe relative|safe relative, http|safe relative \.html|executable URL/.test(message)) return "unsafe_link_or_path";
   if (/lowercase slug/.test(message)) return "invalid_slug";
   if (/Unknown local reference target/.test(message)) return "unknown_reference_target";
+  if (/Unknown inline local target/.test(message)) return "unknown_inline_target";
   if (/Duplicate local anchor/.test(message)) return "duplicate_local_anchor";
   if (/@list/.test(message)) return "invalid_list_body";
   if (/@table/.test(message)) return "invalid_table_body";

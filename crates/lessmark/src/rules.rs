@@ -12,6 +12,21 @@ fn html_tag_pattern() -> &'static Regex {
     PATTERN.get_or_init(|| Regex::new(r#"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>"#).unwrap())
 }
 
+fn markdown_reference_definition_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r"^\s{0,3}\[[^\]\n]+\]:\s+\S").unwrap())
+}
+
+fn markdown_thematic_break_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r"^(?:(?: {0,3})(?:[-*_]\s*){3,}|(?: {0,3})=+\s*)$").unwrap())
+}
+
+fn markdown_blockquote_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r"^\s{0,3}>\s?").unwrap())
+}
+
 fn api_name_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     PATTERN.get_or_init(|| Regex::new(r#"^[A-Za-z_][A-Za-z0-9_.-]*$"#).unwrap())
@@ -53,6 +68,25 @@ pub fn contains_html_like_tag(text: &str) -> bool {
 
 pub fn contains_control_whitespace(text: &str) -> bool {
     text.chars().any(|ch| matches!(ch, '\r' | '\n' | '\t'))
+}
+
+pub fn get_legacy_markdown_line_error(line: &str) -> Option<&'static str> {
+    if markdown_reference_definition_pattern().is_match(line) {
+        return Some(
+            "Markdown reference definitions are not supported; use @reference or {{ref:label|target}}",
+        );
+    }
+    if markdown_thematic_break_pattern().is_match(line) {
+        return Some(
+            "Markdown thematic breaks and setext underlines are not supported; use @separator or # headings",
+        );
+    }
+    if markdown_blockquote_pattern().is_match(line) {
+        return Some(
+            "Markdown blockquote markers are not supported in Lessmark source; use @quote or @callout",
+        );
+    }
+    None
 }
 
 pub fn get_block_attr_errors(name: &str, attrs: &BTreeMap<String, String>) -> Vec<String> {
@@ -114,6 +148,11 @@ pub fn get_block_body_errors(
     }
     if name == "table" {
         return get_table_body_errors(attrs.get("columns").map(String::as_str).unwrap_or(""), text);
+    }
+    if !matches!(name, "code" | "example" | "math" | "diagram") {
+        if let Some(error) = text.lines().find_map(get_legacy_markdown_line_error) {
+            return vec![error.to_string()];
+        }
     }
     Vec::new()
 }
@@ -283,7 +322,9 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
     if name == "diagram" {
         if let Some(kind) = attrs.get("kind") {
             if !DIAGRAM_KINDS.contains(&kind.as_str()) {
-                return Some("@diagram kind must be one of: mermaid, graphviz, plantuml".to_string());
+                return Some(
+                    "@diagram kind must be one of: mermaid, graphviz, plantuml".to_string(),
+                );
             }
         }
     }
@@ -360,9 +401,7 @@ fn get_list_body_errors(text: &str) -> Vec<String> {
             return vec!["@list items must use one explicit '- ' item marker per line".to_string()];
         };
         if !line[..marker_index].chars().all(|ch| ch == ' ') || marker_index % 2 != 0 {
-            return vec![
-                "@list nesting must use two spaces per level".to_string(),
-            ];
+            return vec!["@list nesting must use two spaces per level".to_string()];
         }
         if line[marker_index + 2..].trim().is_empty() {
             return vec!["@list items cannot be empty".to_string()];

@@ -45,6 +45,10 @@
   },
   "syntaxPolicy": {
     "aliases": true,
+    "canonicalSource": true,
+    "documentedConveniencesOnly": true,
+    "maxSpellingsPerMeaning": 2,
+    "markdownLegacySyntax": false,
     "rawHtml": false,
     "hooks": false,
     "customBlocks": false,

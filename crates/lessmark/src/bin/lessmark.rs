@@ -80,6 +80,7 @@ fn info_command(args: &[String]) -> i32 {
         "cli": {
             "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
             "jsonCommands": ["check --json", "info --json"],
+            "formatCheck": true,
             "strictBuild": false
         },
         "renderer": {
@@ -91,6 +92,10 @@ fn info_command(args: &[String]) -> i32 {
         },
         "syntaxPolicy": {
             "aliases": true,
+            "canonicalSource": true,
+            "documentedConveniencesOnly": true,
+            "maxSpellingsPerMeaning": 2,
+            "markdownLegacySyntax": false,
             "rawHtml": false,
             "hooks": false,
             "customBlocks": false,
@@ -231,8 +236,9 @@ fn check_command(args: &[String]) -> i32 {
 
 fn format_command(args: &[String]) -> i32 {
     let write = args.iter().any(|arg| arg == "--write" || arg == "-w");
+    let check = args.iter().any(|arg| arg == "--check");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark format [--write] <file.mu>");
+        eprintln!("Usage: lessmark format [--write|--check] <file.mu>");
         return 1;
     };
     let source = match read_file(path) {
@@ -241,7 +247,13 @@ fn format_command(args: &[String]) -> i32 {
     };
     match format_lessmark(&source) {
         Ok(formatted) => {
-            if write {
+            if check {
+                if formatted != source {
+                    eprintln!("{}: needs formatting", path);
+                    return 1;
+                }
+                println!("{}: formatted", path);
+            } else if write {
                 if let Err(error) = fs::write(path, formatted) {
                     eprintln!("Failed to write {}: {}", path, error);
                     return 1;

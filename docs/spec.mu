@@ -62,6 +62,9 @@ Inline ref and footnote targets must be lowercase slugs. Renderers and Markdown 
 @paragraph
 Lessmark has one canonical spelling for every structure, but parsers accept a small human authoring layer that formats back to canonical source. This keeps files easy to type without creating separate dialects for agents.
 
+@paragraph
+The rule is canonical source first: each meaning has one canonical spelling and at most one documented convenience spelling. Undocumented aliases are invalid, and documented conveniences never create a second AST shape.
+
 @table columns="Convenience|Canonical output"
 `@p`|`@paragraph`
 `@ul`|`@list kind="unordered"`
@@ -84,10 +87,13 @@ Lessmark has one canonical spelling for every structure, but parsers accept a sm
 `@link https://example.com`|`@link href="https://example.com"`
 
 @paragraph
-Prose bodies also accept these human shortcuts and canonicalize them before validation and rendering: `code`, *emphasis*, **bold**, ~~deleted~~, ==marked==, [label](https://example.com), [label](#local-slug), and [^footnote-id].
+Prose bodies also accept these human shortcuts and canonicalize them before validation and rendering: inline code, emphasis, bold, deleted text, marked text, web links, local hash links, and footnote pointers.
 
 @paragraph
 The convenience layer is intentionally small. It only maps to existing block names, existing attributes, and existing inline functions. It never adds raw HTML, implicit global references, custom blocks, style directives, hooks, or alternate AST shapes. @code, @example, @math, and @diagram bodies stay literal and are not canonicalized.
+
+@paragraph
+Markdown legacy block syntax is not accepted inside Lessmark prose bodies. Use @reference or inline ref functions instead of reference definitions, @separator instead of Markdown thematic breaks or setext underline lines, and @quote or @callout instead of > blockquote markers. Use @code or @example when documenting Markdown syntax literally.
 
 ## Grammar
 
@@ -129,6 +135,7 @@ Parsers must fail on:
 - body text on bodyless @page, @nav, @image, @separator, or @toc blocks
 - @table body rows whose cell count does not match columns
 - raw HTML or JSX-like tags in headings, block text, or attributes
+- Markdown reference definitions, thematic-break/setext lines, or blockquote markers in non-literal block bodies
 - absolute paths, URI paths, or .. segments in @file path
 - executable URL schemes, absolute local paths, scheme-relative URLs, or .. traversal in @link href
 
@@ -156,7 +163,7 @@ Lessmark is not a Markdown dialect. Markdown import/export is intentionally loss
 - standalone Markdown separators, such as ---
 
 @paragraph
-Unsupported Markdown features should degrade to @note text or require manual conversion.
+Unsupported Markdown features should degrade to @note text, reject as ambiguous, or require manual conversion. Markdown import is stricter than Markdown itself where legacy spellings conflict with Lessmark's one-way source rules; for example, mixed list markers in one imported list are rejected instead of guessed.
 
 ## Core Blocks
 
@@ -232,7 +239,7 @@ Rendering escapes text, rejects unknown inline functions, supports nested explic
 ## Formatting
 
 @paragraph
-lessmark format file.mu prints canonical source. lessmark format --write file.mu writes it back to disk. lessmark fix is an alias for the same formatter. Documented authoring conveniences are accepted and rewritten to canonical Lessmark; unsupported dialect syntax remains invalid.
+lessmark format file.mu prints canonical source. lessmark format --check file.mu exits non-zero when the file is not canonical. lessmark format --write file.mu writes canonical source back to disk. lessmark fix is an alias for the same formatter. Documented authoring conveniences are accepted and rewritten to canonical Lessmark; unsupported dialect syntax remains invalid. Inline local targets from {{code:{{ref:Label|target}}}} and {{code:{{footnote:id}}}} must resolve to the same local target namespace as @reference.
 
 ## Conformance
 

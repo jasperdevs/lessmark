@@ -2,7 +2,7 @@ use crate::ast::{Document, Node};
 use crate::error::LessmarkError;
 use crate::format::format_document;
 use crate::parser::parse_lessmark;
-use crate::rules::{is_safe_resource, split_table_row};
+use crate::rules::{is_safe_href, is_safe_resource, split_table_row};
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -119,7 +119,7 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             continue;
         }
 
-        if let Some((node, next_index)) = read_markdown_list(&lines, index) {
+        if let Some((node, next_index)) = read_markdown_list(&lines, index)? {
             children.push(node);
             first_paragraph = false;
             index = next_index;
@@ -704,24 +704,38 @@ fn read_blockquote(lines: &[&str], start_index: usize) -> Option<(Node, usize)> 
     ))
 }
 
-fn read_markdown_list(lines: &[&str], start_index: usize) -> Option<(Node, usize)> {
-    let first = read_markdown_list_item(lines[start_index])?;
+fn read_markdown_list(
+    lines: &[&str],
+    start_index: usize,
+) -> Result<Option<(Node, usize)>, LessmarkError> {
+    let Some(first) = read_markdown_list_item(lines[start_index]) else {
+        return Ok(None);
+    };
     let kind = first.1;
+    let marker = first.3;
     let mut items = Vec::new();
     let mut index = start_index;
     while index < lines.len() {
-        let Some((level, item_kind, text)) = read_markdown_list_item(lines[index]) else {
+        let Some((level, item_kind, text, item_marker)) = read_markdown_list_item(lines[index])
+        else {
             break;
         };
         if item_kind != kind {
             break;
+        }
+        if item_marker != marker {
+            return Err(LessmarkError::new(
+                "Mixed Markdown list markers are not supported by Lessmark import",
+                index + 1,
+                1,
+            ));
         }
         items.push(format!("{}- {}", "  ".repeat(level), plain_text(text)));
         index += 1;
     }
     let mut attrs = BTreeMap::new();
     attrs.insert("kind".to_string(), kind.to_string());
-    Some((
+    Ok(Some((
         Node::Block {
             name: "list".to_string(),
             attrs,
@@ -729,10 +743,10 @@ fn read_markdown_list(lines: &[&str], start_index: usize) -> Option<(Node, usize
             position: None,
         },
         index,
-    ))
+    )))
 }
 
-fn read_markdown_list_item(line: &str) -> Option<(usize, &'static str, &str)> {
+fn read_markdown_list_item(line: &str) -> Option<(usize, &'static str, &str, &str)> {
     let re = Regex::new(r"^( *)(?:([-*+])|(\d+[.)]))\s+(.+?)\s*$")
         .expect("markdown list regex compiles");
     let captures = re.captures(line)?;
@@ -742,8 +756,19 @@ fn read_markdown_list_item(line: &str) -> Option<(usize, &'static str, &str)> {
     } else {
         "unordered"
     };
+    let marker = captures
+        .get(2)
+        .or_else(|| captures.get(3))
+        .map_or("", |m| m.as_str());
+    let marker = if marker.ends_with(')') {
+        "1)"
+    } else if captures.get(3).is_some() {
+        "1."
+    } else {
+        marker
+    };
     let text = captures.get(4).map_or("", |m| m.as_str());
-    Some((level, kind, text))
+    Some((level, kind, text, marker))
 }
 
 fn read_table(lines: &[&str], start_index: usize) -> Option<(Node, usize)> {
@@ -896,10 +921,13 @@ fn read_task(line: &str) -> Option<(bool, &str)> {
 }
 
 fn read_standalone_link(text: &str) -> Option<(&str, &str)> {
-    let re = Regex::new(r"^\[([^\]]+)\]\((https?://[^)\s]+|mailto:[^)\s]+)\)$")
-        .expect("link regex compiles");
+    let re = Regex::new(r"^\[([^\]]+)\]\(([^)\s]+)\)$").expect("link regex compiles");
     let captures = re.captures(text)?;
-    Some((captures.get(1)?.as_str(), captures.get(2)?.as_str()))
+    let href = captures.get(2)?.as_str();
+    if !is_safe_href(href) {
+        return None;
+    }
+    Some((captures.get(1)?.as_str(), href))
 }
 
 fn read_fence_line(line: &str) -> Option<Fence> {

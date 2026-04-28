@@ -1,6 +1,7 @@
 import json
+import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 
@@ -147,11 +148,32 @@ RFC-0042
         with self.assertRaisesRegex(Exception, "shortcut emphasis"):
             format_lessmark("@paragraph\n*em **bold***\n")
 
+    def test_rejects_legacy_markdown_block_syntax_inside_lessmark_prose(self):
+        for source in [
+            "@paragraph\n[docs]: https://example.com\n",
+            "@paragraph\n---\n",
+            "@paragraph\n===\n",
+            "@paragraph\n-*- \n",
+            "@paragraph\n> quoted text\n",
+        ]:
+            with self.subTest(source=source):
+                errors = validate_source(source)
+                self.assertEqual(errors[0]["code"], "markdown_legacy_syntax")
+                with self.assertRaisesRegex(LessmarkError, "Markdown"):
+                    parse_lessmark(source)
+
     def test_supports_strict_nested_lists(self):
         source = "@list kind=\"unordered\"\n- Parent\n  - Child\n- Sibling\n"
         self.assertEqual(validate_source(source), [])
         self.assertIn("  - Child", format_lessmark(source))
         self.assertIn("1. Parent\n  1. Child\n2. Sibling", to_markdown('@list kind="ordered"\n- Parent\n  - Child\n- Sibling\n'))
+        with self.assertRaisesRegex(ValueError, "Mixed Markdown list markers"):
+            from_markdown("- One\n* Two\n")
+        with self.assertRaisesRegex(ValueError, "Mixed Markdown list markers"):
+            from_markdown("1. One\n2) Two\n")
+
+    def test_imports_safe_relative_standalone_markdown_links(self):
+        self.assertEqual(from_markdown("[Guide](docs/guide.html)\n"), '@link href="docs/guide.html"\nGuide\n')
 
     def test_rejects_empty_headings(self):
         with self.assertRaisesRegex(LessmarkError, "Invalid heading syntax"):
@@ -436,16 +458,32 @@ RFC-0042
         self.assertIn("| Typed blocks\\|agents | done |", markdown)
         self.assertIn("![Build pipeline](assets/diagram.svg)", markdown)
 
+    def test_rejects_unresolved_inline_local_targets(self):
+        ref_errors = validate_source("@paragraph\n{{ref:Missing|missing-target}}\n")
+        self.assertEqual(ref_errors[0]["code"], "unknown_inline_target")
+        self.assertIn("missing-target", ref_errors[0]["message"])
+
+        footnote_errors = validate_source("@paragraph\n{{footnote:missing-note}}\n")
+        self.assertEqual(footnote_errors[0]["code"], "unknown_inline_target")
+        self.assertIn("missing-note", footnote_errors[0]["message"])
+
+        parse_lessmark(
+            '@decision id="known-target"\nDone.\n\n'
+            "@paragraph\n{{ref:Known|known-target}}\n\n"
+            '@footnote id="known-note"\nA note.\n\n'
+            "@paragraph\n{{footnote:known-note}}\n"
+        )
+
     def test_rejects_invalid_inline_local_targets_during_markdown_export(self):
         with self.assertRaisesRegex(ValueError, "lowercase slug"):
             to_markdown("@paragraph\n{{ref:Build|Build System}}\n")
-        with self.assertRaisesRegex(ValueError, "lowercase slug"):
+        with self.assertRaisesRegex(LessmarkError, "Unknown inline local target"):
             to_markdown("@paragraph\n{{ref:Build| build-system}}\n")
         with self.assertRaisesRegex(ValueError, "lowercase slug"):
             to_markdown("@paragraph\n{{footnote:}}\n")
         with self.assertRaisesRegex(ValueError, "lowercase slug"):
             to_markdown("# {{ref:Build|Build System}}\n")
-        with self.assertRaisesRegex(ValueError, "lowercase slug"):
+        with self.assertRaisesRegex(LessmarkError, "Unknown inline local target"):
             to_markdown('@callout kind="note" title="{{footnote: strict-syntax}}"\nBody.\n')
 
     def test_exports_literal_code_and_example_inline_syntax(self):
@@ -489,11 +527,31 @@ RFC-0042
         self.assertEqual(status, 0)
         self.assertTrue(output.getvalue().startswith("# Project Context"))
 
+    def test_cli_format_check_reports_formatting_status(self):
+        with tempfile.TemporaryDirectory(prefix="lessmark-format-check-") as temp:
+            formatted = Path(temp) / "formatted.mu"
+            unformatted = Path(temp) / "unformatted.mu"
+            formatted.write_text((ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8"), encoding="utf-8")
+            unformatted.write_text("@task todo\nDo it.\n", encoding="utf-8")
+
+            output = StringIO()
+            with redirect_stdout(output):
+                status = main(["format", str(formatted), "--check"])
+            self.assertEqual(status, 0)
+            self.assertIn("formatted", output.getvalue())
+
+            error_output = StringIO()
+            with redirect_stderr(error_output):
+                status = main(["format", str(unformatted), "--check"])
+            self.assertEqual(status, 1)
+            self.assertIn("needs formatting", error_output.getvalue())
+
     def test_capabilities_and_cli_info_are_machine_readable(self):
         info = get_capabilities()
         self.assertEqual(info["language"], "lessmark")
         self.assertEqual(info["astVersion"], "v0")
         self.assertTrue(info["syntaxPolicy"]["aliases"])
+        self.assertTrue(info["cli"]["formatCheck"])
         self.assertIn("summary", info["blocks"])
 
         output = StringIO()

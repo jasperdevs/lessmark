@@ -17,7 +17,7 @@ export const INLINE_FUNCTIONS = [
 export function getCapabilities() {
   return {
     language: "lessmark",
-    version: "0.1.0",
+    version: "0.1.1",
     astVersion: "v0",
     extensions: [".mu", ".lessmark"],
     mediaType: "text/vnd.lessmark; charset=utf-8",
@@ -34,6 +34,7 @@ export function getCapabilities() {
     cli: {
       commands: ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "render", "build", "info"],
       jsonCommands: ["check --json", "info --json"],
+      formatCheck: true,
       strictBuild: true
     },
     renderer: {
@@ -45,6 +46,10 @@ export function getCapabilities() {
     },
     syntaxPolicy: {
       aliases: true,
+      canonicalSource: true,
+      documentedConveniencesOnly: true,
+      maxSpellingsPerMeaning: 2,
+      markdownLegacySyntax: false,
       rawHtml: false,
       hooks: false,
       customBlocks: false,

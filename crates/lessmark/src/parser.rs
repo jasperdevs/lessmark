@@ -3,7 +3,7 @@ use crate::error::LessmarkError;
 use crate::grammar::is_core_block;
 use crate::rules::{
     contains_control_whitespace, contains_html_like_tag, get_block_attr_errors,
-    get_block_body_errors, is_local_slug, is_safe_href,
+    get_block_body_errors, get_legacy_markdown_line_error, is_local_slug, is_safe_href,
 };
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
@@ -135,6 +135,11 @@ fn parse_block(
             break;
         }
         assert_safe_text(line, &format!("@{}", name), index + 1, 1)?;
+        if !is_literal_block(name) {
+            if let Some(error) = get_legacy_markdown_line_error(line) {
+                return Err(LessmarkError::new(error, index + 1, 1));
+            }
+        }
         body.push(line.trim_end().to_string());
         end_line = index + 1;
         end_column = line.len() + 1;
@@ -653,7 +658,82 @@ fn get_local_anchor_errors(children: &[Node]) -> Vec<String> {
             errors.push(format!("Unknown local reference target \"{}\"", target));
         }
     }
+    for target in collect_inline_local_targets(children) {
+        let footnote_target = format!("fn-{}", target);
+        if !target.is_empty()
+            && is_local_slug(&target)
+            && !targets.contains(&target)
+            && !targets.contains(&footnote_target)
+        {
+            errors.push(format!("Unknown inline local target \"{}\"", target));
+        }
+    }
     errors
+}
+
+fn collect_inline_local_targets(children: &[Node]) -> Vec<String> {
+    let mut targets = Vec::new();
+    for node in children {
+        match node {
+            Node::Heading { text, .. } => targets.extend(inline_targets_from_text(text)),
+            Node::Block {
+                name, attrs, text, ..
+            } if !matches!(name.as_str(), "code" | "example" | "math" | "diagram") => {
+                targets.extend(inline_targets_from_text(text));
+                for key in ["label", "cite", "title", "caption", "term"] {
+                    if let Some(value) = attrs.get(key) {
+                        targets.extend(inline_targets_from_text(value));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    targets
+}
+
+fn inline_targets_from_text(text: &str) -> Vec<String> {
+    let mut targets = Vec::new();
+    let mut index = 0;
+    while index < text.len() {
+        let Some(relative_start) = text[index..].find("{{") else {
+            break;
+        };
+        let start = index + relative_start;
+        let Some(end) = find_inline_function_end(text, start) else {
+            break;
+        };
+        let inner_end = end.saturating_sub(2);
+        let inner = &text[start + 2..inner_end];
+        if let Some(separator) = inner.find(':') {
+            if separator > 0 {
+                let name = inner[..separator].trim();
+                let value = &inner[separator + 1..];
+                match name {
+                    "ref" => {
+                        if let Some(delimiter) = value.find('|') {
+                            targets.push(value[delimiter + 1..].trim().to_string());
+                            targets.extend(inline_targets_from_text(&value[..delimiter]));
+                        }
+                    }
+                    "footnote" => targets.push(value.trim().to_string()),
+                    "strong" | "em" | "del" | "mark" => {
+                        targets.extend(inline_targets_from_text(value));
+                    }
+                    "link" => {
+                        let label = value
+                            .split_once('|')
+                            .map(|(label, _)| label)
+                            .unwrap_or(value);
+                        targets.extend(inline_targets_from_text(label));
+                    }
+                    _ => {}
+                }
+            }
+        }
+        index = end;
+    }
+    targets
 }
 
 fn slugify_local_anchor(text: &str) -> String {

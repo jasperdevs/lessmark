@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::{env, fs};
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -90,6 +91,45 @@ fn cli_format_prints_normalized_source() {
     let formatted = String::from_utf8(output.stdout).expect("format output is utf8");
     assert!(formatted.starts_with("# Project Context"));
     assert!(formatted.contains("@task status=\"todo\""));
+}
+
+#[test]
+fn cli_format_check_reports_formatting_status() {
+    let temp = env::temp_dir().join(format!("lessmark-format-check-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&temp);
+    fs::create_dir_all(&temp).expect("temp dir");
+    let formatted = temp.join("formatted.mu");
+    let unformatted = temp.join("unformatted.mu");
+    fs::copy(
+        repo_root().join("fixtures/valid/project-context.mu"),
+        &formatted,
+    )
+    .expect("copy fixture");
+    fs::write(&unformatted, "@task todo\nDo it.\n").expect("write unformatted fixture");
+
+    let ok_output = Command::new(lessmark_bin())
+        .args(["format", "--check", formatted.to_str().expect("utf8 path")])
+        .output()
+        .expect("lessmark command runs");
+    assert!(
+        ok_output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&ok_output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&ok_output.stdout).contains("formatted"));
+
+    let bad_output = Command::new(lessmark_bin())
+        .args([
+            "format",
+            "--check",
+            unformatted.to_str().expect("utf8 path"),
+        ])
+        .output()
+        .expect("lessmark command runs");
+    assert!(!bad_output.status.success());
+    assert!(String::from_utf8_lossy(&bad_output.stderr).contains("needs formatting"));
+
+    let _ = fs::remove_dir_all(&temp);
 }
 
 #[test]

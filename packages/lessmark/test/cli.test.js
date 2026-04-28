@@ -47,6 +47,7 @@ test("CLI info --json prints machine-readable capabilities", async () => {
   assert.equal(info.language, "lessmark");
   assert.equal(info.astVersion, "v0");
   assert.equal(info.cli.strictBuild, true);
+  assert.equal(info.cli.formatCheck, true);
   assert.equal(info.syntaxPolicy.aliases, true);
   assert.ok(info.blocks.includes("summary"));
   assert.ok(info.inlineFunctions.includes("ref"));
@@ -56,6 +57,27 @@ test("CLI format prints normalized source", async () => {
   const { stdout } = await exec(process.execPath, [cli, "format", fixture]);
   assert.match(stdout, /^# Project Context/);
   assert.match(stdout, /@task status="todo"/);
+});
+
+test("CLI format --check reports formatting status", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-format-check-"));
+  try {
+    const formatted = join(temp, "formatted.mu");
+    const unformatted = join(temp, "unformatted.mu");
+    await writeFile(formatted, await readFile(fixture, "utf8"), "utf8");
+    await writeFile(unformatted, "@task todo\nDo it.\n", "utf8");
+    const { stdout } = await exec(process.execPath, [cli, "format", "--check", formatted]);
+    assert.match(stdout, /formatted/);
+    await assert.rejects(
+      exec(process.execPath, [cli, "format", "--check", unformatted]),
+      (error) => {
+        assert.match(error.stderr, /needs formatting/);
+        return true;
+      }
+    );
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
 });
 
 test("CLI fix is a formatter alias", async () => {

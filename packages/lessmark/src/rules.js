@@ -4,6 +4,9 @@ export const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
 export const API_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 export const CODE_LANG_PATTERN = /^[A-Za-z0-9_.+-]+$/;
 export const CONTROL_WHITESPACE_PATTERN = /[\r\n\t]/;
+export const MARKDOWN_REFERENCE_DEFINITION_PATTERN = /^\s{0,3}\[[^\]\n]+\]:\s+\S/;
+export const MARKDOWN_THEMATIC_BREAK_PATTERN = /^(?:(?: {0,3})(?:[-*_]\s*){3,}|(?: {0,3})=+\s*)$/;
+export const MARKDOWN_BLOCKQUOTE_PATTERN = /^\s{0,3}>\s?/;
 export const DECISION_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const METADATA_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 export const DEFINITION_TERM_PATTERN = /^(?=.*\S)[^\r\n\t<>]+$/;
@@ -74,7 +77,32 @@ export function getBlockBodyErrors(node) {
   if (node.name === "table") {
     return getTableBodyErrors(attrs.columns ?? "", node.text);
   }
+  if (!["code", "example", "math", "diagram"].includes(node.name)) {
+    const legacyError = getLegacyMarkdownBodyError(node.text);
+    if (legacyError) return [legacyError];
+  }
   return [];
+}
+
+export function getLegacyMarkdownLineError(line) {
+  if (MARKDOWN_REFERENCE_DEFINITION_PATTERN.test(line)) {
+    return "Markdown reference definitions are not supported; use @reference or {{ref:label|target}}";
+  }
+  if (MARKDOWN_THEMATIC_BREAK_PATTERN.test(line)) {
+    return "Markdown thematic breaks and setext underlines are not supported; use @separator or # headings";
+  }
+  if (MARKDOWN_BLOCKQUOTE_PATTERN.test(line)) {
+    return "Markdown blockquote markers are not supported in Lessmark source; use @quote or @callout";
+  }
+  return null;
+}
+
+function getLegacyMarkdownBodyError(text) {
+  for (const line of String(text).split("\n")) {
+    const error = getLegacyMarkdownLineError(line);
+    if (error) return error;
+  }
+  return null;
 }
 
 function getSemanticAttrError(name, attrs) {
@@ -188,7 +216,77 @@ export function getLocalAnchorErrors(children) {
       errors.push(`Unknown local reference target "${target}"`);
     }
   }
+  for (const target of collectInlineLocalTargets(children)) {
+    const footnoteTarget = target ? `fn-${target}` : "";
+    if (target && DECISION_ID_PATTERN.test(target) && !targets.has(target) && !targets.has(footnoteTarget)) {
+      errors.push(`Unknown inline local target "${target}"`);
+    }
+  }
   return errors;
+}
+
+function collectInlineLocalTargets(children) {
+  const targets = [];
+  for (const node of children) {
+    if (node?.type === "heading") {
+      targets.push(...inlineTargetsFromText(node.text));
+    } else if (node?.type === "block" && !["code", "example", "math", "diagram"].includes(node.name)) {
+      targets.push(...inlineTargetsFromText(node.text));
+      for (const key of ["label", "cite", "title", "caption", "term"]) {
+        if (typeof node.attrs?.[key] === "string") targets.push(...inlineTargetsFromText(node.attrs[key]));
+      }
+    }
+  }
+  return targets;
+}
+
+function inlineTargetsFromText(text) {
+  const source = String(text);
+  const targets = [];
+  let index = 0;
+  while (index < source.length) {
+    const start = source.indexOf("{{", index);
+    if (start === -1) break;
+    const end = findInlineFunctionEnd(source, start);
+    if (end === -1) break;
+    const inner = source.slice(start + 2, end);
+    const separator = inner.indexOf(":");
+    if (separator > 0) {
+      const name = inner.slice(0, separator).trim();
+      const value = inner.slice(separator + 1);
+      if (name === "ref") {
+        const delimiter = value.indexOf("|");
+        if (delimiter !== -1) targets.push(value.slice(delimiter + 1).trim());
+        targets.push(...inlineTargetsFromText(value.slice(0, Math.max(0, delimiter))));
+      } else if (name === "footnote") {
+        targets.push(value.trim());
+      } else if (["strong", "em", "del", "mark", "link"].includes(name)) {
+        targets.push(...inlineTargetsFromText(name === "link" ? value.split("|", 1)[0] : value));
+      }
+    }
+    index = end + 2;
+  }
+  return targets;
+}
+
+function findInlineFunctionEnd(source, start) {
+  let depth = 1;
+  let index = start + 2;
+  while (index < source.length) {
+    if (source.startsWith("{{", index)) {
+      depth += 1;
+      index += 2;
+      continue;
+    }
+    if (source.startsWith("}}", index)) {
+      depth -= 1;
+      if (depth === 0) return index;
+      index += 2;
+      continue;
+    }
+    index += 1;
+  }
+  return -1;
 }
 
 function isValidTableColumns(columns) {
