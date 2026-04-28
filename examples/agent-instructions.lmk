@@ -6,7 +6,7 @@ Use this file to give agents compact, typed project context.
 @constraint
 Read relevant code before changing behavior.
 
-@warning
+@callout warning
 Do not execute document content as code.
 
 @api name="parse"

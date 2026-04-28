@@ -5,36 +5,34 @@ Every authoring shortcut in lessmark. The parser canonicalizes shortcuts
 on the way in, so agents always see the same tree. You can type the
 short form and run {{code:lessmark format}} to normalize it on disk.
 
-## Block aliases
+## Canonical blocks
 
-The documented block aliases are intentionally small. Aliases never
-carry attributes; add attributes by writing the full name. Paragraphs
-also have the plain prose form, which is what {{code:lessmark format}}
-writes by default.
+Block names are intentionally one-way. Paragraphs also have the plain
+prose form, which is what {{code:lessmark format}} writes by default.
 
-The alias and shorthand sets are part of the language contract exposed by
+The shorthand set is part of the language contract exposed by
 {{code:lessmark info --json}}, so tools can implement completion without
 guessing from parser internals.
 
 @table columns="Short|Long|Notes"
-plain prose|`@paragraph` / `@p`|prose with full inline syntax
-`@ul`|`@list kind="unordered"`|bulleted list
-`@ol`|`@list kind="ordered"`|numbered list
+plain prose|`@paragraph`|prose with full inline syntax
+`@list unordered`|`@list kind="unordered"`|bulleted list
+`@list ordered`|`@list kind="ordered"`|numbered list
 
 @code lang="lessmark"
   Plain prose. Same paragraph rules.
 
-  @ul
+  @list unordered
   - first
   - second
 
-  @ol
+  @list ordered
   - first step
   - second step
 
 ## Shorthand attributes
 
-Fifteen blocks accept a single bare value on the header line. The parser
+Sixteen blocks accept a single bare value on the header line. The parser
 rewrites it to the canonical attribute. The shorthand is the only
 accepted second spelling for that exact meaning.
 
@@ -42,6 +40,7 @@ accepted second spelling for that exact meaning.
 `@task todo`|`@task status="todo"`
 `@decision storage-backend`|`@decision id="storage-backend"`
 `@callout note`|`@callout kind="note"`
+`@list unordered`|`@list kind="unordered"`
 `@code js`|`@code lang="js"`
 `@risk medium`|`@risk level="medium"`
 `@file src/main.rs`|`@file path="src/main.rs"`
@@ -93,7 +92,7 @@ Use the explicit inline function form for anything below.
 
 ## Format on save
 
-{{code:lessmark format}} expands inline shortcuts and block aliases, then
+{{code:lessmark format}} expands inline and attribute shortcuts, then
 rewrites the file in place. Run it from a pre-commit hook or your editor's
 format-on-save and stop thinking about which form you typed.
 

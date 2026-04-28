@@ -1,7 +1,8 @@
 import { highlightCode } from "./highlight.js";
 import { parseLessmark } from "./parser.js";
-import { DECISION_ID_PATTERN, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
+import { DECISION_ID_PATTERN, MAX_LIST_DEPTH, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
 
+const MAX_INLINE_DEPTH = 128;
 const VOID_BLOCKS = new Set(["metadata", "page", "nav"]);
 
 export function renderHtml(lessmark, options = {}) {
@@ -157,6 +158,9 @@ function parseListItems(text) {
 }
 
 function renderListLevel(items, tag, level, state) {
+  if (level > MAX_LIST_DEPTH) {
+    throw new Error("List nesting too deep");
+  }
   const rendered = [];
   while (state.index < items.length) {
     const item = items[state.index];
@@ -224,7 +228,10 @@ function renderLinesAsParagraphs(text) {
     .join("");
 }
 
-export function renderInline(text) {
+export function renderInline(text, depth = 0) {
+  if (depth > MAX_INLINE_DEPTH) {
+    throw new Error("Inline nesting too deep");
+  }
   const source = String(text);
   let output = "";
   let index = 0;
@@ -239,7 +246,7 @@ export function renderInline(text) {
     if (end === -1) {
       throw new Error("Unclosed inline function");
     }
-    output += renderFunction(source.slice(start + 2, end));
+    output += renderFunction(source.slice(start + 2, end), depth);
     index = end + 2;
   }
   return output;
@@ -265,24 +272,24 @@ function findInlineFunctionEnd(source, start) {
   return -1;
 }
 
-function renderFunction(source) {
+function renderFunction(source, depth) {
   const separator = source.indexOf(":");
   if (separator <= 0) throw new Error("Inline functions must use {{name:value}}");
   const name = source.slice(0, separator).trim();
   const value = source.slice(separator + 1);
 
-  if (name === "strong") return `<strong>${renderInline(value)}</strong>`;
-  if (name === "em") return `<em>${renderInline(value)}</em>`;
+  if (name === "strong") return `<strong>${renderInline(value, depth + 1)}</strong>`;
+  if (name === "em") return `<em>${renderInline(value, depth + 1)}</em>`;
   if (name === "code") return `<code>${escapeHtml(value)}</code>`;
   if (name === "kbd") return `<kbd>${escapeHtml(value)}</kbd>`;
-  if (name === "del") return `<del>${renderInline(value)}</del>`;
-  if (name === "mark") return `<mark>${renderInline(value)}</mark>`;
+  if (name === "del") return `<del>${renderInline(value, depth + 1)}</del>`;
+  if (name === "mark") return `<mark>${renderInline(value, depth + 1)}</mark>`;
   if (name === "sup") return `<sup>${escapeHtml(value)}</sup>`;
   if (name === "sub") return `<sub>${escapeHtml(value)}</sub>`;
   if (name === "ref") {
     const [label, target] = splitInlineRef(value);
     assertLocalTarget(target, "Inline ref target");
-    return `<a href="#${escapeAttr(target)}">${renderInline(label)}</a>`;
+    return `<a href="#${escapeAttr(target)}">${renderInline(label, depth + 1)}</a>`;
   }
   if (name === "footnote") {
     assertLocalTarget(value, "Inline footnote target");
@@ -291,7 +298,7 @@ function renderFunction(source) {
   if (name === "link") {
     const [label, href] = splitOnce(value, "|");
     assertSafeHref(href);
-    return `<a href="${escapeAttr(href)}">${renderInline(label)}</a>`;
+    return `<a href="${escapeAttr(href)}">${renderInline(label, depth + 1)}</a>`;
   }
   throw new Error(`Unknown inline function "${name}"`);
 }

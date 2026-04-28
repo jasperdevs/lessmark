@@ -2,8 +2,9 @@ use crate::ast::Document;
 use crate::error::ValidationError;
 use crate::parser::parse_lessmark;
 use crate::rules::{
-    contains_control_whitespace, contains_html_like_tag, get_block_attr_errors_from_value,
-    get_block_body_errors_from_value, is_local_slug, is_safe_href,
+    contains_control_whitespace, contains_html_like_tag, contains_raw_expression,
+    get_block_attr_errors_from_value, get_block_body_errors_from_value, is_local_slug,
+    is_safe_href,
 };
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -95,7 +96,7 @@ fn validate_heading(node: &serde_json::Map<String, Value>, errors: &mut Vec<Vali
         ));
         return;
     }
-    validate_text_safety(text, errors, "heading");
+    validate_text_safety(text, errors, "heading", false);
     validate_inline_text(text, errors, "heading");
 }
 
@@ -117,7 +118,7 @@ fn validate_block(node: &serde_json::Map<String, Value>, errors: &mut Vec<Valida
         )));
         return;
     };
-    validate_text_safety(text, errors, &format!("@{}", name));
+    validate_text_safety(text, errors, &format!("@{}", name), is_literal_block(name));
     if !is_literal_block(name) {
         validate_inline_text(text, errors, &format!("@{}", name));
     }
@@ -352,7 +353,7 @@ fn validate_attrs(name: &str, value: Option<&Value>, errors: &mut Vec<Validation
             )));
             continue;
         };
-        validate_text_safety(text, errors, &format!("attribute \"{}\"", key));
+        validate_text_safety(text, errors, &format!("attribute \"{}\"", key), false);
         if matches!(
             key.as_str(),
             "label" | "cite" | "title" | "caption" | "term"
@@ -372,10 +373,21 @@ fn validate_attrs(name: &str, value: Option<&Value>, errors: &mut Vec<Validation
     }
 }
 
-fn validate_text_safety(text: &str, errors: &mut Vec<ValidationError>, location: &str) {
+fn validate_text_safety(
+    text: &str,
+    errors: &mut Vec<ValidationError>,
+    location: &str,
+    allow_expressions: bool,
+) {
     if contains_html_like_tag(text) {
         errors.push(ValidationError::message(format!(
             "{} contains raw HTML/JSX-like syntax",
+            location
+        )));
+    }
+    if !allow_expressions && contains_raw_expression(text) {
+        errors.push(ValidationError::message(format!(
+            "{} contains raw expression-like syntax",
             location
         )));
     }

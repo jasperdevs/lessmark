@@ -89,25 +89,13 @@ fn info_command(args: &[String]) -> i32 {
             "rawHtml": false
         },
         "syntaxPolicy": {
-            "aliases": true,
+            "aliases": false,
             "plainParagraphs": true,
             "canonicalSource": true,
             "documentedConveniencesOnly": true,
-            "maxSpellingsPerMeaning": 3,
-            "maxSpellingsException": "paragraph",
-            "blockAliases": {
-                "p": "paragraph",
-                "note": "callout",
-                "warning": "callout",
-                "ul": "list",
-                "ol": "list"
-            },
-            "aliasAttrs": {
-                "note": { "kind": "note" },
-                "warning": { "kind": "warning" },
-                "ul": { "kind": "unordered" },
-                "ol": { "kind": "ordered" }
-            },
+            "maxSpellingsPerMeaning": 2,
+            "blockAliases": {},
+            "aliasAttrs": {},
             "shorthandAttrs": {
                 "api": "name",
                 "callout": "kind",
@@ -119,6 +107,7 @@ fn info_command(args: &[String]) -> i32 {
                 "file": "path",
                 "footnote": "id",
                 "link": "href",
+                "list": "kind",
                 "math": "notation",
                 "metadata": "key",
                 "reference": "target",

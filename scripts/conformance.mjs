@@ -155,14 +155,14 @@ ${nested}
 `);
   sources.push(`# Authoring Conveniences
 
-@p
+@paragraph
 Use **bold**, *emphasis*, \`code\`, \`**literal**\`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
-@ul
+@list unordered
 - One
 - Two
 
-@ol
+@list ordered
 - First
 - Second
 

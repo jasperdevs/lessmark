@@ -1,12 +1,7 @@
 import { CORE_BLOCKS } from "./grammar.js";
-import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLegacyMarkdownLineError, getLocalAnchorErrors, isSafeHref } from "./rules.js";
+import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, RAW_EXPRESSION_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLegacyMarkdownLineError, getLocalAnchorErrors, isSafeHref } from "./rules.js";
 
 const BLOCK_ALIASES = {
-  p: { name: "paragraph", attrs: {} },
-  note: { name: "callout", attrs: { kind: "note" } },
-  warning: { name: "callout", attrs: { kind: "warning" } },
-  ul: { name: "list", attrs: { kind: "unordered" } },
-  ol: { name: "list", attrs: { kind: "ordered" } }
 };
 
 const SHORTHAND_ATTRS = {
@@ -20,6 +15,7 @@ const SHORTHAND_ATTRS = {
   file: "path",
   footnote: "id",
   link: "href",
+  list: "kind",
   math: "notation",
   metadata: "key",
   reference: "target",
@@ -175,7 +171,7 @@ function parseBlock(lines, startIndex, sourcePositions) {
       break;
     }
     const textLine = isLiteralBlock(name) ? line : decodeLeadingBlockEscape(line);
-    assertSafeText(textLine, `@${name}`, index + 1, 1);
+    assertSafeText(textLine, `@${name}`, index + 1, 1, { allowExpressions: isLiteralBlock(name) });
     if (!isLiteralBlock(name)) {
       const legacyError = getLegacyMarkdownLineError(textLine);
       if (legacyError) throw new LessmarkError(legacyError, index + 1, 1);
@@ -340,9 +336,12 @@ function validateBlockBody(node, lineNumber) {
   }
 }
 
-function assertSafeText(text, location, lineNumber, column) {
+function assertSafeText(text, location, lineNumber, column, options = {}) {
   if (HTML_TAG_PATTERN.test(text)) {
     throw new LessmarkError(`${location} contains raw HTML/JSX-like syntax`, lineNumber, column);
+  }
+  if (options.allowExpressions !== true && RAW_EXPRESSION_PATTERN.test(text)) {
+    throw new LessmarkError(`${location} contains raw expression-like syntax`, lineNumber, column);
   }
 }
 

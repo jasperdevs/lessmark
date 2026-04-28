@@ -39,7 +39,8 @@ lessmark check --json notes.lmk
 - Risk levels are one of low, medium, high, critical.
 - Inline references point at existing anchors.
 - URLs use safe schemes only.
-- No raw HTML, JSX, or expression syntax appears anywhere.
+- No raw HTML or JSX appears anywhere.
+- No expression syntax appears outside literal code, math, diagram, or example blocks.
 
 ## When checks fail
 

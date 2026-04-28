@@ -2,8 +2,9 @@ use crate::ast::{Document, Node, PositionPoint, PositionRange};
 use crate::error::LessmarkError;
 use crate::grammar::is_core_block;
 use crate::rules::{
-    contains_control_whitespace, contains_html_like_tag, get_block_attr_errors,
-    get_block_body_errors, get_legacy_markdown_line_error, is_local_slug, is_safe_href,
+    contains_control_whitespace, contains_html_like_tag, contains_raw_expression,
+    get_block_attr_errors, get_block_body_errors, get_legacy_markdown_line_error, is_local_slug,
+    is_safe_href,
 };
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
@@ -66,7 +67,7 @@ fn parse_plain_paragraph(
             break;
         }
         let text_line = decode_leading_block_escape(line);
-        assert_safe_text(&text_line, "paragraph", index + 1, 1)?;
+        assert_safe_text(&text_line, "paragraph", index + 1, 1, false)?;
         if let Some(error) = get_legacy_markdown_line_error(&text_line) {
             return Err(LessmarkError::new(error, index + 1, 1));
         }
@@ -114,7 +115,7 @@ fn parse_heading(
             line.len(),
         ));
     }
-    assert_safe_text(raw_text, "heading", line_number, level + 2)?;
+    assert_safe_text(raw_text, "heading", line_number, level + 2, false)?;
     Ok(Node::Heading {
         level: level as u8,
         text: raw_text.trim_end().to_string(),
@@ -170,7 +171,8 @@ fn parse_block(
                 name: name.to_string(),
                 attrs,
                 text: String::new(),
-                position: source_positions.then(|| position(start_index + 1, 1, end_line, end_column)),
+                position: source_positions
+                    .then(|| position(start_index + 1, 1, end_line, end_column)),
             },
             next_index: index,
         });
@@ -190,7 +192,13 @@ fn parse_block(
         } else {
             decode_leading_block_escape(line)
         };
-        assert_safe_text(&text_line, &format!("@{}", name), index + 1, 1)?;
+        assert_safe_text(
+            &text_line,
+            &format!("@{}", name),
+            index + 1,
+            1,
+            is_literal_block(name),
+        )?;
         if !is_literal_block(name) {
             if let Some(error) = get_legacy_markdown_line_error(&text_line) {
                 return Err(LessmarkError::new(error, index + 1, 1));
@@ -301,45 +309,11 @@ fn read_block_header(header: &str) -> Option<(&str, &str)> {
 fn normalize_block_header(
     raw_name: &str,
     raw_rest: &str,
-    line_number: usize,
+    _line_number: usize,
 ) -> Result<(String, BTreeMap<String, String>, String), LessmarkError> {
     let mut attrs = BTreeMap::new();
-    let mut name = raw_name;
-    match raw_name {
-        "p" | "note" | "warning" | "ul" | "ol" => {
-            if !raw_rest.trim().is_empty() {
-                return Err(LessmarkError::new(
-                    format!("@{} does not accept attributes", raw_name),
-                    line_number,
-                    1,
-                ));
-            }
-            match raw_name {
-                "p" => name = "paragraph",
-                "note" => {
-                    name = "callout";
-                    attrs.insert("kind".to_string(), "note".to_string());
-                }
-                "warning" => {
-                    name = "callout";
-                    attrs.insert("kind".to_string(), "warning".to_string());
-                }
-                "ul" => {
-                    name = "list";
-                    attrs.insert("kind".to_string(), "unordered".to_string());
-                }
-                "ol" => {
-                    name = "list";
-                    attrs.insert("kind".to_string(), "ordered".to_string());
-                }
-                _ => {}
-            }
-        }
-        _ => {}
-    }
-
     let mut rest = raw_rest.to_string();
-    if let Some(attr) = shorthand_attr(name) {
+    if let Some(attr) = shorthand_attr(raw_name) {
         let value = raw_rest.trim();
         if !value.is_empty() && !value.contains('=') && !value.chars().any(char::is_whitespace) {
             attrs.insert(attr.to_string(), value.to_string());
@@ -347,7 +321,7 @@ fn normalize_block_header(
         }
     }
 
-    Ok((name.to_string(), attrs, rest))
+    Ok((raw_name.to_string(), attrs, rest))
 }
 
 fn shorthand_attr(name: &str) -> Option<&'static str> {
@@ -362,6 +336,7 @@ fn shorthand_attr(name: &str) -> Option<&'static str> {
         "file" => Some("path"),
         "footnote" => Some("id"),
         "link" => Some("href"),
+        "list" => Some("kind"),
         "math" => Some("notation"),
         "metadata" => Some("key"),
         "reference" => Some("target"),
@@ -842,10 +817,18 @@ fn assert_safe_text(
     location: &str,
     line_number: usize,
     column: usize,
+    allow_expressions: bool,
 ) -> Result<(), LessmarkError> {
     if contains_html_like_tag(text) {
         return Err(LessmarkError::new(
             format!("{} contains raw HTML/JSX-like syntax", location),
+            line_number,
+            column,
+        ));
+    }
+    if !allow_expressions && contains_raw_expression(text) {
+        return Err(LessmarkError::new(
+            format!("{} contains raw expression-like syntax", location),
             line_number,
             column,
         ));
@@ -871,5 +854,6 @@ fn assert_safe_attr_value(
         &format!("attribute \"{}\"", key),
         line_number,
         column,
+        false,
     )
 }

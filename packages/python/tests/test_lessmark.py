@@ -52,14 +52,14 @@ class LessmarkPythonTests(unittest.TestCase):
     def test_canonicalizes_documented_human_authoring_conveniences(self):
         source = """# Project Context
 
-@p
+@paragraph
 Use **bold**, *emphasis*, `code`, `**literal**`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
-@ul
+@list unordered
 - One
 - Two
 
-@ol
+@list ordered
 - First
 - Second
 
@@ -88,7 +88,7 @@ E = mc^2
 graph TD
   A --> B
 
-@warning
+@callout warning
 Watch this.
 
 @definition API
@@ -172,6 +172,12 @@ RFC-0042
         with self.assertRaisesRegex(ValueError, "Mixed Markdown list markers"):
             from_markdown("1. One\n2) Two\n")
 
+    def test_rejects_overly_deep_lists_before_rendering(self):
+        source = f"@list unordered\n{'  ' * 129}- too deep\n"
+        with self.assertRaisesRegex(LessmarkError, "too deep|must start"):
+            parse_lessmark(source)
+        self.assertNotEqual(validate_source(source), [])
+
     def test_supports_escaped_pipes_in_table_columns(self):
         source = '@table columns="Name\\|Alias|Status"\nLessmark\\|lmk|done\n'
         self.assertEqual(validate_source(source), [])
@@ -187,7 +193,12 @@ RFC-0042
             ("paragraph", "yo\nwant sup"),
             ("paragraph", "nah"),
         ])
-        self.assertEqual(format_lessmark("@p\nyo\n\nnah\n"), "yo\n\nnah\n")
+        self.assertEqual(format_lessmark("@paragraph\nyo\n\nnah\n"), "yo\n\nnah\n")
+
+    def test_rejects_removed_block_aliases_to_keep_syntax_one_way(self):
+        for alias in ["@p", "@ul", "@ol", "@note", "@warning"]:
+            with self.assertRaisesRegex(LessmarkError, "Unknown typed block"):
+                parse_lessmark(f"{alias}\nbody\n")
 
     def test_supports_escaped_leading_block_sigils_inside_prose(self):
         ast = parse_lessmark("\\@mention\n\\#hashtag\n")
@@ -231,6 +242,23 @@ def f(): pass
     def test_rejects_html_like_text_during_parsing(self):
         with self.assertRaisesRegex(LessmarkError, "raw HTML"):
             parse_lessmark("@summary\nDo not use <script>alert(1)</script> here.\n")
+
+    def test_rejects_raw_comments_doctypes_and_expression_like_prose(self):
+        for source in [
+            "@paragraph\n<!-- hidden -->\n",
+            "@paragraph\n<!doctype html>\n",
+            "@paragraph\n{component}\n",
+            "@paragraph\n${value}\n",
+            '@link href="{target}"\nBad href.\n',
+        ]:
+            with self.subTest(source=source):
+                with self.assertRaisesRegex(LessmarkError, "raw (HTML|expression)"):
+                    parse_lessmark(source)
+                self.assertNotEqual(validate_source(source), [])
+        self.assertEqual(
+            parse_lessmark("@code js\nconst options = {enabled: true};\n")["children"][0]["text"],
+            "const options = {enabled: true};",
+        )
 
     def test_rejects_unknown_attributes(self):
         with self.assertRaisesRegex(LessmarkError, "does not allow attribute"):
@@ -592,7 +620,7 @@ def f(): pass
         info = get_capabilities()
         self.assertEqual(info["language"], "lessmark")
         self.assertEqual(info["astVersion"], "v0")
-        self.assertTrue(info["syntaxPolicy"]["aliases"])
+        self.assertFalse(info["syntaxPolicy"]["aliases"])
         self.assertTrue(info["cli"]["formatCheck"])
         self.assertIn("summary", info["blocks"])
 

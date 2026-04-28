@@ -45,25 +45,13 @@ export function getCapabilities() {
       rawHtml: false
     },
     syntaxPolicy: {
-      aliases: true,
+    aliases: false,
       plainParagraphs: true,
       canonicalSource: true,
       documentedConveniencesOnly: true,
-      maxSpellingsPerMeaning: 3,
-      maxSpellingsException: "paragraph",
-      blockAliases: {
-        p: "paragraph",
-        note: "callout",
-        warning: "callout",
-        ul: "list",
-        ol: "list"
-      },
-      aliasAttrs: {
-        note: { kind: "note" },
-        warning: { kind: "warning" },
-        ul: { kind: "unordered" },
-        ol: { kind: "ordered" }
-      },
+      maxSpellingsPerMeaning: 2,
+      blockAliases: {},
+      aliasAttrs: {},
       shorthandAttrs: {
         api: "name",
         callout: "kind",
@@ -75,6 +63,7 @@ export function getCapabilities() {
         file: "path",
         footnote: "id",
         link: "href",
+        list: "kind",
         math: "notation",
         metadata: "key",
         reference: "target",

@@ -123,6 +123,8 @@ INLINE_FUNCTIONS = [
     "footnote",
     "link",
 ]
+MAX_INLINE_MARKDOWN_PASSES = 128
+MAX_LIST_DEPTH = 128
 
 TASK_STATUSES = {"todo", "doing", "done", "blocked"}
 RISK_LEVELS = {"low", "medium", "high", "critical"}
@@ -130,7 +132,8 @@ LIST_KINDS = {"unordered", "ordered"}
 CALLOUT_KINDS = {"note", "tip", "warning", "caution"}
 MATH_NOTATIONS = {"tex", "asciimath"}
 DIAGRAM_KINDS = {"mermaid", "graphviz", "plantuml"}
-HTML_TAG_PATTERN = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>")
+HTML_TAG_PATTERN = re.compile(r"<!--|<!doctype\b|<!\[CDATA\[|<\?|</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>", re.I)
+RAW_EXPRESSION_PATTERN = re.compile(r"(?:\$\{[^}\n]*\}|\{[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)?\})")
 API_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
 CODE_LANG_PATTERN = re.compile(r"^[A-Za-z0-9_.+-]+$")
 CONTROL_WHITESPACE_PATTERN = re.compile(r"[\r\n\t]")
@@ -170,13 +173,7 @@ BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "depends-on": {"allowed": {"target"}, "required": {"target"}},
 }
 
-BLOCK_ALIASES = {
-    "p": {"name": "paragraph", "attrs": {}},
-    "note": {"name": "callout", "attrs": {"kind": "note"}},
-    "warning": {"name": "callout", "attrs": {"kind": "warning"}},
-    "ul": {"name": "list", "attrs": {"kind": "unordered"}},
-    "ol": {"name": "list", "attrs": {"kind": "ordered"}},
-}
+BLOCK_ALIASES = {}
 
 SHORTHAND_ATTRS = {
     "api": "name",
@@ -189,6 +186,7 @@ SHORTHAND_ATTRS = {
     "file": "path",
     "footnote": "id",
     "link": "href",
+    "list": "kind",
     "math": "notation",
     "metadata": "key",
     "reference": "target",
@@ -321,7 +319,7 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
         if _is_block_terminator(lines, index, name):
             break
         text_line = line if _is_literal_block(name) else _decode_leading_block_escape(line)
-        _assert_safe_text(text_line, f"@{name}", index + 1, 1)
+        _assert_safe_text(text_line, f"@{name}", index + 1, 1, allow_expressions=_is_literal_block(name))
         if not _is_literal_block(name):
             legacy_error = _legacy_markdown_line_error(text_line)
             if legacy_error is not None:
@@ -498,7 +496,12 @@ def validate_ast(ast: object) -> list[ValidationError]:
         if not isinstance(node.get("text"), str):
             errors.append({"message": f"@{name} text must be a string"})
             continue
-        _validate_text_safety(node.get("text", ""), errors, f"@{name}")
+        _validate_text_safety(
+            node.get("text", ""),
+            errors,
+            f"@{name}",
+            allow_expressions=_is_literal_block(str(name)),
+        )
         if not _is_literal_block(str(name)):
             _validate_inline_text(node.get("text", ""), errors, f"@{name}")
         _validate_block_body_ast(node, errors)
@@ -509,9 +512,17 @@ def validate_ast(ast: object) -> list[ValidationError]:
     return [_with_error_code(error) for error in errors]
 
 
-def _validate_text_safety(text: str, errors: list[ValidationError], location: str) -> None:
+def _validate_text_safety(
+    text: str,
+    errors: list[ValidationError],
+    location: str,
+    *,
+    allow_expressions: bool = False,
+) -> None:
     if HTML_TAG_PATTERN.search(text):
         errors.append({"message": f"{location} contains raw HTML/JSX-like syntax"})
+    if not allow_expressions and RAW_EXPRESSION_PATTERN.search(text):
+        errors.append({"message": f"{location} contains raw expression-like syntax"})
 
 
 def _legacy_markdown_line_error(line: str) -> str | None:
@@ -594,9 +605,18 @@ def _validate_block_body_ast(node: Mapping[str, object], errors: list[Validation
         errors.append({"message": message})
 
 
-def _assert_safe_text(text: str, location: str, line_number: int, column: int) -> None:
+def _assert_safe_text(
+    text: str,
+    location: str,
+    line_number: int,
+    column: int,
+    *,
+    allow_expressions: bool = False,
+) -> None:
     if HTML_TAG_PATTERN.search(text):
         raise LessmarkError(f"{location} contains raw HTML/JSX-like syntax", line_number, column)
+    if not allow_expressions and RAW_EXPRESSION_PATTERN.search(text):
+        raise LessmarkError(f"{location} contains raw expression-like syntax", line_number, column)
 
 
 def _assert_safe_attr_value(key: str, value: str, line_number: int, column: int) -> None:
@@ -759,6 +779,8 @@ def error_code_for_message(message: str) -> str:
         return "duplicate_attribute"
     if "raw HTML/JSX-like" in message:
         return "raw_html"
+    if "raw expression-like" in message:
+        return "raw_expression"
     if (
         "Markdown reference definitions" in message
         or "Markdown thematic breaks" in message
@@ -845,25 +867,13 @@ def get_capabilities() -> dict[str, object]:
             "rawHtml": False,
         },
         "syntaxPolicy": {
-            "aliases": True,
+            "aliases": False,
             "plainParagraphs": True,
             "canonicalSource": True,
             "documentedConveniencesOnly": True,
-            "maxSpellingsPerMeaning": 3,
-            "maxSpellingsException": "paragraph",
-            "blockAliases": {
-                "p": "paragraph",
-                "note": "callout",
-                "warning": "callout",
-                "ul": "list",
-                "ol": "list",
-            },
-            "aliasAttrs": {
-                "note": {"kind": "note"},
-                "warning": {"kind": "warning"},
-                "ul": {"kind": "unordered"},
-                "ol": {"kind": "ordered"},
-            },
+            "maxSpellingsPerMeaning": 2,
+            "blockAliases": {},
+            "aliasAttrs": {},
             "shorthandAttrs": {
                 "api": "name",
                 "callout": "kind",
@@ -875,6 +885,7 @@ def get_capabilities() -> dict[str, object]:
                 "file": "path",
                 "footnote": "id",
                 "link": "href",
+                "list": "kind",
                 "math": "notation",
                 "metadata": "key",
                 "reference": "target",
@@ -959,6 +970,8 @@ def _get_list_body_errors(text: str) -> list[str]:
             return ["@list must start at the top level"]
         if level > previous_level + 1:
             return ["@list nesting cannot skip levels"]
+        if level > MAX_LIST_DEPTH:
+            return ["@list nesting is too deep"]
         if "\t" in line:
             return ["@list items must use one explicit '- ' item marker per line"]
         previous_level = level
@@ -1467,14 +1480,13 @@ def _inline_to_markdown(text: str) -> str:
         (r"\{\{footnote:([^{}]+)\}\}", r"[^\1]"),
         (r"\{\{link:([^{}|]+)\|([^{}]+)\}\}", r"[\1](\2)"),
     ]
-    max_passes = max(1, len(result))
-    for _ in range(max_passes):
+    for _ in range(MAX_INLINE_MARKDOWN_PASSES):
         before = result
         for pattern, replacement in replacements:
             result = re.sub(pattern, replacement, result)
         if result == before:
             return result
-    return result
+    raise ValueError("Inline nesting too deep")
 
 
 def _assert_inline_local_targets(text: str) -> None:

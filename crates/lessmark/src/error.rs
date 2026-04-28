@@ -74,6 +74,9 @@ pub fn error_code_for_message(message: &str) -> &'static str {
     if message.contains("raw HTML/JSX-like") {
         return "raw_html";
     }
+    if message.contains("raw expression-like") {
+        return "raw_expression";
+    }
     if message.contains("Markdown reference definitions")
         || message.contains("Markdown thematic breaks")
         || message.contains("Markdown blockquote markers")

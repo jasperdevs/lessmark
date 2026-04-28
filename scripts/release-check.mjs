@@ -4,11 +4,23 @@ import { join } from "node:path";
 
 const root = process.cwd();
 
+if (process.env.LESSMARK_RELEASE_ALLOW_DIRTY !== "1") {
+  const status = spawnSync("git", ["status", "--short"], { cwd: root, encoding: "utf8" });
+  if (status.status !== 0) {
+    process.stderr.write(status.stderr || "git status failed\n");
+    process.exit(status.status ?? 1);
+  }
+  if (status.stdout.trim() !== "") {
+    console.error("release check requires a clean git tree; set LESSMARK_RELEASE_ALLOW_DIRTY=1 for local rehearsal");
+    process.exit(1);
+  }
+}
+
 const commands = [
   ["npm", ["run", "check"]],
   ["npm", ["audit", "--omit=dev"]],
   ["npm", ["pack", "--workspace", "lessmark", "--dry-run"]],
-  ["cargo", ["package", "--manifest-path", "crates/lessmark/Cargo.toml", "--allow-dirty"]],
+  ["cargo", ["package", "--manifest-path", "crates/lessmark/Cargo.toml"]],
   ["python", ["-m", "build", "--sdist", "--wheel", "packages/python"]],
   ["npm", ["ci"], { cwd: join(root, "site") }],
   ["npm", ["audit", "--omit=dev"], { cwd: join(root, "site") }],

@@ -26,10 +26,10 @@ ast = parse_lessmark(source)
 
 ## Render in React
 
-The renderer returns a plain HTML string. The simplest path is to drop
-it into an article element with {{code:dangerouslySetInnerHTML}}. The
-example below uses {{code:React.createElement}} so this page can ship
-through the lessmark parser without escaping.
+The renderer returns a plain HTML string from parsed Lessmark. It is safe
+to place that exact {{code:renderHtml}} output into an article element
+with {{code:dangerouslySetInnerHTML}}. Do not pass custom renderer output
+there unless your renderer escapes text and attributes.
 
 In a real project, write the same component in JSX. The
 {{code:dangerouslySetInnerHTML}} prop expects an object with a
@@ -99,10 +99,18 @@ pipeline.
 import { parseLessmark } from "lessmark";
 
 function tag(name, attrs, text) {
+  const allowedTags = new Set(["h1", "h2", "h3", "h4", "h5", "h6", "aside"]);
+  if (!allowedTags.has(name)) throw new Error("Unsupported tag");
+  const escapeHtml = (value) => String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
   const a = Object.entries(attrs)
-    .map(([k, v]) => ` ${k}="${v}"`)
+    .filter(([k]) => /^[a-z][a-z0-9-]*$/.test(k))
+    .map(([k, v]) => ` ${k}="${escapeHtml(v)}"`)
     .join("");
-  return `<${name}${a}>${text}</${name}>`;
+  return `<${name}${a}>${escapeHtml(text)}</${name}>`;
 }
 
 function walk(node) {

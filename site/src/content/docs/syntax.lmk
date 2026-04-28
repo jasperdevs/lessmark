@@ -25,9 +25,8 @@ Always leave a blank line after a heading.
 
 Plain text is the normal paragraph syntax. Separate paragraphs with a
 blank line. The parser records each one as a {{code:paragraph}} block.
-The explicit forms {{code:@p}} and {{code:@paragraph}} still work when
-you want to force prose meaning, but {{code:lessmark format}} writes
-ordinary plain paragraphs.
+Use {{code:@paragraph}} only when prose must start with a reserved
+block sigil. {{code:lessmark format}} writes ordinary plain paragraphs.
 
 Blank lines end prose blocks. For multiple paragraphs, write multiple
 plain paragraphs instead of hiding paragraph breaks inside one block.
@@ -340,6 +339,8 @@ validation rejects broken references.
 @constraint
 Lessmark refuses raw HTML, JSX, and unsafe URL schemes. Anything that
 looks executable raises a parse error before it ever reaches a renderer.
+Expression-like braces are rejected in prose and attributes; literal
+code, math, diagram, and example blocks keep their text as source data.
 
 @callout kind="warning"
 Embedding a script tag in any block body is a parse error, not a warning.

@@ -10,6 +10,7 @@ import {
   highlightCode,
   highlightLessmark,
   renderHtml,
+  renderInline,
   toMarkdown,
   validateAst,
   validateSource
@@ -94,14 +95,14 @@ test("preserves indented example text", async () => {
 test("canonicalizes documented human authoring conveniences", () => {
   const source = `# Project Context
 
-@p
+@paragraph
 Use **bold**, *emphasis*, \`code\`, \`**literal**\`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
-@ul
+@list unordered
 - One
 - Two
 
-@ol
+@list ordered
 - First
 - Second
 
@@ -130,7 +131,7 @@ E = mc^2
 graph TD
   A --> B
 
-@warning
+@callout warning
 Watch this.
 
 @definition API
@@ -216,6 +217,12 @@ test("supports strict nested lists", () => {
   assert.match(toMarkdown('@list kind="ordered"\n- Parent\n  - Child\n- Sibling\n'), /1\. Parent\n  1\. Child\n2\. Sibling/);
 });
 
+test("rejects overly deep lists before rendering", () => {
+  const source = `@list unordered\n${"  ".repeat(129)}- too deep\n`;
+  assert.throws(() => parseLessmark(source), /too deep|must start/);
+  assert.notEqual(validateSource(source).length, 0);
+});
+
 test("supports escaped pipes in table columns", () => {
   const source = '@table columns="Name\\|Alias|Status"\nLessmark\\|lmk|done\n';
   assert.equal(validateSource(source).length, 0);
@@ -237,8 +244,14 @@ test("plain top-level prose parses as paragraphs", () => {
     ["paragraph", "yo\nwant sup"],
     ["paragraph", "nah"]
   ]);
-  assert.equal(formatLessmark("@p\nyo\n\nnah\n"), "yo\n\nnah\n");
+  assert.equal(formatLessmark("@paragraph\nyo\n\nnah\n"), "yo\n\nnah\n");
   assert.match(renderHtml("yo\nwant sup\n\nnah\n"), /<p>yo\nwant sup<\/p>\n<p>nah<\/p>/);
+});
+
+test("rejects removed block aliases to keep syntax one-way", () => {
+  for (const alias of ["@p", "@ul", "@ol", "@note", "@warning"]) {
+    assert.throws(() => parseLessmark(`${alias}\nbody\n`), /Unknown typed block/);
+  }
 });
 
 test("supports escaped leading block sigils inside prose", () => {
@@ -259,6 +272,26 @@ test("rejects empty headings", async () => {
 test("rejects raw HTML-like text during parsing", async () => {
   const source = await read("fixtures/invalid/raw-html.lmk");
   assert.throws(() => parseLessmark(source), /raw HTML/);
+});
+
+test("rejects raw comments, doctypes, and expression-like prose", () => {
+  for (const source of [
+    "@paragraph\n<!-- hidden -->\n",
+    "@paragraph\n<!doctype html>\n",
+    "@paragraph\n{component}\n",
+    "@paragraph\n${value}\n",
+    '@link href="{target}"\nBad href.\n'
+  ]) {
+    assert.throws(() => parseLessmark(source), /raw (HTML|expression)/);
+    assert.notEqual(validateSource(source).length, 0);
+  }
+  assert.equal(parseLessmark("@code js\nconst options = {enabled: true};\n").children[0].text, "const options = {enabled: true};");
+});
+
+test("caps deeply nested inline rendering and markdown export", () => {
+  const nested = `${"{{strong:".repeat(140)}x${"}}".repeat(140)}`;
+  assert.throws(() => renderInline(nested), /Inline nesting too deep/);
+  assert.throws(() => toMarkdown(`@paragraph\n${nested}\n`), /Inline nesting too deep/);
 });
 
 test("rejects attributes not defined by the block type", async () => {
@@ -661,12 +694,12 @@ test("renders code blocks with safe lightweight highlighting", () => {
 });
 
 test("uses shared highlighting for Lessmark code examples", () => {
-  const source = '@code lang="lessmark"\n  @ul\n  - item\n\n@ul\n- real\n';
+  const source = '@code lang="lessmark"\n  @list unordered\n  - item\n\n@list unordered\n- real\n';
   const highlighted = highlightLessmark(source);
-  const renderedCode = renderHtml('@code lang="lessmark"\n  @ul\n  - item\n');
+  const renderedCode = renderHtml('@code lang="lessmark"\n  @list unordered\n  - item\n');
   assert.match(highlighted, /<span class="tok-key">@code<\/span>/);
-  assert.match(highlighted, /<span class="tok-key">@ul<\/span>/);
-  assert.match(renderedCode, /<span class="tok-key">@ul<\/span>/);
+  assert.match(highlighted, /<span class="tok-key">@list<\/span>/);
+  assert.match(renderedCode, /<span class="tok-key">@list<\/span>/);
   assert.match(highlightCode("const x = 1; // ok", "js"), /<span class="tok-comment">\/\/ ok<\/span>/);
 });
 

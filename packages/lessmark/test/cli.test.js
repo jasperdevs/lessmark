@@ -48,7 +48,7 @@ test("CLI info --json prints machine-readable capabilities", async () => {
   assert.equal(info.astVersion, "v0");
   assert.equal(info.cli.strictBuild, true);
   assert.equal(info.cli.formatCheck, true);
-  assert.equal(info.syntaxPolicy.aliases, true);
+  assert.equal(info.syntaxPolicy.aliases, false);
   assert.ok(info.blocks.includes("summary"));
   assert.ok(info.inlineFunctions.includes("ref"));
 });

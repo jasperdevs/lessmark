@@ -7,9 +7,24 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
+const MAX_LIST_DEPTH: usize = 128;
+
 fn html_tag_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
-    PATTERN.get_or_init(|| Regex::new(r#"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>"#).unwrap())
+    PATTERN.get_or_init(|| {
+        Regex::new(r#"(?i)<!--|<!doctype\b|<!\[CDATA\[|<\?|</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>"#)
+            .unwrap()
+    })
+}
+
+fn raw_expression_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| {
+        Regex::new(
+            r#"(?:\$\{[^}\n]*\}|\{[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)?\})"#,
+        )
+        .unwrap()
+    })
 }
 
 fn markdown_reference_definition_pattern() -> &'static Regex {
@@ -64,6 +79,10 @@ fn uri_scheme_pattern() -> &'static Regex {
 
 pub fn contains_html_like_tag(text: &str) -> bool {
     html_tag_pattern().is_match(text)
+}
+
+pub fn contains_raw_expression(text: &str) -> bool {
+    raw_expression_pattern().is_match(text)
 }
 
 pub fn contains_control_whitespace(text: &str) -> bool {
@@ -420,6 +439,9 @@ fn get_list_body_errors(text: &str) -> Vec<String> {
         }
         if level > previous_level + 1 {
             return vec!["@list nesting cannot skip levels".to_string()];
+        }
+        if level > MAX_LIST_DEPTH {
+            return vec!["@list nesting is too deep".to_string()];
         }
         previous_level = level;
         seen_item = true;

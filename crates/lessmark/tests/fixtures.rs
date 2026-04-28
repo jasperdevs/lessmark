@@ -135,6 +135,32 @@ fn validation_errors_include_stable_codes() {
 }
 
 #[test]
+fn rejects_raw_comments_doctypes_and_expression_like_prose() {
+    for source in [
+        "@paragraph\n<!-- hidden -->\n",
+        "@paragraph\n<!doctype html>\n",
+        "@paragraph\n{component}\n",
+        "@paragraph\n${value}\n",
+        "@link href=\"{target}\"\nBad href.\n",
+    ] {
+        let error = parse_lessmark(source).expect_err("raw syntax should reject");
+        assert!(
+            error.message.contains("raw HTML") || error.message.contains("raw expression"),
+            "{}",
+            error.message
+        );
+        assert!(!validate_source(source).is_empty());
+    }
+    let document = parse_lessmark("@code js\nconst options = {enabled: true};\n")
+        .expect("literal code parses");
+    let value = serde_json::to_value(document).expect("document serializes");
+    assert_eq!(
+        value["children"][0]["text"],
+        "const options = {enabled: true};"
+    );
+}
+
+#[test]
 fn cli_info_json_prints_machine_readable_capabilities() {
     let output = Command::new(env!("CARGO_BIN_EXE_lessmark"))
         .args(["info", "--json"])
@@ -144,7 +170,7 @@ fn cli_info_json_prints_machine_readable_capabilities() {
     let info: Value = serde_json::from_slice(&output.stdout).expect("info json parses");
     assert_eq!(info["language"], "lessmark");
     assert_eq!(info["astVersion"], "v0");
-    assert_eq!(info["syntaxPolicy"]["aliases"], true);
+    assert_eq!(info["syntaxPolicy"]["aliases"], false);
     assert_eq!(info["cli"]["strictBuild"], false);
     assert_eq!(info["cli"]["formatCheck"], true);
     assert!(info["blocks"]
@@ -173,14 +199,14 @@ fn formatter_preserves_indented_example_text() {
 fn canonicalizes_documented_human_authoring_conveniences() {
     let source = r#"# Project Context
 
-@p
+@paragraph
 Use **bold**, *emphasis*, `code`, `**literal**`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
-@ul
+@list unordered
 - One
 - Two
 
-@ol
+@list ordered
 - First
 - Second
 
@@ -209,7 +235,7 @@ E = mc^2
 graph TD
   A --> B
 
-@warning
+@callout warning
 Watch this.
 
 @definition API
@@ -275,6 +301,18 @@ fn supports_strict_nested_lists() {
 }
 
 #[test]
+fn rejects_overly_deep_lists_before_rendering() {
+    let source = format!("@list unordered\n{}- too deep\n", "  ".repeat(129));
+    let error = parse_lessmark(&source).expect_err("deep list rejects");
+    assert!(
+        error.message.contains("too deep") || error.message.contains("must start"),
+        "{}",
+        error.message
+    );
+    assert!(!validate_source(&source).is_empty());
+}
+
+#[test]
 fn supports_escaped_pipes_in_table_columns() {
     let source = "@table columns=\"Name\\|Alias|Status\"\nLessmark\\|lmk|done\n";
     assert!(validate_source(source).is_empty());
@@ -298,9 +336,20 @@ fn plain_top_level_prose_parses_as_paragraphs() {
     assert_eq!(value["children"][1]["name"], "paragraph");
     assert_eq!(value["children"][1]["text"], "nah");
     assert_eq!(
-        format_lessmark("@p\nyo\n\nnah\n").expect("plain paragraph formats"),
+        format_lessmark("@paragraph\nyo\n\nnah\n").expect("plain paragraph formats"),
         "yo\n\nnah\n"
     );
+}
+
+#[test]
+fn rejects_removed_block_aliases_to_keep_syntax_one_way() {
+    for alias in ["@p", "@ul", "@ol", "@note", "@warning"] {
+        let source = format!("{}\nbody\n", alias);
+        assert!(parse_lessmark(&source)
+            .expect_err("removed alias should fail")
+            .message
+            .contains("Unknown typed block"));
+    }
 }
 
 #[test]
@@ -444,10 +493,9 @@ fn imports_markdown_code_fences_with_internal_blank_lines() {
 
 #[test]
 fn imports_markdown_code_fences_without_padding_first_column_block_sigils() {
-    let lessmark = from_markdown(
-        "```py\n@decorator\ndef f(): pass\n```\n\n```c\n#include <stdio.h>\n```\n",
-    )
-    .expect("markdown imports");
+    let lessmark =
+        from_markdown("```py\n@decorator\ndef f(): pass\n```\n\n```c\n#include <stdio.h>\n```\n")
+            .expect("markdown imports");
     let ast = parse_lessmark(&lessmark).expect("imported Lessmark parses");
     let json = serde_json::to_value(ast).expect("document serializes");
     assert_eq!(json["children"][0]["text"], "@decorator\ndef f(): pass");

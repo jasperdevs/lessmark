@@ -1,6 +1,7 @@
 import { BLOCK_ATTRS, CALLOUT_KINDS, DIAGRAM_KINDS, LIST_KINDS, MATH_NOTATIONS, RISK_LEVELS, TASK_STATUSES } from "./grammar.js";
 
-export const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
+export const HTML_TAG_PATTERN = /<!--|<!doctype\b|<!\[CDATA\[|<\?|<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/i;
+export const RAW_EXPRESSION_PATTERN = /(?:\$\{[^}\n]*\}|\{[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)?\})/;
 export const API_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 export const CODE_LANG_PATTERN = /^[A-Za-z0-9_.+-]+$/;
 export const CONTROL_WHITESPACE_PATTERN = /[\r\n\t]/;
@@ -11,6 +12,7 @@ export const DECISION_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const METADATA_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 export const DEFINITION_TERM_PATTERN = /^(?=.*\S)[^\r\n\t<>]+$/;
 export const NAV_SLOTS = new Set(["primary", "footer"]);
+export const MAX_LIST_DEPTH = 128;
 
 export function isRelativeProjectPath(path) {
   return (
@@ -317,6 +319,9 @@ function getListBodyErrors(text) {
     }
     if (level > previousLevel + 1) {
       return ["@list nesting cannot skip levels"];
+    }
+    if (level > MAX_LIST_DEPTH) {
+      return ["@list nesting is too deep"];
     }
     if (/\t/.test(line)) {
       return ["@list items must use one explicit '- ' item marker per line"];

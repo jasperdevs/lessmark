@@ -2,6 +2,8 @@ import { formatAst } from "./format.js";
 import { parseLessmark } from "./parser.js";
 import { DECISION_ID_PATTERN, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
 
+const MAX_INLINE_MARKDOWN_PASSES = 128;
+
 export function fromMarkdown(markdown) {
   const lines = String(markdown).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n");
   const children = [];
@@ -212,15 +214,14 @@ function inlineToMarkdown(text) {
     [/\{\{footnote:([^{}]+)\}\}/g, "[^$1]"],
     [/\{\{link:([^{}|]+)\|([^{}]+)\}\}/g, "[$1]($2)"]
   ];
-  const maxPasses = Math.max(1, result.length);
-  for (let pass = 0; pass < maxPasses; pass += 1) {
+  for (let pass = 0; pass < MAX_INLINE_MARKDOWN_PASSES; pass += 1) {
     const before = result;
     for (const [pattern, replacement] of replacements) {
       result = result.replace(pattern, replacement);
     }
     if (result === before) return result;
   }
-  return result;
+  throw new Error("Inline nesting too deep");
 }
 
 function assertInlineLocalTargets(text) {

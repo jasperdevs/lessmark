@@ -3,6 +3,7 @@ import {
   CONTROL_WHITESPACE_PATTERN,
   DECISION_ID_PATTERN,
   HTML_TAG_PATTERN,
+  RAW_EXPRESSION_PATTERN,
   getBlockAttrErrors,
   getBlockBodyErrors,
   getLocalAnchorErrors,
@@ -61,7 +62,7 @@ export function validateAst(ast) {
       errors.push(validationError(`@${node.name} text must be a string`));
       continue;
     }
-    validateTextSafety(node.text, errors, `@${node.name}`);
+    validateTextSafety(node.text, errors, `@${node.name}`, { allowExpressions: isLiteralBlock(node.name) });
     if (!isLiteralBlock(node.name)) {
       validateInlineText(node.text, errors, `@${node.name}`);
     }
@@ -84,9 +85,12 @@ function validateBlockBody(node, errors) {
   for (const message of getBlockBodyErrors(node)) errors.push(validationError(message));
 }
 
-function validateTextSafety(text, errors, location) {
+function validateTextSafety(text, errors, location, options = {}) {
   if (HTML_TAG_PATTERN.test(text)) {
     errors.push(validationError(`${location} contains raw HTML/JSX-like syntax`));
+  }
+  if (options.allowExpressions !== true && RAW_EXPRESSION_PATTERN.test(text)) {
+    errors.push(validationError(`${location} contains raw expression-like syntax`));
   }
 }
 
@@ -246,6 +250,7 @@ export function errorCodeForMessage(message) {
   if (/requires /.test(message)) return "missing_required_attribute";
   if (/Duplicate attribute/.test(message)) return "duplicate_attribute";
   if (/raw HTML\/JSX-like/.test(message)) return "raw_html";
+  if (/raw expression-like/.test(message)) return "raw_expression";
   if (/Markdown reference definitions|Markdown thematic breaks|Markdown blockquote markers/.test(message)) return "markdown_legacy_syntax";
   if (/Loose text/.test(message)) return "loose_text";
   if (/Invalid heading/.test(message)) return "invalid_heading";
