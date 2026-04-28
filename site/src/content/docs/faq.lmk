@@ -57,7 +57,7 @@ renderers.
 
 ## Will the language keep growing?
 
-Lessmark keeps the v0 block set small. New blocks should be rare, tested
+Lessmark keeps the block set small. New blocks should be rare, tested
 across every runtime, and added only when existing blocks cannot express a
 real document shape. Issues, ideas, and pull requests are welcome on
 {{link:GitHub|https://github.com/jasperdevs/lessmark}}.

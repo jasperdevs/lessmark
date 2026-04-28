@@ -103,8 +103,8 @@ Premature optimization is the root of all evil.
 
 ## Files and APIs
 
-@file path="schemas/language-v0.contract.json"
-The canonical contract. Every package validates against this file.
+@file path="packages/lessmark/src/capabilities.js"
+The public capability list shared by docs, editor tooling, and checks.
 
 @api name="parseLessmark"
 Parses a string and returns the AST.

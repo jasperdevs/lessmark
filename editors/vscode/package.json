@@ -2,7 +2,7 @@
   "name": "lessmark-vscode",
   "displayName": "Lessmark",
   "description": "The markdown alternative that agents (and humans) love.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "JasperDevs",
   "license": "MIT",
   "icon": "icon.png",
@@ -23,7 +23,9 @@
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["Programming Languages"],
+  "categories": [
+    "Programming Languages"
+  ],
   "activationEvents": [
     "onLanguage:lessmark",
     "onCommand:lessmark.check",
@@ -33,8 +35,14 @@
     "languages": [
       {
         "id": "lessmark",
-        "aliases": ["Lessmark", "lessmark"],
-        "extensions": [".lmk", ".lessmark"],
+        "aliases": [
+          "Lessmark",
+          "lessmark"
+        ],
+        "extensions": [
+          ".lmk",
+          ".lessmark"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],

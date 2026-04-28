@@ -129,8 +129,7 @@ before rendering.
 
 ## The contract
 
-The complete AST shape is pinned in {{code:schemas/ast-v0.schema.json}}.
-The language surface is pinned in
-{{code:schemas/language-v0.contract.json}}. Every package validates its
-output against those files in CI. If you write a tool that consumes
-lessmark trees, validate against the schema too.
+The complete AST shape and language surface are pinned in the schema and
+contract files. Every package validates its output against those files in
+CI. If you write a tool that consumes lessmark trees, validate against the
+schema too.

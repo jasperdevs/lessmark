@@ -817,7 +817,7 @@ def error_code_for_message(message: str) -> str:
 def get_capabilities() -> dict[str, object]:
     return {
         "language": "lessmark",
-        "version": "0.1.4",
+        "version": "0.1.5",
         "astVersion": "v0",
         "extensions": [".lmk", ".lessmark"],
         "mediaType": "text/vnd.lessmark; charset=utf-8",

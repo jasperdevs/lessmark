@@ -141,7 +141,7 @@ fn info_command(args: &[String]) -> i32 {
             serde_json::to_string_pretty(&info).expect("info serializes")
         );
     } else {
-        println!("Lessmark {} (v0)", env!("CARGO_PKG_VERSION"));
+        println!("Lessmark {}", env!("CARGO_PKG_VERSION"));
         println!(
             "Blocks: {}",
             info["blocks"]

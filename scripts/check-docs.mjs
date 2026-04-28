@@ -96,7 +96,11 @@ function checkStaleDocsText() {
     /level \(1, 2, or 3\)/,
     /CommonMark document/,
     /pre-1\.0/,
-    /throwaway syntax/
+    /throwaway syntax/,
+    /\bv0\b/,
+    /ast-v0/,
+    /language-v0/,
+    /profiles-v0/
   ];
   for (const file of checkedFiles) {
     const source = readFileSync(file, "utf8");

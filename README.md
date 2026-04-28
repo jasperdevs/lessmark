@@ -8,18 +8,16 @@
 
 <p align="center">
   <strong><a href="https://lessmark.org">lessmark.org</a></strong>
-  ·
-  <a href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode">VS Code extension</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/jasperdevs/lessmark/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/github/actions/workflow/status/jasperdevs/lessmark/ci.yml?branch=main&style=flat-square"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode"><img alt="VS Code" src="https://img.shields.io/visual-studio-marketplace/v/JasperDevs.lessmark-vscode?label=vscode&style=flat-square"></a>
   <a href="https://github.com/jasperdevs/lessmark/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/jasperdevs/lessmark?style=flat-square"></a>
   <a href="./LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-black?style=flat-square"></a>
 </p>
 
-Lessmark is a document language for readable source, typed blocks, stable JSON ASTs, canonical formatting, validation, and safe rendering.
-It keeps prose simple while giving tools a fixed grammar and predictable tree.
+Write normal prose. Add typed blocks when structure matters. Parse the same `.lmk` file in JavaScript, Python, or Rust.
 
 ## Install
 
@@ -35,7 +33,8 @@ pip install lessmark
 cargo add lessmark
 ```
 
-## CLI
+<details>
+<summary>CLI</summary>
 
 ```sh
 lessmark parse file.lmk
@@ -53,7 +52,10 @@ lessmark info --json
 
 `parse`, `check`, `format`, `fix`, `from-markdown`, `to-markdown`, and `info` are shared by the JavaScript, Python, and Rust packages. HTML rendering and static-site builds are npm CLI features.
 
-## API
+</details>
+
+<details>
+<summary>API</summary>
 
 ```js
 import { parseLessmark, validateSource, formatLessmark, renderHtml } from "lessmark";
@@ -73,11 +75,14 @@ from lessmark import parse_lessmark, validate_source, format_lessmark
 use lessmark::{parse_lessmark, validate_source, format_lessmark};
 ```
 
-## Language
+</details>
 
-Lessmark source files use `.lmk`; `.lessmark` is a readable alias. The v0 language includes plain top-level paragraphs, headings, inline functions, typed context blocks, lists, tables, callouts, code, math, diagrams, links, footnotes, and page/navigation metadata.
+<details>
+<summary>Language</summary>
 
-Read the docs at [lessmark.org](https://lessmark.org). Install [Lessmark for VS Code](https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode) for syntax highlighting, diagnostics, hover docs, completion, and preview.
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. The language includes plain top-level paragraphs, headings, inline functions, typed context blocks, lists, tables, callouts, code, math, diagrams, links, footnotes, and page/navigation metadata.
+
+</details>
 
 ## License
 

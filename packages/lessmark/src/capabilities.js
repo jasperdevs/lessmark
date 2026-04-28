@@ -17,7 +17,7 @@ export const INLINE_FUNCTIONS = [
 export function getCapabilities() {
   return {
     language: "lessmark",
-    version: "0.1.4",
+    version: "0.1.5",
     astVersion: "v0",
     extensions: [".lmk", ".lessmark"],
     mediaType: "text/vnd.lessmark; charset=utf-8",
