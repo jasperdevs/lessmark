@@ -2,7 +2,7 @@
   "name": "lessmark-workspace",
   "private": true,
   "version": "0.1.5",
-  "description": "The markdown alternative that agents (and humans) love.",
+  "description": "Readable markup with typed blocks and a stable JSON AST.",
   "license": "MIT",
   "workspaces": [
     "packages/lessmark"

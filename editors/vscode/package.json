@@ -1,7 +1,7 @@
 {
   "name": "lessmark-vscode",
   "displayName": "Lessmark",
-  "description": "The markdown alternative that agents (and humans) love.",
+  "description": "Readable markup with typed blocks and a stable JSON AST.",
   "version": "0.1.5",
   "publisher": "JasperDevs",
   "license": "MIT",

@@ -17,7 +17,7 @@
   <a href="./LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-black?style=flat-square"></a>
 </p>
 
-Write normal prose. Add typed blocks when structure matters. Parse the same `.lmk` file in JavaScript, Python, or Rust.
+Lessmark is readable markup with typed blocks, canonical formatting, safe rendering, and a stable JSON AST across JavaScript, Python, and Rust.
 
 ## Install
 

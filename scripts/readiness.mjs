@@ -39,7 +39,7 @@ assert.deepEqual(muFiles, [], "Lessmark source files must use .lmk or .lessmark,
 
 const rootPackage = readJson("package.json");
 assert.ok(!rootPackage.dependencies || Object.keys(rootPackage.dependencies).length === 0, "workspace root must not carry runtime dependencies");
-assert.equal(rootPackage.description, "The markdown alternative that agents (and humans) love.");
+assert.equal(rootPackage.description, "Readable markup with typed blocks and a stable JSON AST.");
 
 const languageContract = readJson("schemas/language-v0.contract.json");
 for (const path of [
