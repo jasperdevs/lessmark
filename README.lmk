@@ -19,6 +19,16 @@ and undefined attributes. Unknown blocks fail the parser.
 @metadata key="format.version"
 v0
 
+@metadata key="file.extension"
+.lmk
+
+@metadata key="media.type"
+text/vnd.lessmark
+
+@note
+README.lmk is the canonical Lessmark source. README.md remains the GitHub-rendered
+mirror until GitHub supports Lessmark in its README markup pipeline.
+
 ## Install
 
 @example
@@ -43,6 +53,15 @@ lessmark format file.lmk
 @note
 summary, decision, constraint, task, file, code, example, note, warning,
 api, link, metadata, risk, and depends-on.
+
+## Registration
+
+@file path="docs/file-type-registration.md"
+README strategy, local file associations, Cloudflare headers, and official
+registration paths.
+
+@file path="docs/media-type.md"
+IANA-ready draft for text/vnd.lessmark.
 
 ## API
 

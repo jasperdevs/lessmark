@@ -2,6 +2,13 @@
 
 Lessmark is a strict line-oriented format for project context. A document is a sequence of headings and typed blocks separated by blank lines.
 
+## File Type
+
+- Canonical extension: `.lmk`
+- Readable alias: `.lessmark`
+- Media type target: `text/vnd.lessmark; charset=utf-8`
+- Encoding: UTF-8 text
+
 ## Document
 
 - Blank lines are ignored between nodes.

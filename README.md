@@ -44,6 +44,8 @@ Lessmark v0 supports `summary`, `decision`, `constraint`, `task`, `file`, `code`
 
 See [`docs/spec.md`](./docs/spec.md) and [`spec/ast-v0.schema.json`](./spec/ast-v0.schema.json) for the source and AST contracts.
 
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/file-type-registration.md`](./docs/file-type-registration.md) for the README strategy, local file associations, Cloudflare headers, and official registration paths.
+
 <details>
 <summary>API and docs</summary>
 
@@ -77,4 +79,4 @@ npm run check
 
 MIT
 
-> This project also dogfoods its own format: see [`README.lmk`](./README.lmk) for the same content as a real lessmark document. GitHub only renders `.md` for the repo homepage, so this `.md` stays as the rendered copy.
+> This project dogfoods its own format: [`README.lmk`](./README.lmk) is the canonical Lessmark source. GitHub does not render `.lmk` as the repository homepage today, so `README.md` stays as the rendered mirror.
