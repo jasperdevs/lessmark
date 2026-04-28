@@ -164,7 +164,7 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
 
     while index < len(lines):
         line = lines[index]
-        if line.strip() == "" or line.startswith("#") or line.startswith("@"):
+        if _is_block_terminator(lines, index, name):
             break
         _assert_safe_text(line, f"@{name}", index + 1, 1)
         body.append(line.rstrip())
@@ -176,6 +176,21 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
     if source_positions:
         node["position"] = _position(start_index + 1, 1, end_line, end_column)
     return node, index
+
+
+def _is_block_terminator(lines: list[str], index: int, name: str) -> bool:
+    line = lines[index]
+    if line.startswith("#") or line.startswith("@"):
+        return True
+    if line.strip() != "":
+        return False
+    if name not in {"code", "example"}:
+        return True
+
+    next_index = index + 1
+    while next_index < len(lines) and lines[next_index].strip() == "":
+        next_index += 1
+    return next_index >= len(lines) or lines[next_index].startswith(("#", "@"))
 
 
 def _position(start_line: int, start_column: int, end_line: int, end_column: int) -> PositionRange:
@@ -460,3 +475,143 @@ def _strip_trailing_whitespace(text: str) -> str:
 
 def _escape_attr(value: str) -> str:
     return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
+
+
+def from_markdown(markdown: str) -> str:
+    lines = str(markdown).lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    children: list[LessmarkNode] = []
+    index = 0
+    first_paragraph = True
+
+    while index < len(lines):
+        line = lines[index]
+
+        if line.strip() == "":
+            index += 1
+            continue
+
+        heading = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
+        if heading:
+            children.append({"type": "heading", "level": len(heading.group(1)), "text": _plain_text(heading.group(2))})
+            index += 1
+            continue
+
+        fence = _read_fence_line(line)
+        if fence is not None:
+            body: list[str] = []
+            index += 1
+            while index < len(lines) and not _is_closing_fence(lines[index], fence):
+                body.append(lines[index])
+                index += 1
+            if index >= len(lines):
+                raise ValueError("Unclosed fenced code block")
+            index += 1
+            attrs = {"lang": fence["lang"]} if fence["lang"] else {}
+            children.append({"type": "block", "name": "code", "attrs": attrs, "text": "\n".join(_escape_block_line(item) for item in body)})
+            first_paragraph = False
+            continue
+
+        task = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", line)
+        if task:
+            children.append(
+                {
+                    "type": "block",
+                    "name": "task",
+                    "attrs": {"status": "done" if task.group(1).lower() == "x" else "todo"},
+                    "text": _plain_text(task.group(2)),
+                }
+            )
+            first_paragraph = False
+            index += 1
+            continue
+
+        paragraph: list[str] = []
+        while index < len(lines) and lines[index].strip() != "":
+            if re.match(r"^(#{1,6})\s+", lines[index]) or _read_fence_line(lines[index]) is not None or re.match(r"^\s*[-*]\s+\[[ xX]\]\s+", lines[index]):
+                break
+            paragraph.append(lines[index].strip())
+            index += 1
+
+        raw_text = " ".join(paragraph)
+        text = _plain_text(raw_text)
+        link = re.match(r"^\[([^\]]+)\]\((https?://[^)\s]+|mailto:[^)\s]+)\)$", raw_text)
+        if link:
+            children.append({"type": "block", "name": "link", "attrs": {"href": link.group(2)}, "text": link.group(1)})
+        else:
+            children.append({"type": "block", "name": "summary" if first_paragraph else "note", "attrs": {}, "text": text})
+        first_paragraph = False
+
+    return format_ast({"type": "document", "children": children})
+
+
+def to_markdown(lessmark: str | DocumentNode) -> str:
+    ast = parse_lessmark(lessmark) if isinstance(lessmark, str) else lessmark
+    chunks: list[str] = []
+    for node in ast["children"]:
+        if node.get("type") == "heading":
+            chunks.append(f"{'#' * int(node['level'])} {node['text']}")
+            continue
+        if node.get("type") != "block":
+            continue
+
+        name = str(node["name"])
+        attrs = node.get("attrs", {})
+        text = str(node.get("text", ""))
+        if name in {"summary", "note"}:
+            chunks.append(text)
+        elif name == "warning":
+            chunks.append(f"> Warning: {text}")
+        elif name == "constraint":
+            chunks.append(f"> Constraint: {text}")
+        elif name == "decision":
+            chunks.append(f"**Decision {attrs.get('id')}:** {text}")
+        elif name == "task":
+            chunks.append(f"- [{'x' if attrs.get('status') == 'done' else ' '}] {text}")
+        elif name == "file":
+            chunks.append(f"**File:** `{attrs.get('path')}`\n\n{text}")
+        elif name == "api":
+            chunks.append(f"**API:** `{attrs.get('name')}`\n\n{text}")
+        elif name == "link":
+            chunks.append(f"[{text or attrs.get('href')}]({attrs.get('href')})")
+        elif name == "metadata":
+            chunks.append(f"<!-- lessmark:{attrs.get('key')}={text} -->")
+        elif name == "risk":
+            chunks.append(f"> Risk ({attrs.get('level')}): {text}")
+        elif name == "depends-on":
+            chunks.append(f"> Depends on `{attrs.get('target')}`: {text}")
+        elif name == "code":
+            chunks.append(f"```{attrs.get('lang', '')}\n{text}\n```")
+        elif name == "example":
+            chunks.append(f"Example:\n\n{text}")
+        else:
+            chunks.append(text)
+    return "\n\n".join(chunk for chunk in chunks if chunk) + "\n"
+
+
+def _escape_block_line(line: str) -> str:
+    return f"  {line}" if line.startswith(("#", "@")) else line
+
+
+def _read_fence_line(line: str) -> dict[str, object] | None:
+    match = re.match(r"^( {0,3})(`{3,}|~{3,})(.*)$", line)
+    if not match:
+        return None
+    marker = match.group(2)
+    info = match.group(3).strip()
+    if marker.startswith("`") and "`" in info:
+        return None
+    first_word = info.split(None, 1)[0] if info else ""
+    lang = first_word if CODE_LANG_PATTERN.match(first_word) else ""
+    return {"char": marker[0], "length": len(marker), "lang": lang}
+
+
+def _is_closing_fence(line: str, fence: Mapping[str, object]) -> bool:
+    match = re.match(r"^( {0,3})(`{3,}|~{3,})\s*$", line)
+    return bool(match and match.group(2).startswith(str(fence["char"])) and len(match.group(2)) >= int(fence["length"]))
+
+
+def _plain_text(text: str) -> str:
+    result = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", str(text))
+    result = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", result)
+    result = re.sub(r"[`*_~]", "", result)
+    return result.strip()

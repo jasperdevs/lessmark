@@ -1,4 +1,4 @@
-use lessmark::{format_lessmark, parse_lessmark, validate_source};
+use lessmark::{format_lessmark, from_markdown, parse_lessmark, to_markdown, validate_source};
 use serde_json::json;
 use std::env;
 use std::fs;
@@ -19,9 +19,53 @@ fn run(args: Vec<String>) -> i32 {
         "parse" => parse_command(&args[1..]),
         "check" => check_command(&args[1..]),
         "format" => format_command(&args[1..]),
+        "from-markdown" => from_markdown_command(&args[1..]),
+        "to-markdown" => to_markdown_command(&args[1..]),
         command => {
             eprintln!("Unknown command: {}", command);
             print_help();
+            1
+        }
+    }
+}
+
+fn from_markdown_command(args: &[String]) -> i32 {
+    let Some(path) = first_path_arg(args) else {
+        eprintln!("Usage: lessmark from-markdown <file.md>");
+        return 1;
+    };
+    let source = match read_file(path) {
+        Ok(source) => source,
+        Err(status) => return status,
+    };
+    match from_markdown(&source) {
+        Ok(converted) => {
+            print!("{}", converted);
+            0
+        }
+        Err(error) => {
+            eprintln!("lessmark: {}", error);
+            1
+        }
+    }
+}
+
+fn to_markdown_command(args: &[String]) -> i32 {
+    let Some(path) = first_path_arg(args) else {
+        eprintln!("Usage: lessmark to-markdown <file.lmk>");
+        return 1;
+    };
+    let source = match read_file(path) {
+        Ok(source) => source,
+        Err(status) => return status,
+    };
+    match to_markdown(&source) {
+        Ok(converted) => {
+            print!("{}", converted);
+            0
+        }
+        Err(error) => {
+            eprintln!("lessmark: {}", error);
             1
         }
     }
@@ -129,5 +173,5 @@ fn first_path_arg(args: &[String]) -> Option<&str> {
 }
 
 fn print_help() {
-    eprintln!("Usage: lessmark <parse|check|format> [options] <file.lmk>");
+    eprintln!("Usage: lessmark <parse|check|format|from-markdown|to-markdown> [options] <file>");
 }

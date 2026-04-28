@@ -1,6 +1,6 @@
 use lessmark::{
-    format_lessmark, parse_lessmark, parse_lessmark_with_positions, validate_document,
-    validate_value,
+    format_lessmark, from_markdown, parse_lessmark, parse_lessmark_with_positions, to_markdown,
+    validate_document, validate_source, validate_value,
 };
 use serde_json::Value;
 use std::fs;
@@ -101,4 +101,29 @@ fn validates_non_string_attrs_without_treating_present_values_as_missing() {
             "Attribute \"status\" must be a string",
         ]
     );
+}
+
+#[test]
+fn imports_markdown_code_fences_with_internal_blank_lines() {
+    let lessmark = from_markdown("# Project\n\n```js\nconst a = 1;\n\nconst b = 2;\n```\n")
+        .expect("markdown imports");
+    assert!(validate_source(&lessmark).is_empty());
+    let ast = parse_lessmark(&lessmark).expect("imported Lessmark parses");
+    let json = serde_json::to_value(ast).expect("document serializes");
+    assert_eq!(json["children"][1]["text"], "const a = 1;\n\nconst b = 2;");
+}
+
+#[test]
+fn rejects_unclosed_markdown_code_fences() {
+    let error = from_markdown("```js\nconst a = 1;\n").expect_err("unclosed fence rejects");
+    assert!(error.message.contains("Unclosed fenced code block"));
+}
+
+#[test]
+fn exports_lessmark_to_markdown() {
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
+        .expect("fixture is readable");
+    let markdown = to_markdown(&source).expect("exports markdown");
+    assert!(markdown.starts_with("# Project Context"));
+    assert!(markdown.contains("- [ ] Add export settings."));
 }

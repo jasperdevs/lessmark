@@ -91,3 +91,37 @@ fn cli_format_prints_normalized_source() {
     assert!(formatted.starts_with("# Project Context"));
     assert!(formatted.contains("@task status=\"todo\""));
 }
+
+#[test]
+fn cli_converts_markdown_to_lessmark() {
+    let fixture = repo_root().join("fixtures/valid/markdown-import.md");
+    let output = Command::new(lessmark_bin())
+        .args(["from-markdown", fixture.to_str().expect("utf8 path")])
+        .output()
+        .expect("lessmark command runs");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let converted = String::from_utf8(output.stdout).expect("stdout is utf8");
+    assert!(converted.starts_with("# Imported Context"));
+    assert!(converted.contains("@summary\nMarkdown import fixture."));
+}
+
+#[test]
+fn cli_converts_lessmark_to_markdown() {
+    let fixture = repo_root().join("fixtures/valid/project-context.lmk");
+    let output = Command::new(lessmark_bin())
+        .args(["to-markdown", fixture.to_str().expect("utf8 path")])
+        .output()
+        .expect("lessmark command runs");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let converted = String::from_utf8(output.stdout).expect("stdout is utf8");
+    assert!(converted.starts_with("# Project Context"));
+    assert!(converted.contains("- [ ] Add export settings."));
+}

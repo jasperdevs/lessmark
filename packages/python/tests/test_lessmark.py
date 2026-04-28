@@ -4,7 +4,16 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-from lessmark import LessmarkError, format_ast, format_lessmark, parse_lessmark, validate_ast, validate_source
+from lessmark import (
+    LessmarkError,
+    format_ast,
+    format_lessmark,
+    from_markdown,
+    parse_lessmark,
+    to_markdown,
+    validate_ast,
+    validate_source,
+)
 from lessmark.cli import main
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -164,6 +173,22 @@ class LessmarkPythonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Cannot format invalid AST"):
             format_ast({"type": "document", "children": [{"type": "heading", "level": 7, "text": "Too deep"}]})
 
+    def test_imports_markdown_code_fences_with_internal_blank_lines(self):
+        lessmark = from_markdown("# Project\n\n```js\nconst a = 1;\n\nconst b = 2;\n```\n")
+        self.assertEqual(validate_source(lessmark), [])
+        ast = parse_lessmark(lessmark)
+        self.assertEqual(ast["children"][1]["text"], "const a = 1;\n\nconst b = 2;")
+
+    def test_rejects_unclosed_markdown_code_fences(self):
+        with self.assertRaisesRegex(ValueError, "Unclosed fenced code block"):
+            from_markdown("```js\nconst a = 1;\n")
+
+    def test_exports_lessmark_to_markdown(self):
+        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
+        markdown = to_markdown(source)
+        self.assertTrue(markdown.startswith("# Project Context"))
+        self.assertIn("- [ ] Add export settings.", markdown)
+
     def test_cli_check_json_prints_agent_readable_errors(self):
         output = StringIO()
         path = ROOT / "fixtures/invalid/raw-html.lmk"
@@ -175,6 +200,22 @@ class LessmarkPythonTests(unittest.TestCase):
         self.assertIn("raw HTML", result["errors"][0]["message"])
         self.assertEqual(result["errors"][0]["line"], 2)
         self.assertEqual(result["errors"][0]["column"], 1)
+
+    def test_cli_converts_markdown_to_lessmark(self):
+        output = StringIO()
+        path = ROOT / "fixtures/valid/markdown-import.md"
+        with redirect_stdout(output):
+            status = main(["from-markdown", str(path)])
+        self.assertEqual(status, 0)
+        self.assertIn("@summary\nMarkdown import fixture.", output.getvalue())
+
+    def test_cli_converts_lessmark_to_markdown(self):
+        output = StringIO()
+        path = ROOT / "fixtures/valid/project-context.lmk"
+        with redirect_stdout(output):
+            status = main(["to-markdown", str(path)])
+        self.assertEqual(status, 0)
+        self.assertIn("- [ ] Add export settings.", output.getvalue())
 
 
 if __name__ == "__main__":

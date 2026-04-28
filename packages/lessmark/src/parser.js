@@ -90,7 +90,7 @@ function parseBlock(lines, startIndex, sourcePositions) {
 
   while (index < lines.length) {
     const line = lines[index];
-    if (line.trim() === "" || line.startsWith("#") || line.startsWith("@")) {
+    if (isBlockTerminator(lines, index, name)) {
       break;
     }
     assertSafeText(line, `@${name}`, index + 1, 1);
@@ -114,6 +114,19 @@ function parseBlock(lines, startIndex, sourcePositions) {
     node,
     nextIndex: index
   };
+}
+
+function isBlockTerminator(lines, index, name) {
+  const line = lines[index];
+  if (line.startsWith("#") || line.startsWith("@")) return true;
+  if (line.trim() !== "") return false;
+  if (name !== "code" && name !== "example") return true;
+
+  let next = index + 1;
+  while (next < lines.length && lines[next].trim() === "") {
+    next += 1;
+  }
+  return next >= lines.length || lines[next].startsWith("#") || lines[next].startsWith("@");
 }
 
 function position(startLine, startColumn, endLine, endColumn) {

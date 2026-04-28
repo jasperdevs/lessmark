@@ -116,7 +116,7 @@ fn parse_block(
     let mut end_column = header.len() + 1;
     while index < lines.len() {
         let line = lines[index];
-        if line.trim().is_empty() || line.starts_with('#') || line.starts_with('@') {
+        if is_block_terminator(&lines, index, name) {
             break;
         }
         assert_safe_text(line, &format!("@{}", name), index + 1, 1)?;
@@ -135,6 +135,25 @@ fn parse_block(
         },
         next_index: index,
     })
+}
+
+fn is_block_terminator(lines: &[&str], index: usize, name: &str) -> bool {
+    let line = lines[index];
+    if line.starts_with('#') || line.starts_with('@') {
+        return true;
+    }
+    if !line.trim().is_empty() {
+        return false;
+    }
+    if name != "code" && name != "example" {
+        return true;
+    }
+
+    let mut next = index + 1;
+    while next < lines.len() && lines[next].trim().is_empty() {
+        next += 1;
+    }
+    next >= lines.len() || lines[next].starts_with('#') || lines[next].starts_with('@')
 }
 
 fn position(

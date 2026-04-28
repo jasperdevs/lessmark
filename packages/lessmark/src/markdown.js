@@ -22,19 +22,22 @@ export function fromMarkdown(markdown) {
       continue;
     }
 
-    const fence = /^```([A-Za-z0-9_.+-]+)?\s*$/.exec(line);
+    const fence = readFenceLine(line);
     if (fence) {
       const body = [];
       index += 1;
-      while (index < lines.length && !/^```\s*$/.test(lines[index])) {
+      while (index < lines.length && !isClosingFence(lines[index], fence)) {
         body.push(lines[index]);
         index += 1;
       }
-      if (index < lines.length) index += 1;
+      if (index >= lines.length) {
+        throw new Error("Unclosed fenced code block");
+      }
+      index += 1;
       children.push({
         type: "block",
         name: "code",
-        attrs: fence[1] ? { lang: fence[1] } : {},
+        attrs: fence.lang ? { lang: fence.lang } : {},
         text: body.map(escapeBlockLine).join("\n")
       });
       firstParagraph = false;
@@ -104,6 +107,24 @@ export function toMarkdown(lessmark) {
 function escapeBlockLine(line) {
   if (line.startsWith("#") || line.startsWith("@")) return `  ${line}`;
   return line;
+}
+
+function readFenceLine(line) {
+  const match = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
+  if (!match) return null;
+  const marker = match[2];
+  const info = match[3].trim();
+  if (marker[0] === "`" && info.includes("`")) return null;
+  return {
+    char: marker[0],
+    length: marker.length,
+    lang: /^[A-Za-z0-9_.+-]+$/.test(info.split(/\s+/, 1)[0] ?? "") ? info.split(/\s+/, 1)[0] : ""
+  };
+}
+
+function isClosingFence(line, fence) {
+  const match = /^( {0,3})(`{3,}|~{3,})\s*$/.exec(line);
+  return Boolean(match && match[2][0] === fence.char && match[2].length >= fence.length);
 }
 
 function plainText(text) {

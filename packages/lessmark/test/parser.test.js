@@ -47,8 +47,13 @@ test("all invalid fixtures are rejected by the parser", async () => {
 
 test("packaged schema stays in sync with repository schema", async () => {
   const rootSchema = JSON.parse(await read("schemas/ast-v0.schema.json"));
-  const packageSchema = JSON.parse(await read("packages/lessmark/schemas/ast-v0.schema.json"));
-  assert.deepEqual(packageSchema, rootSchema);
+  for (const path of [
+    "packages/lessmark/schemas/ast-v0.schema.json",
+    "packages/python/src/lessmark/schemas/ast-v0.schema.json",
+    "crates/lessmark/schemas/ast-v0.schema.json"
+  ]) {
+    assert.deepEqual(JSON.parse(await read(path)), rootSchema, path);
+  }
 });
 
 test("formatter is deterministic and idempotent", async () => {
@@ -214,6 +219,24 @@ console.log("ok");
   assert.match(lessmark, /@code lang="js"\nconsole\.log/);
   assert.match(lessmark, /@link href="https:\/\/example\.com"\nHomepage/);
   assert.equal(validateSource(lessmark).length, 0);
+});
+
+test("imports Markdown code fences with internal blank lines", () => {
+  const lessmark = fromMarkdown(`# Project
+
+\`\`\`js
+const a = 1;
+
+const b = 2;
+\`\`\`
+`);
+  assert.equal(validateSource(lessmark).length, 0);
+  const ast = parseLessmark(lessmark);
+  assert.equal(ast.children[1].text, "const a = 1;\n\nconst b = 2;");
+});
+
+test("rejects unclosed Markdown code fences", () => {
+  assert.throws(() => fromMarkdown("```js\nconst a = 1;\n"), /Unclosed fenced code block/);
 });
 
 test("exports Lessmark to Markdown", () => {

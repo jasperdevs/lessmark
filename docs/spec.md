@@ -29,7 +29,7 @@ Closing heading markers are not supported.
 
 ## Typed Blocks
 
-A block starts with `@name`, followed by optional double-quoted attributes. The block body is every following non-blank line until the next heading, block header, blank line, or end of file.
+A block starts with `@name`, followed by optional double-quoted attributes. Most block bodies run until the next heading, block header, blank line, or end of file. `@code` and `@example` may contain internal blank lines; a blank run followed by the next heading, block header, or end of file still terminates the block.
 
 ```lmk
 @task status="todo"
@@ -55,7 +55,9 @@ attribute       = attr-name "=" quoted-value ;
 attr-name       = lowercase-letter (lowercase-letter | digit | "_" | "-")* ;
 quoted-value    = '"' (escaped-quote | escaped-backslash | safe-attribute-char)* '"' ;
 block-body      = body-line (line-end body-line)* ;
-body-line       = non-blank-line-not-starting-with-heading-or-block ;
+body-line       = normal-body-line | literal-blank-line ;
+normal-body-line = non-blank-line-not-starting-with-heading-or-block ;
+literal-blank-line = blank-line-inside-code-or-example ;
 blank-line      = whitespace* line-end ;
 ```
 
@@ -80,7 +82,7 @@ Lessmark is not a Markdown dialect. Markdown import/export is intentionally loss
 
 - headings
 - paragraphs
-- fenced code blocks without blank lines
+- fenced code blocks, including internal blank lines
 - task list items
 - standalone safe links
 

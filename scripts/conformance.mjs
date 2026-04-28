@@ -3,11 +3,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { formatLessmark, parseLessmark, validateSource } from "../packages/lessmark/src/index.js";
+import { formatLessmark, fromMarkdown, parseLessmark, toMarkdown, validateSource } from "../packages/lessmark/src/index.js";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const validDir = join(root, "fixtures", "valid");
 const invalidDir = join(root, "fixtures", "invalid");
+const rootSchema = readFileSync(join(root, "schemas", "ast-v0.schema.json"), "utf8");
 
 for (const name of readdirSync(validDir).filter((file) => file.endsWith(".lmk")).sort()) {
   const path = join(validDir, name);
@@ -33,6 +34,25 @@ for (const name of readdirSync(invalidDir).filter((file) => file.endsWith(".lmk"
   assert.notEqual(checked.status, 0, `rust rejects ${name}`);
   assert.notEqual(JSON.parse(checked.stdout).errors.length, 0, `rust check errors ${name}`);
 }
+
+for (const schemaPath of [
+  join(root, "packages", "lessmark", "schemas", "ast-v0.schema.json"),
+  join(root, "packages", "python", "src", "lessmark", "schemas", "ast-v0.schema.json"),
+  join(root, "crates", "lessmark", "schemas", "ast-v0.schema.json")
+]) {
+  assert.equal(readFileSync(schemaPath, "utf8"), rootSchema, `schema copy ${schemaPath}`);
+}
+
+const markdownFixture = join(validDir, "markdown-import.md");
+const markdownSource = readFileSync(markdownFixture, "utf8");
+const imported = fromMarkdown(markdownSource);
+assert.equal(pythonText("from-markdown", markdownFixture), imported, "python from-markdown parity");
+assert.equal(rustText(["from-markdown", markdownFixture]), imported, "rust from-markdown parity");
+
+const lessmarkFixture = join(validDir, "project-context.lmk");
+const exported = toMarkdown(readFileSync(lessmarkFixture, "utf8"));
+assert.equal(pythonText("to-markdown", lessmarkFixture), exported, "python to-markdown parity");
+assert.equal(rustText(["to-markdown", lessmarkFixture]), exported, "rust to-markdown parity");
 
 console.log("conformance ok");
 
@@ -63,7 +83,7 @@ function pythonText(command, path) {
   const code = String.raw`
 import json, sys
 from pathlib import Path
-from lessmark import parse_lessmark, validate_source, format_lessmark
+from lessmark import parse_lessmark, validate_source, format_lessmark, from_markdown, to_markdown
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(newline="\n")
 command, path = sys.argv[1], Path(sys.argv[2])
@@ -74,6 +94,10 @@ elif command == "validate":
     print(json.dumps(validate_source(source), indent=2))
 elif command == "format":
     sys.stdout.write(format_lessmark(source))
+elif command == "from-markdown":
+    sys.stdout.write(from_markdown(source))
+elif command == "to-markdown":
+    sys.stdout.write(to_markdown(source))
 else:
     raise SystemExit(f"unknown command: {command}")
 `;

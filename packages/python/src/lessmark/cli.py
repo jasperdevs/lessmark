@@ -3,7 +3,7 @@ import json
 import sys
 from pathlib import Path
 
-from .core import LessmarkError, ValidationError, format_lessmark, parse_lessmark, validate_source
+from .core import LessmarkError, ValidationError, format_lessmark, from_markdown, parse_lessmark, to_markdown, validate_source
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -23,6 +23,12 @@ def main(argv: list[str] | None = None) -> int:
     format_parser = subparsers.add_parser("format")
     format_parser.add_argument("file")
     format_parser.add_argument("--write", action="store_true")
+
+    from_markdown_parser = subparsers.add_parser("from-markdown")
+    from_markdown_parser.add_argument("file")
+
+    to_markdown_parser = subparsers.add_parser("to-markdown")
+    to_markdown_parser.add_argument("file")
 
     args = parser.parse_args(argv)
 
@@ -55,9 +61,18 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stdout.write(formatted)
             return 0
 
-    except LessmarkError as error:
+        if args.command == "from-markdown":
+            sys.stdout.write(from_markdown(source))
+            return 0
+
+        if args.command == "to-markdown":
+            sys.stdout.write(to_markdown(source))
+            return 0
+
+    except (LessmarkError, ValueError) as error:
         if args.command == "check" and getattr(args, "json", False):
-            print(json.dumps({"ok": False, "errors": [_json_error(error)]}, indent=2))
+            errors = [_json_error(error)] if isinstance(error, LessmarkError) else [{"message": str(error)}]
+            print(json.dumps({"ok": False, "errors": errors}, indent=2))
             return 1
         print(f"lessmark: {error}", file=sys.stderr)
         return 1

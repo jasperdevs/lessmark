@@ -23,25 +23,25 @@ Basis:
 | GitHub README support | 10 | 2 | Markdown |
 | Ecosystem and editor support | 10 | 2 | Markdown |
 | Tables, lists, images, rich docs | 9 | 2 | Markdown |
-| Parser maturity | 9 | 6 | Markdown |
+| Parser maturity | 9 | 7 | Markdown |
 | Strict validation | 4 | 9 | Lessmark |
 | Agent-readable structure | 5 | 9 | Lessmark |
 | Stable compact AST | 6 | 9 | Lessmark |
 | Security by default | 6 | 9 | Lessmark |
 | Cross-language conformance in this repo | 7 | 8 | Lessmark |
-| Specification completeness | 9 | 6 | Markdown |
+| Specification completeness | 9 | 7 | Markdown |
 | File-type/platform recognition | 10 | 3 | Markdown |
 
 Overall, if broad ecosystem support is counted:
 
 - Markdown/GFM: **8.3/10**
-- Lessmark v0: **6.4/10**
-- Lessmark for agent context only: **8.2/10**
+- Lessmark v0: **6.7/10**
+- Lessmark for agent context only: **8.5/10**
 
 Overall, if support/network effects are excluded:
 
 - Markdown/GFM for agent context: **7.4/10**
-- Lessmark v0 for agent context: **8.4/10**
+- Lessmark v0 for agent context: **8.7/10**
 
 ## What Lessmark Is Better At
 
@@ -64,11 +64,10 @@ Overall, if support/network effects are excluded:
 1. A formal language spec with more examples and explicit error cases.
 2. A public conformance badge and test corpus policy.
 3. A real renderer package if Lessmark should become readable docs, not only agent context.
-4. A documented Markdown import/export path.
-5. More fixtures for edge cases: escapes, line endings, Unicode, long files, and malformed attributes.
-6. A strict agent-context profile with recommended file names and block ordering.
-7. IANA submission for `text/vnd.lessmark` after the spec URL and contact are stable.
-8. Editor and GitHub recognition when the language surface settles.
+4. More fixtures for edge cases: escapes, line endings, Unicode, long files, and malformed attributes.
+5. A strict agent-context profile with recommended file names and block ordering.
+6. IANA submission for `text/vnd.lessmark` after the spec URL and contact are stable.
+7. Editor and GitHub recognition when the language surface settles.
 
 ## Best Current Positioning
 
