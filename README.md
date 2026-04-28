@@ -16,7 +16,7 @@
 
 Lessmark is a small Markdown-inspired format built around typed blocks, a stable JSON AST, validation, formatting, and no raw HTML or JSX.
 It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
-It is intentionally narrower than Markdown: better for agent context files, worse for general prose publishing.
+It is intentionally stricter than Markdown and optimized for agent context files.
 
 The canonical implementation is the Rust crate. The npm and Python packages stay fixture-compatible with it.
 
@@ -36,6 +36,8 @@ pip install lessmark
 lessmark parse file.lmk
 lessmark check file.lmk
 lessmark format file.lmk
+lessmark from-markdown README.md
+lessmark to-markdown file.lmk
 ```
 
 ## Blocks
@@ -44,7 +46,7 @@ Lessmark v0 supports `summary`, `decision`, `constraint`, `task`, `file`, `code`
 
 See [`docs/spec.md`](./docs/spec.md) and [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json) for the source and AST contracts.
 
-Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/file-type-registration.md`](./docs/file-type-registration.md) for the README strategy, local file associations, Cloudflare headers, and official registration paths. See [`docs/markdown-comparison.md`](./docs/markdown-comparison.md) for the direct Markdown comparison.
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), and [`docs/markdown-comparison.md`](./docs/markdown-comparison.md).
 
 <details>
 <summary>API and docs</summary>
@@ -78,5 +80,3 @@ npm run check
 ## License
 
 MIT
-
-> This project dogfoods its own format: [`README.lmk`](./README.lmk) is the canonical Lessmark source. GitHub does not render `.lmk` as the repository homepage today, so `README.md` stays as the rendered mirror.

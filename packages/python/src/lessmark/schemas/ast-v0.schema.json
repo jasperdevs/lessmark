@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lessmark.org/schemas/ast-v0.schema.json",
+  "title": "Lessmark AST v0",
+  "type": "object",
+  "required": ["type", "children"],
+  "additionalProperties": false,
+  "properties": {
+    "type": { "const": "document" },
+    "children": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "level", "text"],
+            "additionalProperties": false,
+            "properties": {
+              "type": { "const": "heading" },
+              "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+              "text": { "$ref": "#/$defs/headingText" },
+              "position": { "$ref": "#/$defs/position" }
+            }
+          },
+          { "$ref": "#/$defs/noAttrBlock" },
+          { "$ref": "#/$defs/decisionBlock" },
+          { "$ref": "#/$defs/taskBlock" },
+          { "$ref": "#/$defs/fileBlock" },
+          { "$ref": "#/$defs/codeBlock" },
+          { "$ref": "#/$defs/apiBlock" },
+          { "$ref": "#/$defs/linkBlock" },
+          { "$ref": "#/$defs/metadataBlock" },
+          { "$ref": "#/$defs/riskBlock" },
+          { "$ref": "#/$defs/dependsOnBlock" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "positionPoint": {
+      "type": "object",
+      "required": ["line", "column"],
+      "additionalProperties": false,
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "position": {
+      "type": "object",
+      "required": ["start", "end"],
+      "additionalProperties": false,
+      "properties": {
+        "start": { "$ref": "#/$defs/positionPoint" },
+        "end": { "$ref": "#/$defs/positionPoint" }
+      }
+    },
+    "safeText": {
+      "type": "string",
+      "pattern": "^(?![\\s\\S]*</?[A-Za-z][A-Za-z0-9:-]*(?:\\s[^>]*)?>)[\\s\\S]*$"
+    },
+    "headingText": {
+      "allOf": [
+        { "$ref": "#/$defs/safeText" },
+        { "minLength": 1 }
+      ]
+    },
+    "attributeValue": {
+      "allOf": [
+        { "$ref": "#/$defs/safeText" },
+        { "pattern": "^[^\\r\\n\\t]*$" }
+      ]
+    },
+    "emptyAttrs": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "noAttrBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "enum": ["summary", "constraint", "example", "note", "warning"] },
+        "attrs": { "$ref": "#/$defs/emptyAttrs" },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "decisionBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "decision" },
+        "attrs": {
+          "type": "object",
+          "required": ["id"],
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "taskBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "task" },
+        "attrs": {
+          "type": "object",
+          "required": ["status"],
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "enum": ["todo", "doing", "done", "blocked"] }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "fileBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "file" },
+        "attrs": {
+          "type": "object",
+          "required": ["path"],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                {
+                  "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:[\\\\/])(?![A-Za-z][A-Za-z0-9+.-]*:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+"
+                }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "codeBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "code" },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lang": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[A-Za-z0-9_.+-]+$" }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "apiBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "api" },
+        "attrs": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$" }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "linkBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "link" },
+        "attrs": {
+          "type": "object",
+          "required": ["href"],
+          "additionalProperties": false,
+          "properties": {
+            "href": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                {
+                  "pattern": "^(?!(?!(?:[Hh][Tt][Tt][Pp][Ss]?|[Mm][Aa][Ii][Ll][Tt][Oo]):)[A-Za-z][A-Za-z0-9+.-]*:).+"
+                }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "metadataBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "metadata" },
+        "attrs": {
+          "type": "object",
+          "required": ["key"],
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$" }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "riskBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "risk" },
+        "attrs": {
+          "type": "object",
+          "required": ["level"],
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "enum": ["low", "medium", "high", "critical"] }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "dependsOnBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "depends-on" },
+        "attrs": {
+          "type": "object",
+          "required": ["target"],
+          "additionalProperties": false,
+          "properties": {
+            "target": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    }
+  }
+}

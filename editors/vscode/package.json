@@ -1,0 +1,29 @@
+{
+  "name": "lessmark-vscode",
+  "displayName": "Lessmark",
+  "description": "Syntax highlighting for Lessmark agent context files.",
+  "version": "0.1.0",
+  "publisher": "jasperdevs",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "lessmark",
+        "aliases": ["Lessmark", "lessmark"],
+        "extensions": [".lmk", ".lessmark"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lessmark",
+        "scopeName": "source.lessmark",
+        "path": "./syntaxes/lessmark.tmLanguage.json"
+      }
+    ]
+  }
+}

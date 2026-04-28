@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Lessmark",
+  "scopeName": "source.lessmark",
+  "patterns": [
+    { "include": "#heading" },
+    { "include": "#block" },
+    { "include": "#attribute" }
+  ],
+  "repository": {
+    "heading": {
+      "name": "markup.heading.lessmark",
+      "match": "^(#{1,6})\\s+(.+)$",
+      "captures": {
+        "1": { "name": "punctuation.definition.heading.lessmark" },
+        "2": { "name": "entity.name.section.lessmark" }
+      }
+    },
+    "block": {
+      "name": "keyword.control.lessmark",
+      "match": "^@(summary|decision|constraint|task|file|code|example|note|warning|api|link|metadata|risk|depends-on)\\b"
+    },
+    "attribute": {
+      "name": "meta.attribute.lessmark",
+      "match": "\\b([a-z][a-z0-9_-]*)(=)(\"(?:\\\\[\"\\\\]|[^\"])*\")",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.lessmark" },
+        "2": { "name": "punctuation.separator.key-value.lessmark" },
+        "3": { "name": "string.quoted.double.lessmark" }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { LessmarkError, formatLessmark, parseLessmark, validateSource } from "lessmark";
+import { LessmarkError, formatLessmark, fromMarkdown, parseLessmark, toMarkdown, validateSource } from "lessmark";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -40,6 +40,14 @@ try {
     } else {
       process.stdout.write(formatted);
     }
+  } else if (command === "from-markdown") {
+    const file = requireFile(args[1]);
+    const source = await readFile(file, "utf8");
+    process.stdout.write(fromMarkdown(source));
+  } else if (command === "to-markdown") {
+    const file = requireFile(args[1]);
+    const source = await readFile(file, "utf8");
+    process.stdout.write(toMarkdown(source));
   } else {
     throw new Error(`Unknown command: ${command}`);
   }
@@ -67,7 +75,9 @@ Usage:
   lessmark check file.lmk
   lessmark check --json file.lmk
   lessmark format file.lmk
-  lessmark format --write file.lmk`);
+  lessmark format --write file.lmk
+  lessmark from-markdown README.md
+  lessmark to-markdown file.lmk`);
 }
 
 function formatError(error) {

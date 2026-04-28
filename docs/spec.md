@@ -38,6 +38,54 @@ Add export settings.
 
 Attribute values only support `\"` and `\\` escapes. Attribute values cannot contain tabs or line breaks.
 
+## Grammar
+
+This grammar is intentionally line-oriented. Parsers normalize `CRLF` and bare `CR` to `LF` before parsing.
+
+```ebnf
+document        = blank-line* node (blank-line+ node)* blank-line* ;
+node            = heading | block ;
+heading         = heading-marker space heading-text line-end ;
+heading-marker  = "#" | "##" | "###" | "####" | "#####" | "######" ;
+heading-text    = visible-text-without-raw-html ;
+block           = block-header line-end block-body? ;
+block-header    = "@" block-name (space attribute)* ;
+block-name      = lowercase-letter (lowercase-letter | digit | "_" | "-")* ;
+attribute       = attr-name "=" quoted-value ;
+attr-name       = lowercase-letter (lowercase-letter | digit | "_" | "-")* ;
+quoted-value    = '"' (escaped-quote | escaped-backslash | safe-attribute-char)* '"' ;
+block-body      = body-line (line-end body-line)* ;
+body-line       = non-blank-line-not-starting-with-heading-or-block ;
+blank-line      = whitespace* line-end ;
+```
+
+## Error Rules
+
+Parsers must fail on:
+
+- loose text outside a heading or typed block
+- heading markers without visible text
+- closing heading markers, such as `# Title #`
+- unknown block names
+- unknown, missing, duplicate, or semantically invalid attributes
+- unquoted attributes
+- unsupported escapes in attribute values
+- raw HTML or JSX-like tags in headings, block text, or attributes
+- absolute paths, URI paths, or `..` segments in `@file path`
+- executable URL schemes in `@link href`
+
+## Markdown Interop
+
+Lessmark is not a Markdown dialect. Markdown import/export is intentionally lossy and only covers safe common shapes:
+
+- headings
+- paragraphs
+- fenced code blocks without blank lines
+- task list items
+- standalone safe links
+
+Unsupported Markdown features should degrade to `@note` text or require manual conversion.
+
 ## Core Blocks
 
 | Block | Attributes | Purpose |
@@ -81,3 +129,7 @@ The default AST is stable JSON:
 ```
 
 Parsers may optionally include `position` on nodes. Position fields use one-based line and column numbers and are excluded by default so the v0 AST remains compact.
+
+## Versioning
+
+Lessmark v0 reserves the current block names and AST shape. A future breaking source or AST change must use a new format version and should keep v0 parsers strict rather than silently accepting unknown syntax.

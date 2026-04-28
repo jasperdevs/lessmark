@@ -26,3 +26,8 @@ The best current setup is:
 - **GitHub Markup:** add a Lessmark renderer after the rendering output and security model are stable enough for GitHub's markup pipeline.
 - **Editors:** publish language extensions for VS Code, JetBrains, Zed, and Sublime when syntax highlighting is worth maintaining.
 - **Operating systems:** ship per-user registration scripts or package metadata. Avoid forcing default app associations unless an installed Lessmark viewer/editor exists.
+
+This repository includes starter assets for the first two paths:
+
+- `editors/vscode/`
+- `integrations/github-linguist/`

@@ -1,6 +1,6 @@
 # Lessmark vs Markdown
 
-This is the current unbiased grade of Lessmark against Markdown/GitHub Flavored Markdown.
+This is the current unbiased grade of Lessmark against Markdown/GitHub Flavored Markdown. The main grade ignores ecosystem support because the current product goal is strict agent-readable context, not replacing Markdown's existing network effects.
 
 ## Verdict
 
@@ -32,11 +32,16 @@ Basis:
 | Specification completeness | 9 | 6 | Markdown |
 | File-type/platform recognition | 10 | 3 | Markdown |
 
-Overall:
+Overall, if broad ecosystem support is counted:
 
 - Markdown/GFM: **8.3/10**
 - Lessmark v0: **6.4/10**
 - Lessmark for agent context only: **8.2/10**
+
+Overall, if support/network effects are excluded:
+
+- Markdown/GFM for agent context: **7.4/10**
+- Lessmark v0 for agent context: **8.4/10**
 
 ## What Lessmark Is Better At
 
@@ -58,12 +63,12 @@ Overall:
 
 1. A formal language spec with more examples and explicit error cases.
 2. A public conformance badge and test corpus policy.
-3. Editor support, starting with VS Code syntax highlighting.
-4. GitHub Linguist support for `.lmk` and `.lessmark`.
-5. A real renderer package if Lessmark should become readable docs, not only agent context.
-6. A documented Markdown import/export path.
-7. More fixtures for edge cases: escapes, line endings, Unicode, long files, and malformed attributes.
-8. IANA submission for `text/vnd.lessmark` after the spec URL and contact are stable.
+3. A real renderer package if Lessmark should become readable docs, not only agent context.
+4. A documented Markdown import/export path.
+5. More fixtures for edge cases: escapes, line endings, Unicode, long files, and malformed attributes.
+6. A strict agent-context profile with recommended file names and block ordering.
+7. IANA submission for `text/vnd.lessmark` after the spec URL and contact are stable.
+8. Editor and GitHub recognition when the language surface settles.
 
 ## Best Current Positioning
 

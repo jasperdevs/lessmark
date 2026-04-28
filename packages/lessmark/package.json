@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./schemas/ast-v0.schema.json": "./schemas/ast-v0.schema.json"
   },
   "bin": {
     "lessmark": "bin/lessmark.js"
@@ -13,11 +14,12 @@
   "files": [
     "src",
     "bin",
+    "schemas",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "node --check src/index.js && node --check src/grammar.js && node --check src/rules.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check bin/lessmark.js",
+    "build": "node --check src/index.js && node --check src/grammar.js && node --check src/rules.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check src/markdown.js && node --check bin/lessmark.js",
     "test": "node --test"
   },
   "keywords": [

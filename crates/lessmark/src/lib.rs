@@ -6,6 +6,8 @@ pub mod parser;
 pub mod rules;
 pub mod validate;
 
+pub const AST_SCHEMA_V0: &str = include_str!("../schemas/ast-v0.schema.json");
+
 pub use ast::{Document, Node, PositionPoint, PositionRange};
 pub use error::{LessmarkError, ValidationError};
 pub use format::{format_document, format_lessmark};

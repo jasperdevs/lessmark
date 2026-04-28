@@ -1,7 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
-import { LessmarkError, parseLessmark, formatLessmark, formatAst, validateAst, validateSource } from "../src/index.js";
+import {
+  LessmarkError,
+  parseLessmark,
+  formatLessmark,
+  formatAst,
+  fromMarkdown,
+  toMarkdown,
+  validateAst,
+  validateSource
+} from "../src/index.js";
 
 const root = new URL("../../../", import.meta.url);
 
@@ -34,6 +43,12 @@ test("all invalid fixtures are rejected by the parser", async () => {
     const source = await read(`fixtures/invalid/${fixture}`);
     assert.throws(() => parseLessmark(source), LessmarkError, fixture);
   }
+});
+
+test("packaged schema stays in sync with repository schema", async () => {
+  const rootSchema = JSON.parse(await read("schemas/ast-v0.schema.json"));
+  const packageSchema = JSON.parse(await read("packages/lessmark/schemas/ast-v0.schema.json"));
+  assert.deepEqual(packageSchema, rootSchema);
 });
 
 test("formatter is deterministic and idempotent", async () => {
@@ -175,4 +190,47 @@ test("refuses to format invalid AST", () => {
     () => formatAst({ type: "document", children: [{ type: "heading", level: 7, text: "Too deep" }] }),
     /Cannot format invalid AST/
   );
+});
+
+test("imports a safe Markdown subset into Lessmark", () => {
+  const source = `# Project
+
+Short project summary.
+
+- [ ] Add export settings.
+- [x] Ship parser.
+
+\`\`\`js
+console.log("ok");
+\`\`\`
+
+[Homepage](https://example.com)
+`;
+  const lessmark = fromMarkdown(source);
+  assert.match(lessmark, /^# Project/);
+  assert.match(lessmark, /@summary\nShort project summary\./);
+  assert.match(lessmark, /@task status="todo"\nAdd export settings\./);
+  assert.match(lessmark, /@task status="done"\nShip parser\./);
+  assert.match(lessmark, /@code lang="js"\nconsole\.log/);
+  assert.match(lessmark, /@link href="https:\/\/example\.com"\nHomepage/);
+  assert.equal(validateSource(lessmark).length, 0);
+});
+
+test("exports Lessmark to Markdown", () => {
+  const source = `# Project
+
+@summary
+Typed context.
+
+@task status="done"
+Ship parser.
+
+@link href="https://example.com"
+Homepage
+`;
+  const markdown = toMarkdown(source);
+  assert.match(markdown, /^# Project/);
+  assert.match(markdown, /Typed context\./);
+  assert.match(markdown, /- \[x\] Ship parser\./);
+  assert.match(markdown, /\[Homepage\]\(https:\/\/example\.com\)/);
 });

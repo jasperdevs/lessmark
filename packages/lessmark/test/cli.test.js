@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 const exec = promisify(execFile);
 const cli = fileURLToPath(new URL("../bin/lessmark.js", import.meta.url));
 const fixture = fileURLToPath(new URL("../../../fixtures/valid/project-context.lmk", import.meta.url));
+const markdownFixture = fileURLToPath(new URL("../../../fixtures/valid/markdown-import.md", import.meta.url));
 const invalidFixture = fileURLToPath(new URL("../../../fixtures/invalid/raw-html.lmk", import.meta.url));
 
 test("CLI parse prints document AST", async () => {
@@ -39,4 +40,16 @@ test("CLI format prints normalized source", async () => {
   const { stdout } = await exec(process.execPath, [cli, "format", fixture]);
   assert.match(stdout, /^# Project Context/);
   assert.match(stdout, /@task status="todo"/);
+});
+
+test("CLI converts Markdown to Lessmark", async () => {
+  const { stdout } = await exec(process.execPath, [cli, "from-markdown", markdownFixture]);
+  assert.match(stdout, /^# Imported Context/);
+  assert.match(stdout, /@summary\nMarkdown import fixture\./);
+});
+
+test("CLI converts Lessmark to Markdown", async () => {
+  const { stdout } = await exec(process.execPath, [cli, "to-markdown", fixture]);
+  assert.match(stdout, /^# Project Context/);
+  assert.match(stdout, /- \[ \] Add export settings\./);
 });

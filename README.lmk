@@ -5,8 +5,8 @@ A strict, agent-readable markdown alternative. Typed blocks, a stable
 JSON AST, validation and formatting, and no raw HTML or JSX.
 
 @warning
-Lessmark is intentionally narrower than Markdown. It is better for agent
-context files and worse for general prose publishing.
+Lessmark is intentionally stricter than Markdown and optimized for agent
+context files.
 
 @note
 The canonical implementation is the Rust crate. The npm and Python packages
@@ -24,10 +24,6 @@ v0
 
 @metadata key="media.type"
 text/vnd.lessmark
-
-@note
-README.lmk is the canonical Lessmark source. README.md remains the GitHub-rendered
-mirror until GitHub supports Lessmark in its README markup pipeline.
 
 ## Install
 

@@ -29,3 +29,6 @@ Issues = "https://github.com/jasperdevs/lessmark/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+lessmark = ["schemas/*.json"]
