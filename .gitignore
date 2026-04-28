@@ -5,6 +5,8 @@ node_modules/
 coverage/
 target/
 .omx/
+.wrangler/
+site-tmp/
 
 __pycache__/
 *.py[cod]

@@ -63,6 +63,9 @@ registration paths.
 @file path="docs/media-type.md"
 IANA-ready draft for text/vnd.lessmark.
 
+@file path="docs/markdown-comparison.md"
+Unbiased Lessmark vs Markdown scorecard.
+
 ## API
 
 @api name="parseLessmark"

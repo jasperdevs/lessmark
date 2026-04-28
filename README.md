@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./bannerlong.png" alt="lessmark" width="100%" />
+  <img src="./assets/brand/bannerlong.png" alt="lessmark" width="100%" />
 </p>
 
 <h1 align="center">lessmark</h1>
@@ -42,9 +42,9 @@ lessmark format file.lmk
 
 Lessmark v0 supports `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `note`, `warning`, `api`, `link`, `metadata`, `risk`, and `depends-on`.
 
-See [`docs/spec.md`](./docs/spec.md) and [`spec/ast-v0.schema.json`](./spec/ast-v0.schema.json) for the source and AST contracts.
+See [`docs/spec.md`](./docs/spec.md) and [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json) for the source and AST contracts.
 
-Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/file-type-registration.md`](./docs/file-type-registration.md) for the README strategy, local file associations, Cloudflare headers, and official registration paths.
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/file-type-registration.md`](./docs/file-type-registration.md) for the README strategy, local file associations, Cloudflare headers, and official registration paths. See [`docs/markdown-comparison.md`](./docs/markdown-comparison.md) for the direct Markdown comparison.
 
 <details>
 <summary>API and docs</summary>

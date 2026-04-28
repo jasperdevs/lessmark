@@ -3,6 +3,9 @@
 *.lmk text eol=lf
 *.lessmark text eol=lf
 
+site/dist/** linguist-generated=true
+fixtures/**/*.ast.json linguist-generated=true
+
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf

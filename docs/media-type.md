@@ -16,7 +16,7 @@ Encoding considerations: 8bit. Lessmark files are UTF-8 text. Producers should e
 
 Security considerations: Lessmark is a non-executable text format. The v0 grammar rejects raw HTML, JSX-like tags, execution hooks, custom block syntax, undefined blocks, and undefined attributes. Link attributes are restricted to safe schemes. Implementations should still treat file paths and links as untrusted input and should not execute block contents.
 
-Interoperability considerations: Lessmark v0 is line-oriented and parser-compatible across the Rust, JavaScript, and Python implementations in this repository. The stable interchange AST is JSON and is described by `spec/ast-v0.schema.json`.
+Interoperability considerations: Lessmark v0 is line-oriented and parser-compatible across the Rust, JavaScript, and Python implementations in this repository. The stable interchange AST is JSON and is described by `schemas/ast-v0.schema.json`.
 
 Published specification: `docs/spec.md`
 

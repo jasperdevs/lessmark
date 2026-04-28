@@ -160,7 +160,7 @@ function App() {
             <div className="mb-6">
               <MarkdownH2>compared</MarkdownH2>
               <p className="mt-2 text-fg-muted max-w-[60ch]">
-                Markdoc and Djot are the closest peers. Lessmark is narrower by design: fewer features, smaller surface.
+                Markdown wins for general docs. Lessmark is narrower by design: fewer features, stronger structure.
               </p>
             </div>
             <div className="overflow-x-auto -mx-2 px-2">
@@ -168,10 +168,10 @@ function App() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">format</TableHead>
-                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">typed blocks</TableHead>
-                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">stable ast</TableHead>
-                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">raw html</TableHead>
-                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">executes</TableHead>
+                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">best for</TableHead>
+                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">structure</TableHead>
+                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">github</TableHead>
+                    <TableHead className="font-mono text-[11px] tracking-wider text-fg-faint">agent safety</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -225,12 +225,12 @@ function App() {
 const COMPARE: Array<{
   name: string; cells: [string, string, string, string]; muted?: [boolean, boolean, boolean, boolean]; self?: boolean;
 }> = [
-  { name: "lessmark", cells: ["fixed set", "json schema", "rejected", "no"], self: true },
-  { name: "commonmark", cells: ["no", "informal", "allowed", "no"], muted: [true, true, false, true] },
-  { name: "mdx", cells: ["components", "jsx tree", "jsx", "yes"], muted: [true, true, false, false] },
-  { name: "markdoc", cells: ["tags + schemas", "renderable tree", "opt-in", "no"], muted: [false, false, true, true] },
-  { name: "asciidoc", cells: ["blocks + attrs", "large surface", "passthrough", "no"], muted: [false, true, false, true] },
-  { name: "djot", cells: ["attrs only", "simple ast", "no", "no"], muted: [true, false, true, true] },
+  { name: "lessmark", cells: ["agent context", "fixed typed blocks", "source only", "strong"], self: true },
+  { name: "markdown/gfm", cells: ["human docs", "loose prose", "native", "medium"], muted: [false, true, false, true] },
+  { name: "mdx", cells: ["component docs", "jsx/programmatic", "partial", "low"], muted: [false, true, true, false] },
+  { name: "markdoc", cells: ["product docs", "schema tags", "source only", "strong"], muted: [false, false, true, false] },
+  { name: "asciidoc", cells: ["large manuals", "rich blocks", "native", "medium"], muted: [false, true, false, true] },
+  { name: "djot", cells: ["clean markup", "attributes", "source only", "medium"], muted: [false, false, true, true] },
 ];
 
 export default App;
