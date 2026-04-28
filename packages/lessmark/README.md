@@ -24,7 +24,7 @@ lessmark check --json file.mu
 lessmark format file.mu
 lessmark format --check file.mu
 lessmark render --document file.mu
-lessmark build --strict docs public
+lessmark build --strict input public
 lessmark info --json
 ```
 

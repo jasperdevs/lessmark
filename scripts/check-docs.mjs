@@ -16,14 +16,18 @@ const markdownFiles = walk(root)
 
 assert.deepEqual(markdownFiles, [], `Unexpected Markdown files: ${markdownFiles.join(", ")}`);
 
-const docsMarkdown = walk(docsDir)
-  .filter((file) => extname(file).toLowerCase() === ".md")
-  .map((file) => relative(root, file).split(sep).join("/"));
+const docsMarkdown = existsSync(docsDir)
+  ? walk(docsDir)
+      .filter((file) => extname(file).toLowerCase() === ".md")
+      .map((file) => relative(root, file).split(sep).join("/"))
+  : [];
 
 assert.deepEqual(docsMarkdown, [], `docs/ must use Lessmark .mu files: ${docsMarkdown.join(", ")}`);
 
-for (const file of walk(docsDir).filter((path) => extname(path).toLowerCase() === ".mu")) {
-  parseLessmark(readFileSync(file, "utf8"));
+if (existsSync(docsDir)) {
+  for (const file of walk(docsDir).filter((path) => extname(path).toLowerCase() === ".mu")) {
+    parseLessmark(readFileSync(file, "utf8"));
+  }
 }
 
 console.log("docs ok");

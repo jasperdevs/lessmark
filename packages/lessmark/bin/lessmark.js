@@ -309,7 +309,7 @@ Usage:
   lessmark render file.mu
   lessmark render --document file.mu
   lessmark build docs out
-  lessmark build --strict docs out
+  lessmark build --strict input out
   lessmark info --json`);
 }
 

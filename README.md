@@ -43,8 +43,8 @@ lessmark format --check file.mu
 lessmark fix --write file.mu
 lessmark from-markdown README.md
 lessmark to-markdown file.mu
-lessmark render --document docs/index.mu
-lessmark build --strict docs public
+lessmark render --document file.mu
+lessmark build --strict input public
 lessmark info --json
 ```
 
@@ -54,7 +54,7 @@ lessmark info --json
 
 Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `api`, `metadata`, `risk`, and `depends-on`, plus docs blocks like `page`, `nav`, `paragraph`, `image`, `list`, `table`, `quote`, `callout`, `toc`, `definition`, `reference`, and `footnote`.
 
-Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [`docs/spec.mu`](./docs/spec.mu) for the source format.
+Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [lessmark.org](https://lessmark.org) for docs.
 
 <details>
 <summary>API and docs</summary>
