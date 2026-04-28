@@ -1,7 +1,7 @@
 import { BLOCK_ATTRS, CORE_BLOCKS, TASK_STATUSES } from "./grammar.js";
+import { API_NAME_PATTERN, HTML_TAG_PATTERN, isRelativeProjectPath, isSafeHref } from "./rules.js";
 
 export { CORE_BLOCKS } from "./grammar.js";
-const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
 
 export class LessmarkError extends Error {
   constructor(message, line = 1, column = 1) {
@@ -190,7 +190,7 @@ function validateBlockAttrs(name, attrs, lineNumber) {
   if (name === "file" && !isRelativeProjectPath(attrs.path)) {
     throw new LessmarkError("@file path must be a relative project path", lineNumber, 1);
   }
-  if (name === "api" && !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(attrs.name)) {
+  if (name === "api" && !API_NAME_PATTERN.test(attrs.name)) {
     throw new LessmarkError("@api name must be an identifier", lineNumber, 1);
   }
   if (name === "link" && !isSafeHref(attrs.href)) {
@@ -209,20 +209,4 @@ function assertSafeAttrValue(key, value, lineNumber, column) {
     throw new LessmarkError(`Attribute "${key}" cannot contain control whitespace`, lineNumber, column);
   }
   assertSafeText(value, `attribute "${key}"`, lineNumber, column);
-}
-
-function isRelativeProjectPath(path) {
-  return (
-    path.length > 0 &&
-    !path.startsWith("/") &&
-    !path.startsWith("\\") &&
-    !/^[A-Za-z]:[\\/]/.test(path) &&
-    !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(path) &&
-    !path.split(/[\\/]+/).includes("..")
-  );
-}
-
-function isSafeHref(href) {
-  const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(href);
-  return !scheme || ["http", "https", "mailto"].includes(scheme[1].toLowerCase());
 }

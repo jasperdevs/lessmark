@@ -1,6 +1,6 @@
 import { LessmarkError, parseLessmark } from "./parser.js";
 import { BLOCK_ATTRS, TASK_STATUSES } from "./grammar.js";
-const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
+import { API_NAME_PATTERN, HTML_TAG_PATTERN, isRelativeProjectPath, isSafeHref } from "./rules.js";
 
 export function validateSource(source) {
   try {
@@ -105,7 +105,7 @@ function validateAttrs(node, errors) {
   if (node.name === "file" && attrs.path && !isRelativeProjectPath(attrs.path)) {
     errors.push({ message: "@file path must be a relative project path" });
   }
-  if (node.name === "api" && attrs.name && !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(attrs.name)) {
+  if (node.name === "api" && attrs.name && !API_NAME_PATTERN.test(attrs.name)) {
     errors.push({ message: "@api name must be an identifier" });
   }
   if (node.name === "link" && attrs.href && !isSafeHref(attrs.href)) {
@@ -136,20 +136,4 @@ function toValidationError(error) {
   if (Number.isInteger(error.line)) result.line = error.line;
   if (Number.isInteger(error.column)) result.column = error.column;
   return result;
-}
-
-function isRelativeProjectPath(path) {
-  return (
-    path.length > 0 &&
-    !path.startsWith("/") &&
-    !path.startsWith("\\") &&
-    !/^[A-Za-z]:[\\/]/.test(path) &&
-    !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(path) &&
-    !path.split(/[\\/]+/).includes("..")
-  );
-}
-
-function isSafeHref(href) {
-  const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(href);
-  return !scheme || ["http", "https", "mailto"].includes(scheme[1].toLowerCase());
 }
