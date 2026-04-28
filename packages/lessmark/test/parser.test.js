@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import { parseLessmark, formatLessmark, formatAst, validateAst, validateSource } from "../src/index.js";
+import { readdir, readFile } from "node:fs/promises";
+import { LessmarkError, parseLessmark, formatLessmark, formatAst, validateAst, validateSource } from "../src/index.js";
 
 const root = new URL("../../../", import.meta.url);
 
@@ -13,6 +13,27 @@ test("parses valid fixture into stable AST", async () => {
   const source = await read("fixtures/valid/project-context.lmk");
   const expected = JSON.parse(await read("fixtures/valid/project-context.ast.json"));
   assert.deepEqual(parseLessmark(source), expected);
+});
+
+test("all valid fixtures have stable AST snapshots", async () => {
+  const names = await readdir(new URL("fixtures/valid/", root));
+  const fixtures = names.filter((name) => name.endsWith(".lmk")).sort();
+
+  for (const fixture of fixtures) {
+    const source = await read(`fixtures/valid/${fixture}`);
+    const expected = JSON.parse(await read(`fixtures/valid/${fixture.replace(/\.lmk$/, ".ast.json")}`));
+    assert.deepEqual(parseLessmark(source), expected, fixture);
+  }
+});
+
+test("all invalid fixtures are rejected by the parser", async () => {
+  const names = await readdir(new URL("fixtures/invalid/", root));
+  const fixtures = names.filter((name) => name.endsWith(".lmk")).sort();
+
+  for (const fixture of fixtures) {
+    const source = await read(`fixtures/invalid/${fixture}`);
+    assert.throws(() => parseLessmark(source), LessmarkError, fixture);
+  }
 });
 
 test("formatter is deterministic and idempotent", async () => {

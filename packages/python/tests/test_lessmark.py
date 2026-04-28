@@ -16,6 +16,18 @@ class LessmarkPythonTests(unittest.TestCase):
         expected = json.loads((ROOT / "fixtures/valid/project-context.ast.json").read_text(encoding="utf-8"))
         self.assertEqual(parse_lessmark(source), expected)
 
+    def test_all_valid_fixtures_have_stable_ast_snapshots(self):
+        for path in sorted((ROOT / "fixtures/valid").glob("*.lmk")):
+            source = path.read_text(encoding="utf-8")
+            expected = json.loads(path.with_suffix(".ast.json").read_text(encoding="utf-8"))
+            self.assertEqual(parse_lessmark(source), expected, path.name)
+
+    def test_all_invalid_fixtures_are_rejected_by_the_parser(self):
+        for path in sorted((ROOT / "fixtures/invalid").glob("*.lmk")):
+            with self.subTest(path=path.name):
+                with self.assertRaises(LessmarkError):
+                    parse_lessmark(path.read_text(encoding="utf-8"))
+
     def test_format_is_idempotent(self):
         source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
         self.assertEqual(format_lessmark(source), format_lessmark(format_lessmark(source)))
