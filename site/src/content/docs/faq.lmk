@@ -19,23 +19,23 @@ never execute, never import, and never depend on the renderer.
 
 ## Why not AsciiDoc or RST?
 
-AsciiDoc and reStructuredText already have schemas, but the schemas are
-huge. Hundreds of directives, two distinct heading styles, a macro layer
-on top. Lessmark fits in a single grammar file and a single page of docs.
+AsciiDoc and reStructuredText already have schemas, but they carry much
+larger directive and role surfaces. Lessmark keeps one small block set,
+one heading style, and no macro layer.
 
 ## Where does it fit?
 
-Anywhere. Lessmark works for anything you would write in Markdown, and
-shines when the document is also data.
+Lessmark fits best where a readable document also needs to be reliable
+data.
 
 @list kind="unordered"
 - Personal blogs, websites, and zines.
 - Notes, journals, recipes, and game design docs.
 - Resumes, READMEs, and changelogs.
 - Specs, RFCs, decision records, and runbooks.
-- Agent context files an LLM reads to understand a project.
+- Agent context files that describe a project.
 - API docs that need to be machine-checked.
-- ...basically anything you want to write.
+- Any document that should stay readable and machine-checkable.
 
 If your document needs a renderer and a parser to agree on its meaning,
 lessmark fits.
@@ -50,14 +50,14 @@ template you can copy.
 
 ## Does it have a renderer?
 
-Every package ships {{code:renderHtml}}. Output is plain semantic HTML you
-style with CSS. There is no React-component layer, no theme system, no
-plugin chain.
+The JavaScript package ships {{code:renderHtml}} and the npm CLI ships
+{{code:render}} plus {{code:build}}. Output is plain semantic HTML you
+style with CSS. Python and Rust expose the same AST for downstream
+renderers.
 
 ## Will the language keep growing?
 
-Yes, lessmark is still growing. New blocks are added when the language
-genuinely needs them, and every package picks up the change at the same
-time. Issues, ideas, and pull requests are welcome on
+Lessmark keeps the v0 block set small. New blocks should be rare, tested
+across every runtime, and added only when existing blocks cannot express a
+real document shape. Issues, ideas, and pull requests are welcome on
 {{link:GitHub|https://github.com/jasperdevs/lessmark}}.
-

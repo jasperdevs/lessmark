@@ -227,11 +227,7 @@ fn collect_footnote_ids(document: &Document) -> BTreeSet<String> {
 }
 
 fn fenced_code_node(lang: &str, body: &[&str]) -> Node {
-    let text = body
-        .iter()
-        .map(|line| escape_block_line(line))
-        .collect::<Vec<_>>()
-        .join("\n");
+    let text = body.join("\n");
     if matches!(lang, "math" | "tex" | "latex") {
         let mut attrs = BTreeMap::new();
         attrs.insert("notation".to_string(), "tex".to_string());
@@ -961,14 +957,6 @@ fn is_closing_fence(line: &str, fence: &Fence) -> bool {
         .take_while(|char| *char == fence.marker)
         .count();
     length >= fence.length && rest[length..].trim().is_empty()
-}
-
-fn escape_block_line(line: &str) -> String {
-    if line.starts_with('#') || line.starts_with('@') {
-        format!("  {}", line)
-    } else {
-        line.to_string()
-    }
 }
 
 fn plain_text(text: &str) -> String {

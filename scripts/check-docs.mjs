@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, extname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getCapabilities, parseLessmark } from "../packages/lessmark/src/index.js";
+import { getCapabilities, parseLessmark, validateSource } from "../packages/lessmark/src/index.js";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const docsDir = join(root, "docs");
@@ -31,6 +31,7 @@ for (const contentDir of [docsDir, siteContentDir]) {
 }
 
 checkReadmeCliExamples();
+checkStaleDocsText();
 
 console.log("docs ok");
 
@@ -57,7 +58,10 @@ function checkContentDirectory(contentDir) {
   assert.deepEqual(contentMarkdown, [], `${relative(root, contentDir)} must use Lessmark .lmk files: ${contentMarkdown.join(", ")}`);
 
   for (const file of contentFiles.filter((path) => extname(path).toLowerCase() === ".lmk")) {
-    parseLessmark(readFileSync(file, "utf8"));
+    const source = readFileSync(file, "utf8");
+    parseLessmark(source);
+    const errors = validateSource(source);
+    assert.deepEqual(errors, [], `${relative(root, file)} failed validation`);
   }
 }
 
@@ -75,5 +79,29 @@ function checkReadmeCliExamples() {
   for (const example of examples) {
     const command = example.split(/\s+/)[1];
     assert.ok(knownCommands.has(command), `README.md documents unknown Lessmark CLI command: ${example}`);
+  }
+}
+
+function checkStaleDocsText() {
+  const checkedFiles = walk(root)
+    .filter((file) => [".md", ".lmk"].includes(extname(file).toLowerCase()))
+    .filter((file) => !relative(root, file).split(sep).includes("dist"));
+  const banned = [
+    /Every package ships \{\{code:renderHtml\}\}/,
+    /same commands via \{\{code:cargo run -p lessmark\}\}/,
+    /Every package ships the same three phases/,
+    /render_html is not yet shipped/,
+    /from lessmark import parse, render_html/,
+    /\{\{ref:#/,
+    /level \(1, 2, or 3\)/,
+    /CommonMark document/,
+    /pre-1\.0/,
+    /throwaway syntax/
+  ];
+  for (const file of checkedFiles) {
+    const source = readFileSync(file, "utf8");
+    for (const pattern of banned) {
+      assert.ok(!pattern.test(source), `${relative(root, file)} contains stale docs text matching ${pattern}`);
+    }
   }
 }

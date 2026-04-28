@@ -195,6 +195,28 @@ RFC-0042
             ("paragraph", "@mention\n#hashtag"),
         ])
 
+    def test_literal_blocks_keep_first_column_block_sigils_until_blank_separator(self):
+        source = '@code lang="py"\n@decorator\ndef f():\n  pass\n\n@code lang="c"\n#include <stdio.h>\nint main() { return 0; }\n'
+        ast = parse_lessmark(source)
+        self.assertEqual(len(ast["children"]), 2)
+        self.assertEqual(ast["children"][0]["text"], "@decorator\ndef f():\n  pass")
+        self.assertEqual(ast["children"][1]["text"], "#include <stdio.h>\nint main() { return 0; }")
+        self.assertEqual(format_lessmark(source), source)
+
+    def test_imports_markdown_code_fences_without_padding_first_column_block_sigils(self):
+        lessmark = from_markdown("""```py
+@decorator
+def f(): pass
+```
+
+```c
+#include <stdio.h>
+```
+""")
+        ast = parse_lessmark(lessmark)
+        self.assertEqual(ast["children"][0]["text"], "@decorator\ndef f(): pass")
+        self.assertEqual(ast["children"][1]["text"], "#include <stdio.h>")
+
     def test_imports_safe_relative_standalone_markdown_links(self):
         self.assertEqual(from_markdown("[Guide](docs/guide.html)\n"), '@link href="docs/guide.html"\nGuide\n')
 

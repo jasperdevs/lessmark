@@ -2,7 +2,7 @@
   "name": "lessmark-workspace",
   "private": true,
   "version": "0.1.4",
-  "description": "Workspace for Lessmark, a strict agent-readable document format.",
+  "description": "The markdown alternative that agents (and humans) love.",
   "license": "MIT",
   "workspaces": [
     "packages/lessmark"

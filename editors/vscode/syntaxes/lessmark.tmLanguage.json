@@ -18,7 +18,7 @@
     },
     "block": {
       "name": "keyword.control.lessmark",
-      "match": "^@(summary|decision|constraint|task|file|code|example|note|warning|api|link|metadata|risk|depends-on)\\b"
+      "match": "^@(summary|page|nav|paragraph|p|decision|constraint|task|file|code|example|quote|callout|note|warning|list|ul|ol|table|image|math|diagram|separator|toc|footnote|definition|reference|api|link|metadata|risk|depends-on)\\b"
     },
     "attribute": {
       "name": "meta.attribute.lessmark",

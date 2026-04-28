@@ -181,9 +181,6 @@ function renderTable(node) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map(splitTableRow);
-  if (columns.some((cell) => cell === "") || rows.some((row) => row.some((cell) => cell === ""))) {
-    throw new Error("@table cells cannot be empty");
-  }
   for (const row of rows) {
     if (row.length !== columns.length) {
       throw new Error("@table row cell count must match columns");

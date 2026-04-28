@@ -2,7 +2,6 @@
 
 @summary
 Install lessmark, write a first document, parse it, and run a check.
-You will be productive in five minutes.
 
 ## Install
 
@@ -40,7 +39,8 @@ code --install-extension JasperDevs.lessmark-vscode
 ## Write your first document
 
 Lessmark documents can mix plain prose, headings, and typed blocks.
-Use at-sign blocks when you need explicit data. Save this as notes.lmk:
+Use at-sign blocks when you need explicit data. Save this as
+{{code:notes.lmk}}:
 
 @code lang="lessmark"
   # Project context
@@ -81,4 +81,3 @@ lessmark check notes.lmk
 - Read the block reference for every block in the language.
 - Browse examples to see real documents (resumes, RFCs, postmortems).
 - Open the playground to edit live in the browser.
-

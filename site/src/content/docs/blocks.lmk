@@ -14,7 +14,7 @@ supports the full inline syntax.
 
 ## Agent context
 
-These blocks carry intent that an agent can act on without scraping prose.
+These blocks carry intent for tools and agents without scraping prose.
 
 @list kind="unordered"
 - summary, the one-paragraph "what is this document".
@@ -37,7 +37,7 @@ These blocks carry intent that an agent can act on without scraping prose.
 - image src and alt, for figures.
 - code lang, for fenced code with a language tag.
 - example, for verbatim sample blocks.
-- callout kind, as the canonical aside surface.
+- math notation and diagram kind, for literal math and diagram bodies.
 
 ## Cross references
 

@@ -1,9 +1,9 @@
 # Render
 
 @summary
-How to take a parsed lessmark document and turn it into HTML, React,
-or any other output your project needs. The grammar stops where the
-AST starts. The render side is just code.
+How to take a parsed lessmark document and turn it into HTML, React, or
+another output. The JavaScript package ships HTML rendering; other
+runtimes expose the same AST for custom renderers.
 
 ## The shortest path
 
@@ -20,8 +20,7 @@ The same shape works in Python.
 
 @code lang="py"
 from lessmark import parse_lessmark
-# render_html is not yet shipped in the Python package; walk the AST or
-# render in your own template engine.
+# Python exposes the AST; render it in your own template engine.
 
 ast = parse_lessmark(source)
 

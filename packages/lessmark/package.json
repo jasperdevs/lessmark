@@ -41,7 +41,7 @@
   "bugs": {
     "url": "https://github.com/jasperdevs/lessmark/issues"
   },
-  "homepage": "https://github.com/jasperdevs/lessmark#readme",
+  "homepage": "https://lessmark.org",
   "engines": {
     "node": ">=20"
   }

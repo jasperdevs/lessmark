@@ -178,7 +178,7 @@ function collectFootnoteIds(ast) {
 }
 
 function fencedCodeNode(lang, body) {
-  const text = body.map(escapeBlockLine).join("\n");
+  const text = body.join("\n");
   if (lang === "math" || lang === "tex" || lang === "latex") {
     return { type: "block", name: "math", attrs: { notation: "tex" }, text };
   }
@@ -431,11 +431,6 @@ function isMarkdownBlockStart(lines, index) {
 
 function isMarkdownSeparator(line) {
   return /^(?: {0,3})([-*_])(?:\s*\1){2,}\s*$/.test(line);
-}
-
-function escapeBlockLine(line) {
-  if (line.startsWith("#") || line.startsWith("@")) return `  ${line}`;
-  return line;
 }
 
 function readFenceLine(line) {

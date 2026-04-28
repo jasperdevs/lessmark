@@ -36,8 +36,9 @@ the typed inline form.
 
 ## Links
 
-Lessmark does not support link titles. URLs must use a safe scheme (https,
-http, mailto) or be an in-document anchor like {{code:#section-id}}.
+Lessmark does not support link titles. URLs must use a safe scheme
+({{code:https}}, {{code:http}}, {{code:mailto}}), a safe relative path,
+or an in-document anchor like {{code:#section-id}}.
 
 @code lang="md"
 [Go to docs](https://example.com/docs "Optional title")
@@ -107,4 +108,3 @@ whitespace or backslash hard break. Start a new block instead.
 
 Not allowed. The parser rejects {{code:<}} as the first non-space character
 of any block body, and inline HTML is a parse error.
-

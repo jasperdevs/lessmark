@@ -92,7 +92,7 @@ export function Home() {
           <img
             src="/lessmarklogowhitebackground.svg"
             alt=""
-            className="size-[116px] sm:size-[140px] md:size-[180px]"
+            className="size-[136px] sm:size-[172px] md:size-[220px]"
           />
           <span
             className="font-sans font-bold text-[clamp(36px,5vw,56px)] leading-none tracking-[-0.02em] text-fg"

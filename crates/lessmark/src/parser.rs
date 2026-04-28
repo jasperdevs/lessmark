@@ -222,7 +222,7 @@ fn parse_block(
 
 fn is_block_terminator(lines: &[&str], index: usize, name: &str) -> bool {
     let line = lines[index];
-    if starts_block_syntax(line) {
+    if !is_literal_block(name) && starts_block_syntax(line) {
         return true;
     }
     if !line.trim().is_empty() {

@@ -2,10 +2,11 @@
 
 @summary
 The {{code:lessmark}} command ships in the
-{{link:npm|https://www.npmjs.com/package/lessmark}} and
-{{link:PyPI|https://pypi.org/project/lessmark/}} packages with the same
-surface. The {{link:Rust crate|https://crates.io/crates/lessmark}}
-exposes the same commands via {{code:cargo run -p lessmark}}.
+{{link:npm|https://www.npmjs.com/package/lessmark}},
+{{link:PyPI|https://pypi.org/project/lessmark/}}, and
+{{link:Rust crate|https://crates.io/crates/lessmark}} packages. Parse,
+check, format, fix, Markdown conversion, and info are shared. Rendering
+and static-site builds are npm CLI features.
 
 ## Commands
 
@@ -18,6 +19,7 @@ lessmark format --check file.lmk
 lessmark fix --write file.lmk
 lessmark from-markdown README.md
 lessmark to-markdown file.lmk
+# npm package only:
 lessmark render --document docs/index.lmk
 lessmark build --strict docs public
 lessmark info --json
@@ -32,8 +34,8 @@ lessmark info --json
 - fix --write rewrites the file in place when format diverges.
 - from-markdown converts safe common markdown shapes into typed lessmark blocks.
 - to-markdown converts lessmark into safe markdown.
-- render --document produces a complete HTML document.
-- build --strict walks a directory and writes a static site.
+- render --document produces a complete HTML document in the npm CLI.
+- build --strict walks a directory and writes a static site in the npm CLI.
 - build copies only public assets under assets/, public/, or static/.
 - info --json reports the supported blocks, inline functions, and CLI features.
 

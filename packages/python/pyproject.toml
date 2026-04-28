@@ -23,7 +23,7 @@ classifiers = [
 lessmark = "lessmark.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/jasperdevs/lessmark"
+Homepage = "https://lessmark.org"
 Repository = "https://github.com/jasperdevs/lessmark"
 Issues = "https://github.com/jasperdevs/lessmark/issues"
 

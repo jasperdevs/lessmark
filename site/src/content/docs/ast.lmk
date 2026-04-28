@@ -18,8 +18,6 @@ graph TD
   Doc --> B1["block decision"]
   Doc --> B2["block list"]
   Doc --> P2["paragraph"]
-  B2 --> I1["list-item"]
-  B2 --> I2["list-item"]
 
 @code lang="js"
 {
@@ -29,8 +27,8 @@ graph TD
 
 ## Headings
 
-A heading node carries its level (1, 2, or 3) and the raw text. Inline
-functions inside a heading are left as plain strings.
+A heading node carries its level (1 through 6) and the raw text. Inline
+functions inside a heading are left as plain strings until rendering.
 
 @code lang="js"
 {
@@ -54,17 +52,20 @@ Every typed block uses the same shape.
 @list kind="unordered"
 - {{code:name}} is the block name without the leading {{code:@}}.
 - {{code:attrs}} is an object of declared attributes.
-- {{code:text}} is the body of the block, after dedent. May be empty.
-- Some blocks (like {{code:list}} and {{code:table}}) have a {{code:children}} or {{code:rows}} field instead. The {{link:Blocks reference|docs/blocks}} lists the shape per block.
+- {{code:text}} is the body of the block. May be empty.
+- Lists and tables keep their body in {{code:text}} too. The parser validates their line shape, and renderers can split that text into items, rows, or cells when needed.
 
 ## Paragraphs
 
-Paragraphs carry their inline functions as raw text. The renderer
-expands {{code:{{strong:bold}}}} and friends at render time.
+Paragraphs are block nodes with {{code:name}} set to {{code:paragraph}}.
+They carry their inline functions as raw text. The renderer expands
+{{code:{{strong:bold}}}} and friends at render time.
 
 @code lang="js"
 {
-  type: "paragraph",
+  type: "block",
+  name: "paragraph",
+  attrs: {},
   text: "Inline {{code:functions}} stay as raw strings here."
 }
 
@@ -123,12 +124,13 @@ function rewriteDecisions(ast, fn) {
 
 @callout kind="warning"
 The shipped {{code:renderHtml}} expects valid trees. If you mutate
-attributes, run the new tree through {{link:validateAst|docs/phases}}
+attributes, run the new tree through {{code:validateAst}}
 before rendering.
 
 ## The contract
 
-The complete AST shape is pinned in
-{{code:schemas/language-v0.contract.json}}. Every package validates
-its output against that file in CI. If you write a tool that consumes
-lessmark trees, validate against the contract too.
+The complete AST shape is pinned in {{code:schemas/ast-v0.schema.json}}.
+The language surface is pinned in
+{{code:schemas/language-v0.contract.json}}. Every package validates its
+output against those files in CI. If you write a tool that consumes
+lessmark trees, validate against the schema too.

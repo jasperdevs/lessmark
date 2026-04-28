@@ -361,7 +361,7 @@ def _normalize_block_header(raw_name: str, raw_rest: str, line_number: int) -> t
 
 def _is_block_terminator(lines: list[str], index: int, name: str) -> bool:
     line = lines[index]
-    if _starts_block_syntax(line):
+    if not _is_literal_block(name) and _starts_block_syntax(line):
         return True
     if line.strip() != "":
         return False
@@ -851,6 +851,39 @@ def get_capabilities() -> dict[str, object]:
             "documentedConveniencesOnly": True,
             "maxSpellingsPerMeaning": 3,
             "maxSpellingsException": "paragraph",
+            "blockAliases": {
+                "p": "paragraph",
+                "note": "callout",
+                "warning": "callout",
+                "ul": "list",
+                "ol": "list",
+            },
+            "aliasAttrs": {
+                "note": {"kind": "note"},
+                "warning": {"kind": "warning"},
+                "ul": {"kind": "unordered"},
+                "ol": {"kind": "ordered"},
+            },
+            "shorthandAttrs": {
+                "api": "name",
+                "callout": "kind",
+                "code": "lang",
+                "diagram": "kind",
+                "decision": "id",
+                "definition": "term",
+                "depends-on": "target",
+                "file": "path",
+                "footnote": "id",
+                "link": "href",
+                "math": "notation",
+                "metadata": "key",
+                "reference": "target",
+                "risk": "level",
+                "table": "columns",
+                "task": "status",
+            },
+            "literalBlocks": ["code", "example", "math", "diagram"],
+            "literalBlockTermination": "blank-line-before-next-block",
             "markdownLegacySyntax": False,
             "rawHtml": False,
             "hooks": False,
@@ -1396,7 +1429,7 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
 
 
 def _fenced_code_node(lang: str, body: list[str]) -> BlockNode:
-    text = "\n".join(_escape_block_line(item) for item in body)
+    text = "\n".join(body)
     if lang in {"math", "tex", "latex"}:
         return {"type": "block", "name": "math", "attrs": {"notation": "tex"}, "text": text}
     if lang == "asciimath":
@@ -1639,10 +1672,6 @@ def _is_markdown_block_start(lines: list[str], index: int) -> bool:
         or re.match(r"^\s*>\s?", lines[index]) is not None
         or _read_table(lines, index) is not None
     )
-
-
-def _escape_block_line(line: str) -> str:
-    return f"  {line}" if line.startswith(("#", "@")) else line
 
 
 def _is_markdown_separator(line: str) -> bool:

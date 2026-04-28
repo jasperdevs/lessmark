@@ -15,8 +15,8 @@ flowchart LR
   D --> E["Render"]
   E --> F["HTML, JSX, PDF"]
 
-Every package ships the same three phases. They are pure functions of
-their input, so you can stop after any of them.
+Every package ships parsing, validation, and formatting. The JavaScript
+package also ships HTML rendering and static-site builds.
 
 ## Phase 1: parse
 
@@ -63,8 +63,8 @@ call. Use {{code:validateAst}} when you already have a parsed tree.
 
 ## Phase 3: render
 
-The renderer is a walker over the AST. The shipped
-{{code:renderHtml}} produces semantic HTML. The
+The renderer is a walker over the AST. The JavaScript
+{{code:renderHtml}} function produces semantic HTML. The
 {{link:Render page|docs/render}} covers React, Next.js, and custom
 walkers.
 
@@ -77,4 +77,4 @@ guarantee about the output comes from the parse and validate phases.
 @list kind="unordered"
 - Each phase is a pure function with one input and one output. Nothing is implicit.
 - A tool that only needs the AST does not have to render. A linter parses, validates, and stops.
-- The same AST renders identically in every language package.
+- Renderers consume the same AST, so output rules can be tested without re-parsing source differently per runtime.

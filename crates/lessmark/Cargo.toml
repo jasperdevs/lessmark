@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT"
 description = "The markdown alternative that agents (and humans) love."
 repository = "https://github.com/jasperdevs/lessmark"
+homepage = "https://lessmark.org"
 readme = "README.md"
 keywords = ["lessmark", "markdown", "ast", "agent", "parser"]
 categories = ["parser-implementations", "command-line-utilities", "text-processing"]

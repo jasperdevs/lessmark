@@ -223,7 +223,7 @@ function normalizeBlockHeader(rawName, rawRest, lineNumber) {
 
 function isBlockTerminator(lines, index, name) {
   const line = lines[index];
-  if (startsBlockSyntax(line)) return true;
+  if (!isLiteralBlock(name) && startsBlockSyntax(line)) return true;
   if (line.trim() !== "") return false;
   if (!isLiteralBlock(name)) return true;
 

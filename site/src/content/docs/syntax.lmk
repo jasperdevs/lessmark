@@ -29,6 +29,9 @@ The explicit forms {{code:@p}} and {{code:@paragraph}} still work when
 you want to force prose meaning, but {{code:lessmark format}} writes
 ordinary plain paragraphs.
 
+Blank lines end prose blocks. For multiple paragraphs, write multiple
+plain paragraphs instead of hiding paragraph breaks inside one block.
+
 @code lang="lessmark"
   Plain prose. Use {{strong:bold}}, {{em:italic}}, and {{code:inline code}}
   inside any prose body.
@@ -38,6 +41,10 @@ ordinary plain paragraphs.
 Inside any prose body, double curly braces invoke an inline function.
 The general shape is {{code:{{name:value}}}} or
 {{code:{{name:value|extra}}}}.
+
+If you need literal double braces in rendered prose, wrap them in inline
+code. For example, {{code:{{code:{{name:value}}}}}} renders the literal
+text {{code:{{name:value}}}}.
 
 @list kind="unordered"
 - strong, for bold.
@@ -54,7 +61,7 @@ The general shape is {{code:{{name:value}}}} or
 
 @code lang="lessmark"
   Press {{kbd:Ctrl+S}} to save. The {{mark:highlight}} survives diffs.
-  Visit {{link:our docs|https://example.com/docs}} for the full list.
+  Visit {{link:the docs|https://example.com/docs}} for the full list.
 
 ## Authoring shortcuts
 
@@ -85,15 +92,25 @@ shortcuts, see the Hacks page.
 
 ## Code blocks
 
-Use {{code:@code}} with an optional language attribute. Indent two
-spaces if the body itself contains lines that start with an at-sign or
-hash, since either would otherwise terminate the block.
+Use {{code:@code}} with an optional language attribute. Code is a literal
+block: inline syntax is not parsed, and first-column at-signs or hashes
+stay in the code. To start a new Lessmark block after code, leave a
+blank line before the next {{code:@block}} or heading.
 
 @code lang="lessmark"
   @code lang="js"
   function add(a, b) {
     return a + b;
   }
+
+  @code lang="py"
+  @decorator
+  def view():
+    return "ok"
+
+  @code lang="c"
+  #include <stdio.h>
+  int main(void) { return 0; }
 
 ## Lists
 
@@ -114,7 +131,8 @@ two spaces per level and cannot skip levels.
 
 ## Tables
 
-Pipe-separated rows. The first row is the header.
+Headers live in the {{code:columns}} attribute. Body rows are
+pipe-separated cells; empty cells are allowed.
 
 @code lang="lessmark"
   @table columns="Code|Meaning"
@@ -157,7 +175,9 @@ figure label.
 ## Math
 
 Notation is one of {{code:tex}} or {{code:asciimath}}. The body is
-preserved verbatim and rendered by your math toolchain downstream.
+preserved verbatim and rendered by your math toolchain downstream. Like
+code, math ends before a new Lessmark block only when a blank separator
+comes first.
 
 @code lang="lessmark"
   @math notation="tex"
@@ -166,7 +186,8 @@ preserved verbatim and rendered by your math toolchain downstream.
 ## Diagrams
 
 Kind is one of {{code:mermaid}}, {{code:graphviz}}, or {{code:plantuml}}.
-The body is preserved verbatim.
+The body is preserved verbatim. Leave a blank line before the next
+Lessmark block.
 
 @code lang="lessmark"
   @diagram kind="mermaid"
@@ -183,7 +204,7 @@ A horizontal rule between sections. Body-less.
 
 ## Agent context blocks
 
-Blocks that carry intent an agent can act on without scraping prose.
+Blocks that carry intent for tools and agents without scraping prose.
 
 ### summary
 
@@ -230,7 +251,7 @@ Status is one of {{code:todo}}, {{code:doing}}, {{code:done}},
 
 @code lang="lessmark"
   @metadata key="project.stage"
-  beta
+  stable
 
 ### risk
 

@@ -226,6 +226,9 @@ test("supports escaped pipes in table columns", () => {
 test("supports empty table cells", () => {
   const source = '@table columns="Name|Status"\nLessmark|\n|todo\n';
   assert.equal(validateSource(source).length, 0);
+  const html = renderHtml(source);
+  assert.match(html, /<td>Lessmark<\/td><td><\/td>/);
+  assert.match(html, /<td><\/td><td>todo<\/td>/);
 });
 
 test("plain top-level prose parses as paragraphs", () => {
@@ -466,6 +469,21 @@ const b = 2;
   assert.equal(ast.children[1].text, "const a = 1;\n\nconst b = 2;");
 });
 
+test("imports Markdown code fences without padding first-column block sigils", () => {
+  const lessmark = fromMarkdown(`\`\`\`py
+@decorator
+def f(): pass
+\`\`\`
+
+\`\`\`c
+#include <stdio.h>
+\`\`\`
+`);
+  const ast = parseLessmark(lessmark);
+  assert.equal(ast.children[0].text, "@decorator\ndef f(): pass");
+  assert.equal(ast.children[1].text, "#include <stdio.h>");
+});
+
 test("imports common GFM blocks into typed Lessmark blocks", () => {
   const lessmark = fromMarkdown(`# Project
 
@@ -518,6 +536,15 @@ graph TD
 test("keeps math and diagram bodies literal", () => {
   assert.equal(formatLessmark('@math notation="tex"\n**not bold**\n'), '@math notation="tex"\n**not bold**\n');
   assert.equal(formatLessmark('@diagram kind="mermaid"\nA[**literal**] --> B\n'), '@diagram kind="mermaid"\nA[**literal**] --> B\n');
+});
+
+test("literal blocks keep first-column block sigils until a blank separator", () => {
+  const source = '@code lang="py"\n@decorator\ndef f():\n  pass\n\n@code lang="c"\n#include <stdio.h>\nint main() { return 0; }\n';
+  const ast = parseLessmark(source);
+  assert.equal(ast.children.length, 2);
+  assert.equal(ast.children[0].text, "@decorator\ndef f():\n  pass");
+  assert.equal(ast.children[1].text, "#include <stdio.h>\nint main() { return 0; }");
+  assert.equal(formatLessmark(source), source);
 });
 
 test("imports normal Markdown lists into typed Lessmark lists", () => {
@@ -649,6 +676,10 @@ test("renders and exports nested explicit inline functions", async () => {
   assert.match(markdown, /\*\*Bold \*inside\*\*\*/);
   assert.match(markdown, /\[docs\]\(https:\/\/example.com\)/);
   assert.match(markdown, /\[\*\*Renderer\*\* decision\]\(#renderer\)/);
+});
+
+test("renders literal inline braces through inline code", () => {
+  assert.equal(renderHtml("@paragraph\n{{code:{{name:value}}}}\n"), "<p><code>{{name:value}}</code></p>\n");
 });
 
 test("renderer emits deterministic unique heading ids", () => {

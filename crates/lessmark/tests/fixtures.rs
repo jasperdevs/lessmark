@@ -435,6 +435,18 @@ fn imports_markdown_code_fences_with_internal_blank_lines() {
 }
 
 #[test]
+fn imports_markdown_code_fences_without_padding_first_column_block_sigils() {
+    let lessmark = from_markdown(
+        "```py\n@decorator\ndef f(): pass\n```\n\n```c\n#include <stdio.h>\n```\n",
+    )
+    .expect("markdown imports");
+    let ast = parse_lessmark(&lessmark).expect("imported Lessmark parses");
+    let json = serde_json::to_value(ast).expect("document serializes");
+    assert_eq!(json["children"][0]["text"], "@decorator\ndef f(): pass");
+    assert_eq!(json["children"][1]["text"], "#include <stdio.h>");
+}
+
+#[test]
 fn imports_common_gfm_blocks_into_typed_lessmark_blocks() {
     let lessmark = from_markdown(
         "# Project\n\n\
@@ -522,6 +534,20 @@ fn keeps_math_and_diagram_bodies_literal() {
             .expect("formats diagram"),
         "@diagram kind=\"mermaid\"\nA[**literal**] --> B\n"
     );
+}
+
+#[test]
+fn literal_blocks_keep_first_column_block_sigils_until_blank_separator() {
+    let source = "@code lang=\"py\"\n@decorator\ndef f():\n  pass\n\n@code lang=\"c\"\n#include <stdio.h>\nint main() { return 0; }\n";
+    let ast = parse_lessmark(source).expect("literal block parses");
+    let json = serde_json::to_value(ast).expect("document serializes");
+    assert_eq!(json["children"].as_array().expect("children").len(), 2);
+    assert_eq!(json["children"][0]["text"], "@decorator\ndef f():\n  pass");
+    assert_eq!(
+        json["children"][1]["text"],
+        "#include <stdio.h>\nint main() { return 0; }"
+    );
+    assert_eq!(format_lessmark(source).expect("literal formats"), source);
 }
 
 #[test]

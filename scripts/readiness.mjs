@@ -39,6 +39,27 @@ assert.deepEqual(muFiles, [], "Lessmark source files must use .lmk or .lessmark,
 
 const rootPackage = readJson("package.json");
 assert.ok(!rootPackage.dependencies || Object.keys(rootPackage.dependencies).length === 0, "workspace root must not carry runtime dependencies");
+assert.equal(rootPackage.description, "The markdown alternative that agents (and humans) love.");
+
+const languageContract = readJson("schemas/language-v0.contract.json");
+for (const path of [
+  "packages/lessmark/schemas/language-v0.contract.json",
+  "packages/python/src/lessmark/schemas/language-v0.contract.json",
+  "crates/lessmark/schemas/language-v0.contract.json"
+]) {
+  assert.deepEqual(readJson(path), languageContract, `language contract copy is stale: ${path}`);
+}
+
+const vscodeGrammar = readJson("editors/vscode/syntaxes/lessmark.tmLanguage.json");
+const blockPattern = vscodeGrammar.repository.block.match;
+assert.equal(typeof blockPattern, "string", "VS Code grammar must define a block match pattern");
+const blockAlternates = blockPattern.match(/\^\@\(([^)]+)\)\\b/)?.[1].split("|") ?? [];
+for (const name of languageContract.blocks) {
+  assert.ok(blockAlternates.includes(name), `VS Code grammar is missing block @${name}`);
+}
+for (const alias of Object.keys(languageContract.syntaxPolicy.blockAliases)) {
+  assert.ok(blockAlternates.includes(alias), `VS Code grammar is missing block alias @${alias}`);
+}
 
 const sitePackage = readJson("site/package.json");
 const mermaidRender = read("site/src/lib/mermaid-render.ts");
@@ -56,4 +77,4 @@ for (const path of [
   assert.ok(existsSync(join(root, path)), `missing schema: ${path}`);
 }
 
-console.log(`readiness ok: version ${packageVersion}, extension policy, dependency ownership, and schema copies verified`);
+console.log(`readiness ok: version ${packageVersion}, extension policy, dependency ownership, editor grammar, and schema copies verified`);

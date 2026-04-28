@@ -6,14 +6,14 @@ Lessmark is a strict alternative to Markdown. Every document is a sequence of
 typed blocks. Every package parses the same source into the same JSON tree.
 
 @callout kind="note"
-Lessmark is open-source. The grammar, the parsers, and this site live on
+Lessmark is open-source. The grammar, parsers, and website are available on
 {{link:GitHub|https://github.com/jasperdevs/lessmark}}.
 
 ## How is lessmark different?
 
 Markdown is a presentation format. Lessmark is a structure format. A
 {{code:@decision}} block is a decision, a {{code:@constraint}} block is a
-constraint, and an LLM reading the file does not have to guess.
+constraint, and tooling can read the file without guessing.
 
 There is no raw HTML, no JSX, and no template engine. The parser stops at the
 first violation, so a broken document never reaches a renderer.
@@ -27,8 +27,8 @@ shape, one CLI. Same parser output across every runtime.
 
 ### Built for agents and humans
 
-Typed blocks like {{code:@decision}} and {{code:@task}} carry intent an
-agent can act on. The source still reads cleanly to a human reviewer.
+Typed blocks like {{code:@decision}} and {{code:@task}} carry intent for
+tools and agents. The source still reads cleanly to a human reviewer.
 
 ### Adopt anywhere
 
@@ -37,8 +37,8 @@ get the same tree. Swap the runtime, keep the documents.
 
 ## Where does it fit?
 
-Anywhere. Lessmark works for anything you would write in Markdown, and
-shines when the document is also data.
+Lessmark works best where a readable document also needs to be reliable
+data.
 
 @list kind="unordered"
 - Personal blogs, websites, and zines.
@@ -47,7 +47,7 @@ shines when the document is also data.
 - Specs, RFCs, decision records, and runbooks.
 - Agent context files an LLM reads to understand a project.
 - API docs that need to be machine-checked.
-- ...basically anything you want to write.
+- Any document that should stay readable and machine-checkable.
 
 If your document needs a renderer and a parser to agree on its meaning,
 lessmark fits.
@@ -83,4 +83,3 @@ Parse it, validate it, ship the tree.
 @code lang="sh"
 lessmark parse project.lmk
 lessmark check project.lmk
-

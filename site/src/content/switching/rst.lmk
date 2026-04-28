@@ -72,9 +72,10 @@ form: a dash and a space, with two-space indentation per nesting level.
 
 ## Cross references
 
-RST {{code::ref:}} roles become explicit {{code:{{ref:#anchor}}}} inline
-functions. Targets must already exist in the same document, either as a
-heading slug or as a {{code:@decision}} id.
+RST {{code::ref:}} roles become explicit
+{{code:{{ref:Section|anchor}}}} inline functions. Targets must already
+exist in the same document, either as a heading slug or as a
+{{code:@decision}} id.
 
 ## Substitutions
 

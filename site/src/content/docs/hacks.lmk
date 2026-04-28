@@ -12,6 +12,10 @@ carry attributes; add attributes by writing the full name. Paragraphs
 also have the plain prose form, which is what {{code:lessmark format}}
 writes by default.
 
+The alias and shorthand sets are part of the language contract exposed by
+{{code:lessmark info --json}}, so tools can implement completion without
+guessing from parser internals.
+
 @table columns="Short|Long|Notes"
 plain prose|`@paragraph` / `@p`|prose with full inline syntax
 `@ul`|`@list kind="unordered"`|bulleted list
@@ -72,7 +76,7 @@ canonical {{code:{{name:value}}}} form.
 
 @code lang="lessmark"
   Press `Ctrl+S` to save. The **bold** survives diffs and so does the
-  ==highlight==. Visit [our docs](https://example.com/docs). This claim is
+  ==highlight==. Visit [the docs](https://example.com/docs). This claim is
   well-established[^knuth-1974].
 
   @footnote knuth-1974

@@ -87,10 +87,10 @@ const tree = parseLessmark(source);
 const html = renderHtml(tree);
 
 @code lang="py"
-from lessmark import parse, render_html
+from lessmark import parse_lessmark, validate_source
 
-tree = parse(source)
-html = render_html(tree)
+tree = parse_lessmark(source)
+errors = validate_source(source)
 
 @code lang="sh"
 lessmark parse notes.lmk
@@ -110,7 +110,7 @@ The canonical contract. Every package validates against this file.
 Parses a string and returns the AST.
 
 @api name="renderHtml"
-Walks an AST and emits semantic HTML.
+JavaScript renderer that walks source or an AST and emits semantic HTML.
 
 ## Risks
 

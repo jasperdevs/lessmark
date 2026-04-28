@@ -82,8 +82,8 @@ console.log("hello");
 ## Cross references
 
 AsciiDoc {{code:‹‹section-id››}} cross references become inline
-{{code:{{ref:#section-id}}}} functions. Targets must already exist in the
-same document, either as a heading slug or a {{code:@decision}} id.
+{{code:{{ref:Section|section-id}}}} functions. Targets must already exist
+in the same document, either as a heading slug or a {{code:@decision}} id.
 
 ## Includes
 
