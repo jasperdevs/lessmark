@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { formatLessmark, parseLessmark, validateSource } from "lessmark";
+import { LessmarkError, formatLessmark, parseLessmark, validateSource } from "lessmark";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -48,7 +48,7 @@ try {
     console.log(JSON.stringify({ ok: false, errors: [toJsonError(error)] }, null, 2));
     process.exit(1);
   }
-  console.error(`${basename(process.argv[1])}: ${error.message}`);
+  console.error(`${basename(process.argv[1])}: ${formatError(error)}`);
   process.exit(1);
 }
 
@@ -70,8 +70,15 @@ Usage:
   lessmark format --write file.lmk`);
 }
 
+function formatError(error) {
+  if (error instanceof LessmarkError) {
+    return `${error.message} at ${error.line}:${error.column}`;
+  }
+  return error.message ?? String(error);
+}
+
 function toJsonError(error) {
-  const result = { message: error.message ?? String(error) };
+  const result = { message: error instanceof LessmarkError ? error.message : error.message ?? String(error) };
   if (Number.isInteger(error.line)) result.line = error.line;
   if (Number.isInteger(error.column)) result.column = error.column;
   return result;

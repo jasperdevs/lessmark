@@ -1,6 +1,5 @@
 import { LessmarkError, parseLessmark } from "./parser.js";
-import { BLOCK_ATTRS, TASK_STATUSES } from "./grammar.js";
-import { API_NAME_PATTERN, HTML_TAG_PATTERN, isRelativeProjectPath, isSafeHref } from "./rules.js";
+import { CONTROL_WHITESPACE_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors, hasBlockAttrSpec } from "./rules.js";
 
 export function validateSource(source) {
   try {
@@ -65,8 +64,7 @@ function validateTextSafety(text, errors, location) {
 }
 
 function validateAttrs(node, errors) {
-  const spec = BLOCK_ATTRS[node.name];
-  if (!spec) {
+  if (!hasBlockAttrSpec(node.name)) {
     errors.push({ message: `Unknown typed block "${node.name}"` });
     return;
   }
@@ -77,39 +75,18 @@ function validateAttrs(node, errors) {
     return;
   }
   for (const key of Object.keys(attrs)) {
-    if (!spec.allowed.has(key)) {
-      errors.push({ message: `@${node.name} does not allow attribute "${key}"` });
-    }
     if (typeof attrs[key] !== "string") {
       errors.push({ message: `Attribute "${key}" must be a string` });
       continue;
     }
     validateTextSafety(String(attrs[key]), errors, `attribute "${key}"`);
-    if (/[\r\n\t]/.test(String(attrs[key]))) {
+    if (CONTROL_WHITESPACE_PATTERN.test(String(attrs[key]))) {
       errors.push({ message: `Attribute "${key}" cannot contain control whitespace` });
     }
   }
 
-  for (const key of spec.required) {
-    if (!attrs[key]) {
-      errors.push({ message: `@${node.name} requires ${key}` });
-    }
-  }
-
-  if (node.name === "task" && attrs.status && !TASK_STATUSES.has(attrs.status)) {
-    errors.push({ message: "@task status must be one of: todo, doing, done, blocked" });
-  }
-  if (node.name === "decision" && attrs.id && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(attrs.id)) {
-    errors.push({ message: "@decision id must be a lowercase slug" });
-  }
-  if (node.name === "file" && attrs.path && !isRelativeProjectPath(attrs.path)) {
-    errors.push({ message: "@file path must be a relative project path" });
-  }
-  if (node.name === "api" && attrs.name && !API_NAME_PATTERN.test(attrs.name)) {
-    errors.push({ message: "@api name must be an identifier" });
-  }
-  if (node.name === "link" && attrs.href && !isSafeHref(attrs.href)) {
-    errors.push({ message: "@link href must not use an executable URL scheme" });
+  for (const message of getBlockAttrErrors(node.name, attrs)) {
+    errors.push({ message });
   }
 }
 

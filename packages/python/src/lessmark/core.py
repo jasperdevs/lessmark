@@ -1,6 +1,41 @@
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Literal, Mapping, TypedDict, Union
+
+
+class HeadingNode(TypedDict):
+    type: Literal["heading"]
+    level: int
+    text: str
+
+
+class BlockNode(TypedDict):
+    type: Literal["block"]
+    name: str
+    attrs: dict[str, str]
+    text: str
+
+
+LessmarkNode = Union[HeadingNode, BlockNode]
+
+
+class DocumentNode(TypedDict):
+    type: Literal["document"]
+    children: list[LessmarkNode]
+
+
+class ValidationMessage(TypedDict):
+    message: str
+
+
+class ValidationError(ValidationMessage, total=False):
+    line: int
+    column: int
+
+
+class BlockAttrSpec(TypedDict):
+    allowed: set[str]
+    required: set[str]
 
 CORE_BLOCKS = {
     "summary",
@@ -17,7 +52,10 @@ CORE_BLOCKS = {
 
 TASK_STATUSES = {"todo", "doing", "done", "blocked"}
 HTML_TAG_PATTERN = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>")
-BLOCK_ATTRS = {
+API_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
+CONTROL_WHITESPACE_PATTERN = re.compile(r"[\r\n\t]")
+DECISION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "summary": {"allowed": set(), "required": set()},
     "decision": {"allowed": {"id"}, "required": {"id"}},
     "constraint": {"allowed": set(), "required": set()},
@@ -41,10 +79,10 @@ class LessmarkError(Exception):
         return f"{self.message} at {self.line}:{self.column}"
 
 
-def parse_lessmark(source: str) -> dict[str, Any]:
+def parse_lessmark(source: str) -> DocumentNode:
     normalized = str(source).lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n")
     lines = normalized.split("\n")
-    children: list[dict[str, Any]] = []
+    children: list[LessmarkNode] = []
     index = 0
 
     while index < len(lines):
@@ -70,7 +108,7 @@ def parse_lessmark(source: str) -> dict[str, Any]:
     return {"type": "document", "children": children}
 
 
-def _parse_heading(line: str, line_number: int) -> dict[str, Any]:
+def _parse_heading(line: str, line_number: int) -> HeadingNode:
     match = re.match(r"^(#{1,6}) ([^\s].*)$", line)
     if not match:
         raise LessmarkError("Invalid heading syntax", line_number, 1)
@@ -81,7 +119,7 @@ def _parse_heading(line: str, line_number: int) -> dict[str, Any]:
     return {"type": "heading", "level": len(match.group(1)), "text": text}
 
 
-def _parse_block(lines: list[str], start_index: int) -> tuple[dict[str, Any], int]:
+def _parse_block(lines: list[str], start_index: int) -> tuple[BlockNode, int]:
     header = lines[start_index]
     match = re.match(r"^@([a-z][a-z0-9_-]*)(.*)$", header)
     if not match:
@@ -163,15 +201,15 @@ def _read_quoted(input_text: str, quote_index: int, line_number: int, start_colu
     raise LessmarkError("Unterminated quoted attribute", line_number, start_column + quote_index)
 
 
-def validate_source(source: str) -> list[dict[str, str]]:
+def validate_source(source: str) -> list[ValidationError]:
     try:
         return validate_ast(parse_lessmark(source))
     except LessmarkError as error:
         return [_validation_error(error)]
 
 
-def validate_ast(ast: dict[str, Any]) -> list[dict[str, str]]:
-    errors: list[dict[str, str]] = []
+def validate_ast(ast: object) -> list[ValidationError]:
+    errors: list[ValidationError] = []
     if not isinstance(ast, dict) or ast.get("type") != "document" or not isinstance(ast.get("children"), list):
         return [{"message": "AST root must be a document with children"}]
     _validate_exact_keys(ast, {"type", "children"}, errors, "document")
@@ -207,29 +245,15 @@ def validate_ast(ast: dict[str, Any]) -> list[dict[str, str]]:
     return errors
 
 
-def _validate_text_safety(text: str, errors: list[dict[str, str]], location: str) -> None:
+def _validate_text_safety(text: str, errors: list[ValidationError], location: str) -> None:
     if HTML_TAG_PATTERN.search(text):
         errors.append({"message": f"{location} contains raw HTML/JSX-like syntax"})
 
 
 def _validate_block_attrs(name: str, attrs: dict[str, str], line_number: int) -> None:
-    spec = BLOCK_ATTRS[name]
-    for key in attrs:
-        if key not in spec["allowed"]:
-            raise LessmarkError(f'@{name} does not allow attribute "{key}"', line_number, 1)
-    for key in spec["required"]:
-        if not attrs.get(key):
-            raise LessmarkError(f"@{name} requires {key}", line_number, 1)
-    if name == "task" and attrs["status"] not in TASK_STATUSES:
-        raise LessmarkError("@task status must be one of: todo, doing, done, blocked", line_number, 1)
-    if name == "decision" and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
-        raise LessmarkError("@decision id must be a lowercase slug", line_number, 1)
-    if name == "file" and not _is_relative_project_path(attrs["path"]):
-        raise LessmarkError("@file path must be a relative project path", line_number, 1)
-    if name == "api" and not re.match(r"^[A-Za-z_][A-Za-z0-9_.-]*$", attrs["name"]):
-        raise LessmarkError("@api name must be an identifier", line_number, 1)
-    if name == "link" and not _is_safe_href(attrs["href"]):
-        raise LessmarkError("@link href must not use an executable URL scheme", line_number, 1)
+    errors = _get_block_attr_errors(name, attrs)
+    if errors:
+        raise LessmarkError(errors[0], line_number, 1)
 
 
 def _assert_safe_text(text: str, location: str, line_number: int, column: int) -> None:
@@ -238,14 +262,14 @@ def _assert_safe_text(text: str, location: str, line_number: int, column: int) -
 
 
 def _assert_safe_attr_value(key: str, value: str, line_number: int, column: int) -> None:
-    if re.search(r"[\r\n\t]", value):
+    if CONTROL_WHITESPACE_PATTERN.search(value):
         raise LessmarkError(f'Attribute "{key}" cannot contain control whitespace', line_number, column)
     _assert_safe_text(value, f'attribute "{key}"', line_number, column)
 
 
-def _validate_attrs(node: dict[str, Any], errors: list[dict[str, str]]) -> None:
+def _validate_attrs(node: Mapping[str, object], errors: list[ValidationError]) -> None:
     name = node.get("name")
-    spec = BLOCK_ATTRS.get(name)
+    spec = BLOCK_ATTRS.get(name) if isinstance(name, str) else None
     if spec is None:
         errors.append({"message": f'Unknown typed block "{name}"'})
         return
@@ -255,37 +279,59 @@ def _validate_attrs(node: dict[str, Any], errors: list[dict[str, str]]) -> None:
         errors.append({"message": f"@{name} attrs must be an object"})
         return
     for key, value in attrs.items():
-        if key not in spec["allowed"]:
-            errors.append({"message": f'@{name} does not allow attribute "{key}"'})
         if not isinstance(value, str):
             errors.append({"message": f'Attribute "{key}" must be a string'})
             continue
         _validate_text_safety(str(value), errors, f'attribute "{key}"')
-        if re.search(r"[\r\n\t]", str(value)):
+        if CONTROL_WHITESPACE_PATTERN.search(str(value)):
             errors.append({"message": f'Attribute "{key}" cannot contain control whitespace'})
+    for message in _get_block_attr_errors(name, attrs):
+        errors.append({"message": message})
+
+
+def _get_block_attr_errors(name: str, attrs: Mapping[str, object]) -> list[str]:
+    spec = BLOCK_ATTRS.get(name)
+    if spec is None:
+        return [f'Unknown typed block "{name}"']
+
+    errors: list[str] = []
+    for key in attrs:
+        if key not in spec["allowed"]:
+            errors.append(f'@{name} does not allow attribute "{key}"')
     for key in spec["required"]:
         if not attrs.get(key):
-            errors.append({"message": f"@{name} requires {key}"})
-    if name == "task" and attrs.get("status") and attrs["status"] not in TASK_STATUSES:
-        errors.append({"message": "@task status must be one of: todo, doing, done, blocked"})
-    if name == "decision" and attrs.get("id") and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
-        errors.append({"message": "@decision id must be a lowercase slug"})
-    if name == "file" and attrs.get("path") and not _is_relative_project_path(attrs["path"]):
-        errors.append({"message": "@file path must be a relative project path"})
-    if name == "api" and attrs.get("name") and not re.match(r"^[A-Za-z_][A-Za-z0-9_.-]*$", attrs["name"]):
-        errors.append({"message": "@api name must be an identifier"})
-    if name == "link" and attrs.get("href") and not _is_safe_href(attrs["href"]):
-        errors.append({"message": "@link href must not use an executable URL scheme"})
+            errors.append(f"@{name} requires {key}")
+
+    semantic_error = _get_semantic_attr_error(name, attrs)
+    if semantic_error is not None:
+        errors.append(semantic_error)
+    return errors
 
 
-def _validate_exact_keys(value: dict[str, Any], expected: set[str], errors: list[dict[str, str]], location: str) -> None:
+def _get_semantic_attr_error(name: str, attrs: Mapping[str, object]) -> str | None:
+    if name == "task" and isinstance(attrs.get("status"), str) and attrs["status"] not in TASK_STATUSES:
+        return "@task status must be one of: todo, doing, done, blocked"
+    if name == "decision" and isinstance(attrs.get("id"), str) and not DECISION_ID_PATTERN.match(attrs["id"]):
+        return "@decision id must be a lowercase slug"
+    if name == "file" and isinstance(attrs.get("path"), str) and not _is_relative_project_path(attrs["path"]):
+        return "@file path must be a relative project path"
+    if name == "api" and isinstance(attrs.get("name"), str) and not API_NAME_PATTERN.match(attrs["name"]):
+        return "@api name must be an identifier"
+    if name == "link" and isinstance(attrs.get("href"), str) and not _is_safe_href(attrs["href"]):
+        return "@link href must not use an executable URL scheme"
+    return None
+
+
+def _validate_exact_keys(
+    value: Mapping[str, object], expected: set[str], errors: list[ValidationError], location: str
+) -> None:
     for key in value.keys() - expected:
         errors.append({"message": f'{location} has unknown property "{key}"'})
     for key in expected - value.keys():
         errors.append({"message": f'{location} is missing property "{key}"'})
 
 
-def _validation_error(error: LessmarkError) -> dict[str, Any]:
+def _validation_error(error: LessmarkError) -> ValidationError:
     return {"message": error.message, "line": error.line, "column": error.column}
 
 
@@ -309,7 +355,7 @@ def format_lessmark(source: str) -> str:
     return format_ast(parse_lessmark(source))
 
 
-def format_ast(ast: dict[str, Any]) -> str:
+def format_ast(ast: DocumentNode) -> str:
     errors = validate_ast(ast)
     if errors:
         messages = "; ".join(error["message"] for error in errors)
@@ -317,7 +363,7 @@ def format_ast(ast: dict[str, Any]) -> str:
     return "\n\n".join(_format_node(node) for node in ast.get("children", [])) + "\n"
 
 
-def _format_node(node: dict[str, Any]) -> str:
+def _format_node(node: LessmarkNode) -> str:
     if node.get("type") == "heading":
         return f"{'#' * int(node['level'])} {str(node['text']).strip()}"
 

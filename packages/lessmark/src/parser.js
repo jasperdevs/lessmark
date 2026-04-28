@@ -1,7 +1,5 @@
-import { BLOCK_ATTRS, CORE_BLOCKS, TASK_STATUSES } from "./grammar.js";
-import { API_NAME_PATTERN, HTML_TAG_PATTERN, isRelativeProjectPath, isSafeHref } from "./rules.js";
-
-export { CORE_BLOCKS } from "./grammar.js";
+import { CORE_BLOCKS } from "./grammar.js";
+import { CONTROL_WHITESPACE_PATTERN, HTML_TAG_PATTERN, getBlockAttrErrors } from "./rules.js";
 
 export class LessmarkError extends Error {
   constructor(message, line = 1, column = 1) {
@@ -170,31 +168,9 @@ function readQuoted(input, quoteIndex, lineNumber, startColumn) {
 }
 
 function validateBlockAttrs(name, attrs, lineNumber) {
-  const spec = BLOCK_ATTRS[name];
-  for (const key of Object.keys(attrs)) {
-    if (!spec.allowed.has(key)) {
-      throw new LessmarkError(`@${name} does not allow attribute "${key}"`, lineNumber, 1);
-    }
-  }
-  for (const key of spec.required) {
-    if (!attrs[key]) {
-      throw new LessmarkError(`@${name} requires ${key}`, lineNumber, 1);
-    }
-  }
-  if (name === "task" && !TASK_STATUSES.has(attrs.status)) {
-    throw new LessmarkError("@task status must be one of: todo, doing, done, blocked", lineNumber, 1);
-  }
-  if (name === "decision" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(attrs.id)) {
-    throw new LessmarkError("@decision id must be a lowercase slug", lineNumber, 1);
-  }
-  if (name === "file" && !isRelativeProjectPath(attrs.path)) {
-    throw new LessmarkError("@file path must be a relative project path", lineNumber, 1);
-  }
-  if (name === "api" && !API_NAME_PATTERN.test(attrs.name)) {
-    throw new LessmarkError("@api name must be an identifier", lineNumber, 1);
-  }
-  if (name === "link" && !isSafeHref(attrs.href)) {
-    throw new LessmarkError("@link href must not use an executable URL scheme", lineNumber, 1);
+  const [firstError] = getBlockAttrErrors(name, attrs);
+  if (firstError) {
+    throw new LessmarkError(firstError, lineNumber, 1);
   }
 }
 
@@ -205,7 +181,7 @@ function assertSafeText(text, location, lineNumber, column) {
 }
 
 function assertSafeAttrValue(key, value, lineNumber, column) {
-  if (/[\r\n\t]/.test(value)) {
+  if (CONTROL_WHITESPACE_PATTERN.test(value)) {
     throw new LessmarkError(`Attribute "${key}" cannot contain control whitespace`, lineNumber, column);
   }
   assertSafeText(value, `attribute "${key}"`, lineNumber, column);

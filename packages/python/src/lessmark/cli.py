@@ -3,7 +3,7 @@ import json
 import sys
 from pathlib import Path
 
-from .core import LessmarkError, format_lessmark, parse_lessmark, validate_source
+from .core import LessmarkError, ValidationError, format_lessmark, parse_lessmark, validate_source
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -58,10 +58,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lessmark: {error}", file=sys.stderr)
         return 1
 
-    return 1
+    raise AssertionError(f"Unhandled command: {args.command}")
 
 
-def _json_error(error: LessmarkError) -> dict[str, object]:
+def _json_error(error: LessmarkError) -> ValidationError:
     return {"message": error.message, "line": error.line, "column": error.column}
 
 

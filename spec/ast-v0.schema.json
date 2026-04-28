@@ -18,7 +18,7 @@
             "properties": {
               "type": { "const": "heading" },
               "level": { "type": "integer", "minimum": 1, "maximum": 6 },
-              "text": { "type": "string", "minLength": 1 }
+              "text": { "$ref": "#/$defs/headingText" }
             }
           },
           { "$ref": "#/$defs/noAttrBlock" },
@@ -32,6 +32,22 @@
     }
   },
   "$defs": {
+    "safeText": {
+      "type": "string",
+      "pattern": "^(?![\\s\\S]*</?[A-Za-z][A-Za-z0-9:-]*(?:\\s[^>]*)?>)[\\s\\S]*$"
+    },
+    "headingText": {
+      "allOf": [
+        { "$ref": "#/$defs/safeText" },
+        { "minLength": 1 }
+      ]
+    },
+    "attributeValue": {
+      "allOf": [
+        { "$ref": "#/$defs/safeText" },
+        { "pattern": "^[^\\r\\n\\t]*$" }
+      ]
+    },
     "emptyAttrs": {
       "type": "object",
       "additionalProperties": false
@@ -44,7 +60,7 @@
         "type": { "const": "block" },
         "name": { "enum": ["summary", "constraint", "example", "note", "warning"] },
         "attrs": { "$ref": "#/$defs/emptyAttrs" },
-        "text": { "type": "string" }
+        "text": { "$ref": "#/$defs/safeText" }
       }
     },
     "decisionBlock": {
@@ -59,10 +75,15 @@
           "required": ["id"],
           "additionalProperties": false,
           "properties": {
-            "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+            "id": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }
+              ]
+            }
           }
         },
-        "text": { "type": "string" }
+        "text": { "$ref": "#/$defs/safeText" }
       }
     },
     "taskBlock": {
@@ -77,10 +98,15 @@
           "required": ["status"],
           "additionalProperties": false,
           "properties": {
-            "status": { "enum": ["todo", "doing", "done", "blocked"] }
+            "status": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "enum": ["todo", "doing", "done", "blocked"] }
+              ]
+            }
           }
         },
-        "text": { "type": "string" }
+        "text": { "$ref": "#/$defs/safeText" }
       }
     },
     "fileBlock": {
@@ -96,12 +122,16 @@
           "additionalProperties": false,
           "properties": {
             "path": {
-              "type": "string",
-              "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:[\\\\/])(?![A-Za-z][A-Za-z0-9+.-]*:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+"
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                {
+                  "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:[\\\\/])(?![A-Za-z][A-Za-z0-9+.-]*:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+"
+                }
+              ]
             }
           }
         },
-        "text": { "type": "string" }
+        "text": { "$ref": "#/$defs/safeText" }
       }
     },
     "apiBlock": {
@@ -116,10 +146,15 @@
           "required": ["name"],
           "additionalProperties": false,
           "properties": {
-            "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$" }
+            "name": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$" }
+              ]
+            }
           }
         },
-        "text": { "type": "string" }
+        "text": { "$ref": "#/$defs/safeText" }
       }
     },
     "linkBlock": {
@@ -135,12 +170,16 @@
           "additionalProperties": false,
           "properties": {
             "href": {
-              "type": "string",
-              "pattern": "^(?!(?!(?:[Hh][Tt][Tt][Pp][Ss]?|[Mm][Aa][Ii][Ll][Tt][Oo]):)[A-Za-z][A-Za-z0-9+.-]*:).+"
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                {
+                  "pattern": "^(?!(?!(?:[Hh][Tt][Tt][Pp][Ss]?|[Mm][Aa][Ii][Ll][Tt][Oo]):)[A-Za-z][A-Za-z0-9+.-]*:).+"
+                }
+              ]
             }
           }
         },
-        "text": { "type": "string" }
+        "text": { "$ref": "#/$defs/safeText" }
       }
     }
   }
