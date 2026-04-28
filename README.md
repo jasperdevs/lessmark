@@ -26,7 +26,10 @@ lessmark check file.lmk
 lessmark format file.lmk
 ```
 
-## API
+<details>
+<summary>API and docs</summary>
+
+### API
 
 ```js
 import { parseLessmark } from "lessmark";
@@ -36,13 +39,15 @@ import { parseLessmark } from "lessmark";
 from lessmark import parse_lessmark
 ```
 
-## Docs
+### Docs
 
 - [V0 spec](./spec/lessmark-v0.md)
 - [AST schema](./spec/ast-v0.schema.json)
 - [Methodology](./docs/lessmark-methodology.md)
 - [Markdown research notes](./docs/markdown-research.md)
 - [Design comparison](./docs/design-comparison.md)
+
+</details>
 
 ## License
 
