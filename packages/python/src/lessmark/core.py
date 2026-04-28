@@ -51,6 +51,8 @@ class BlockAttrSpec(TypedDict):
 
 CORE_BLOCKS = {
     "summary",
+    "page",
+    "paragraph",
     "decision",
     "constraint",
     "task",
@@ -59,6 +61,12 @@ CORE_BLOCKS = {
     "example",
     "note",
     "warning",
+    "quote",
+    "callout",
+    "list",
+    "table",
+    "image",
+    "toc",
     "api",
     "link",
     "metadata",
@@ -68,6 +76,8 @@ CORE_BLOCKS = {
 
 TASK_STATUSES = {"todo", "doing", "done", "blocked"}
 RISK_LEVELS = {"low", "medium", "high", "critical"}
+LIST_KINDS = {"unordered", "ordered"}
+CALLOUT_KINDS = {"note", "tip", "warning", "caution"}
 HTML_TAG_PATTERN = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>")
 API_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
 CODE_LANG_PATTERN = re.compile(r"^[A-Za-z0-9_.+-]+$")
@@ -76,6 +86,8 @@ DECISION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 METADATA_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "summary": {"allowed": set(), "required": set()},
+    "page": {"allowed": {"title", "output"}, "required": set()},
+    "paragraph": {"allowed": set(), "required": set()},
     "decision": {"allowed": {"id"}, "required": {"id"}},
     "constraint": {"allowed": set(), "required": set()},
     "task": {"allowed": {"status"}, "required": {"status"}},
@@ -84,6 +96,12 @@ BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "example": {"allowed": set(), "required": set()},
     "note": {"allowed": set(), "required": set()},
     "warning": {"allowed": set(), "required": set()},
+    "quote": {"allowed": {"cite"}, "required": set()},
+    "callout": {"allowed": {"kind", "title"}, "required": {"kind"}},
+    "list": {"allowed": {"kind"}, "required": {"kind"}},
+    "table": {"allowed": {"columns"}, "required": {"columns"}},
+    "image": {"allowed": {"src", "alt", "caption"}, "required": {"src", "alt"}},
+    "toc": {"allowed": set(), "required": set()},
     "api": {"allowed": {"name"}, "required": {"name"}},
     "link": {"allowed": {"href"}, "required": {"href"}},
     "metadata": {"allowed": {"key"}, "required": {"key"}},
@@ -375,13 +393,23 @@ def _get_semantic_attr_error(name: str, attrs: Mapping[str, object]) -> str | No
     if name == "api" and isinstance(attrs.get("name"), str) and not API_NAME_PATTERN.match(attrs["name"]):
         return "@api name must be an identifier"
     if name == "link" and isinstance(attrs.get("href"), str) and not _is_safe_href(attrs["href"]):
-        return "@link href must not use an executable URL scheme"
+        return "@link href must be http, https, mailto, or a safe relative path"
     if name == "code" and isinstance(attrs.get("lang"), str) and not CODE_LANG_PATTERN.match(attrs["lang"]):
         return "@code lang must be a compact language identifier"
     if name == "metadata" and isinstance(attrs.get("key"), str) and not METADATA_KEY_PATTERN.match(attrs["key"]):
         return "@metadata key must be a lowercase dotted key"
     if name == "risk" and isinstance(attrs.get("level"), str) and attrs["level"] not in RISK_LEVELS:
         return "@risk level must be one of: low, medium, high, critical"
+    if name == "callout" and isinstance(attrs.get("kind"), str) and attrs["kind"] not in CALLOUT_KINDS:
+        return "@callout kind must be one of: note, tip, warning, caution"
+    if name == "list" and isinstance(attrs.get("kind"), str) and attrs["kind"] not in LIST_KINDS:
+        return "@list kind must be one of: unordered, ordered"
+    if name == "table" and isinstance(attrs.get("columns"), str) and not _is_valid_table_columns(attrs["columns"]):
+        return "@table columns must be pipe-separated non-empty labels"
+    if name == "image" and isinstance(attrs.get("src"), str) and not _is_safe_resource(attrs["src"]):
+        return "@image src must be a safe relative, http, or https URL"
+    if name == "page" and isinstance(attrs.get("output"), str) and not _is_safe_page_output(attrs["output"]):
+        return "@page output must be a safe relative .html path"
     if name == "depends-on" and isinstance(attrs.get("target"), str) and not DECISION_ID_PATTERN.match(attrs["target"]):
         return "@depends-on target must be a lowercase slug"
     return None
@@ -439,7 +467,25 @@ def _is_relative_project_path(path: str) -> bool:
 
 def _is_safe_href(href: str) -> bool:
     match = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", href)
-    return match is None or match.group(1).lower() in {"http", "https", "mailto"}
+    if match:
+        return match.group(1).lower() in {"http", "https", "mailto"}
+    return _is_relative_project_path(href)
+
+
+def _is_safe_resource(src: str) -> bool:
+    match = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", src)
+    if match:
+        return match.group(1).lower() in {"http", "https"}
+    return _is_relative_project_path(src)
+
+
+def _is_valid_table_columns(columns: str) -> bool:
+    labels = [column.strip() for column in columns.split("|")]
+    return len(labels) >= 1 and all(labels)
+
+
+def _is_safe_page_output(output: str) -> bool:
+    return _is_relative_project_path(output) and output.endswith(".html")
 
 
 def format_lessmark(source: str) -> str:
@@ -557,8 +603,8 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
         name = str(node["name"])
         attrs = node.get("attrs", {})
         text = str(node.get("text", ""))
-        if name in {"summary", "note"}:
-            chunks.append(text)
+        if name in {"summary", "note", "paragraph"}:
+            chunks.append(_inline_to_markdown(text))
         elif name == "warning":
             chunks.append(f"> Warning: {text}")
         elif name == "constraint":
@@ -583,9 +629,69 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
             chunks.append(f"```{attrs.get('lang', '')}\n{text}\n```")
         elif name == "example":
             chunks.append(f"Example:\n\n{text}")
+        elif name in {"page", "toc"}:
+            continue
+        elif name == "quote":
+            chunks.append(_quote_to_markdown(text, str(attrs.get("cite", ""))))
+        elif name == "callout":
+            chunks.append(_callout_to_markdown(str(attrs.get("kind", "note")), str(attrs.get("title", "")), text))
+        elif name == "list":
+            chunks.append(_list_to_markdown(str(attrs.get("kind", "unordered")), text))
+        elif name == "table":
+            chunks.append(_table_to_markdown(str(attrs.get("columns", "")), text))
+        elif name == "image":
+            chunks.append(_image_to_markdown(attrs, text))
         else:
             chunks.append(text)
     return "\n\n".join(chunk for chunk in chunks if chunk) + "\n"
+
+
+def _inline_to_markdown(text: str) -> str:
+    result = str(text)
+    result = re.sub(r"\{\{strong:([^{}]+)\}\}", r"**\1**", result)
+    result = re.sub(r"\{\{em:([^{}]+)\}\}", r"*\1*", result)
+    result = re.sub(r"\{\{code:([^{}]+)\}\}", r"`\1`", result)
+    result = re.sub(r"\{\{kbd:([^{}]+)\}\}", r"`\1`", result)
+    result = re.sub(r"\{\{link:([^{}|]+)\|([^{}]+)\}\}", r"[\1](\2)", result)
+    return result
+
+
+def _quote_to_markdown(text: str, cite: str) -> str:
+    quoted = "\n".join(f"> {line}" for line in _inline_to_markdown(text).splitlines())
+    return f"{quoted}\n>\n> Source: {cite}" if cite else quoted
+
+
+def _callout_to_markdown(kind: str, title: str, text: str) -> str:
+    label = (kind or "note").upper()
+    head = f"> [!{label}] {title}" if title else f"> [!{label}]"
+    body = "\n".join(f"> {line}" for line in _inline_to_markdown(text).splitlines())
+    return f"{head}\n{body}"
+
+
+def _list_to_markdown(kind: str, text: str) -> str:
+    rows: list[str] = []
+    for index, line in enumerate(row for row in text.splitlines() if row.strip()):
+        item = _inline_to_markdown(re.sub(r"^\s*-\s+", "", line).strip())
+        rows.append(f"{index + 1}. {item}" if kind == "ordered" else f"- {item}")
+    return "\n".join(rows)
+
+
+def _table_to_markdown(columns: str, text: str) -> str:
+    header = columns.split("|")
+    rows = [
+        [_inline_to_markdown(cell.strip()) for cell in row.split("|")]
+        for row in text.splitlines()
+        if row.strip()
+    ]
+    table = [f"| {' | '.join(header)} |", f"| {' | '.join('---' for _ in header)} |"]
+    table.extend(f"| {' | '.join(row)} |" for row in rows)
+    return "\n".join(table)
+
+
+def _image_to_markdown(attrs: Mapping[str, object], text: str) -> str:
+    image = f"![{attrs.get('alt', '')}]({attrs.get('src', '')})"
+    caption = str(attrs.get("caption") or text)
+    return f"{image}\n\n{_inline_to_markdown(caption)}" if caption else image
 
 
 def _escape_block_line(line: str) -> str:

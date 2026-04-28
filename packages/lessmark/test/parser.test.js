@@ -7,6 +7,7 @@ import {
   formatLessmark,
   formatAst,
   fromMarkdown,
+  renderHtml,
   toMarkdown,
   validateAst,
   validateSource
@@ -98,7 +99,10 @@ test("rejects task statuses outside the fixed set", async () => {
 test("rejects unsafe file paths, API names, and links", async () => {
   await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-file-path.lmk")), /relative project path/);
   await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-api-name.lmk")), /identifier/);
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-link-href.lmk")), /executable URL scheme/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-link-href.lmk")), /safe relative path/);
+  assert.equal(validateSource('@link href="docs/page.html"\nInternal docs page.\n').length, 0);
+  assert.throws(() => parseLessmark('@link href="//example.com"\nAmbiguous host.\n'), /safe relative path/);
+  assert.throws(() => parseLessmark('@link href="../page.html"\nParent traversal.\n'), /safe relative path/);
 });
 
 test("rejects invalid agent-context attrs", async () => {
@@ -106,6 +110,13 @@ test("rejects invalid agent-context attrs", async () => {
   await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-metadata-key.lmk")), /lowercase dotted key/);
   await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-risk-level.lmk")), /risk level/);
   await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-depends-on-target.lmk")), /lowercase slug/);
+});
+
+test("rejects invalid docs attrs", () => {
+  assert.throws(() => parseLessmark('@table columns="Name|"\nValue\n'), /pipe-separated non-empty labels/);
+  assert.throws(() => parseLessmark('@callout kind="custom"\nNo custom callouts.\n'), /@callout kind/);
+  assert.throws(() => parseLessmark('@page output="../index.html"\n'), /safe relative .html path/);
+  assert.throws(() => parseLessmark('@image src="javascript:alert(1)" alt="Bad"\n'), /safe relative, http, or https URL/);
 });
 
 test("can include source positions without changing the default AST", async () => {
@@ -157,7 +168,7 @@ test("validates semantic attrs on direct AST input", () => {
   assert.deepEqual(errors, [
     { message: "@file path must be a relative project path" },
     { message: "@api name must be an identifier" },
-    { message: "@link href must not use an executable URL scheme" }
+    { message: "@link href must be http, https, mailto, or a safe relative path" }
   ]);
 });
 
@@ -256,4 +267,31 @@ Homepage
   assert.match(markdown, /Typed context\./);
   assert.match(markdown, /- \[x\] Ship parser\./);
   assert.match(markdown, /\[Homepage\]\(https:\/\/example\.com\)/);
+});
+
+test("exports docs blocks to Markdown without losing structure", async () => {
+  const markdown = toMarkdown(await read("fixtures/valid/docs-page.lmk"));
+  assert.match(markdown, /^# Docs/);
+  assert.match(markdown, /\*\*explicit\*\*/);
+  assert.match(markdown, /> \[!TIP\] No hooks by default/);
+  assert.match(markdown, /- Parse strict source\./);
+  assert.match(markdown, /\| Feature \| Status \|/);
+  assert.match(markdown, /!\[Build pipeline\]\(assets\/diagram.svg\)/);
+});
+
+test("renders strict docs blocks to safe HTML", async () => {
+  const source = await read("fixtures/valid/docs-page.lmk");
+  const html = renderHtml(source, { document: true });
+  assert.match(html, /<title>Docs Home<\/title>/);
+  assert.match(html, /<strong>explicit<\/strong>/);
+  assert.match(html, /<a href="https:\/\/example.com">safe links<\/a>/);
+  assert.match(html, /<img src="assets\/diagram.svg" alt="Build pipeline">/);
+  assert.match(html, /<table>/);
+  assert.doesNotMatch(html, /<script/);
+});
+
+test("renderer rejects malformed docs functions and tables", () => {
+  assert.throws(() => renderHtml("@paragraph\n{{unknown:value}}\n"), /Unknown inline function/);
+  assert.throws(() => renderHtml('@table columns="A|B"\nOnly one cell\n'), /row cell count/);
+  assert.throws(() => renderHtml('@list kind="unordered"\nNo marker\n'), /item marker/);
 });

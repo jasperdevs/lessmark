@@ -31,7 +31,14 @@
           { "$ref": "#/$defs/linkBlock" },
           { "$ref": "#/$defs/metadataBlock" },
           { "$ref": "#/$defs/riskBlock" },
-          { "$ref": "#/$defs/dependsOnBlock" }
+          { "$ref": "#/$defs/dependsOnBlock" },
+          { "$ref": "#/$defs/quoteBlock" },
+          { "$ref": "#/$defs/calloutBlock" },
+          { "$ref": "#/$defs/listBlock" },
+          { "$ref": "#/$defs/tableBlock" },
+          { "$ref": "#/$defs/imageBlock" },
+          { "$ref": "#/$defs/pageBlock" },
+          { "$ref": "#/$defs/tocBlock" }
         ]
       }
     }
@@ -81,7 +88,7 @@
       "additionalProperties": false,
       "properties": {
         "type": { "const": "block" },
-        "name": { "enum": ["summary", "constraint", "example", "note", "warning"] },
+        "name": { "enum": ["summary", "paragraph", "constraint", "example", "note", "warning", "toc"] },
         "attrs": { "$ref": "#/$defs/emptyAttrs" },
         "text": { "$ref": "#/$defs/safeText" },
         "position": { "$ref": "#/$defs/position" }
@@ -302,6 +309,159 @@
             }
           }
         },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "quoteBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "quote" },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cite": { "$ref": "#/$defs/attributeValue" }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "calloutBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "callout" },
+        "attrs": {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "enum": ["note", "tip", "warning", "caution"] }
+              ]
+            },
+            "title": { "$ref": "#/$defs/attributeValue" }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "listBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "list" },
+        "attrs": {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "enum": ["unordered", "ordered"] }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "tableBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "table" },
+        "attrs": {
+          "type": "object",
+          "required": ["columns"],
+          "additionalProperties": false,
+          "properties": {
+            "columns": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^[^|\\s][^|]*(\\|[^|\\s][^|]*)*$" }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "imageBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "image" },
+        "attrs": {
+          "type": "object",
+          "required": ["src", "alt"],
+          "additionalProperties": false,
+          "properties": {
+            "src": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^(https?://|(?!(?:/|\\\\|[A-Za-z]:[\\\\/]|[A-Za-z][A-Za-z0-9+.-]*:|.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$))).+)" }
+              ]
+            },
+            "alt": { "$ref": "#/$defs/attributeValue" },
+            "caption": { "$ref": "#/$defs/attributeValue" }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "pageBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "page" },
+        "attrs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title": { "$ref": "#/$defs/attributeValue" },
+            "output": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:[\\\\/])(?![A-Za-z][A-Za-z0-9+.-]*:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+\\.html$" }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "tocBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "toc" },
+        "attrs": { "$ref": "#/$defs/emptyAttrs" },
         "text": { "$ref": "#/$defs/safeText" },
         "position": { "$ref": "#/$defs/position" }
       }

@@ -1,0 +1,74 @@
+{
+  "type": "document",
+  "children": [
+    {
+      "type": "block",
+      "name": "page",
+      "attrs": {
+        "title": "Docs Home",
+        "output": "index.html"
+      },
+      "text": ""
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Docs Home"
+    },
+    {
+      "type": "block",
+      "name": "toc",
+      "attrs": {},
+      "text": ""
+    },
+    {
+      "type": "block",
+      "name": "paragraph",
+      "attrs": {},
+      "text": "Lessmark supports {{strong:explicit}} inline functions and {{link:safe links|https://example.com}}."
+    },
+    {
+      "type": "block",
+      "name": "image",
+      "attrs": {
+        "src": "assets/diagram.svg",
+        "alt": "Build pipeline",
+        "caption": "Static site output"
+      },
+      "text": ""
+    },
+    {
+      "type": "block",
+      "name": "list",
+      "attrs": {
+        "kind": "unordered"
+      },
+      "text": "- Parse strict source.\n- Validate typed blocks.\n- Render safe HTML."
+    },
+    {
+      "type": "block",
+      "name": "table",
+      "attrs": {
+        "columns": "Feature|Status"
+      },
+      "text": "Typed blocks|done\nRaw HTML|rejected"
+    },
+    {
+      "type": "block",
+      "name": "quote",
+      "attrs": {
+        "cite": "BGs Labs"
+      },
+      "text": "If you want a simple language, stay simple."
+    },
+    {
+      "type": "block",
+      "name": "callout",
+      "attrs": {
+        "kind": "tip",
+        "title": "No hooks by default"
+      },
+      "text": "Use built-in blocks before adding execution surfaces."
+    }
+  ]
+}

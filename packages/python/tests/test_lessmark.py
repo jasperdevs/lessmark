@@ -68,8 +68,13 @@ class LessmarkPythonTests(unittest.TestCase):
             parse_lessmark('@file path="../secrets.txt"\nFile paths must stay inside the project.\n')
         with self.assertRaisesRegex(LessmarkError, "identifier"):
             parse_lessmark('@api name="123 invalid"\nAPI names must be identifiers.\n')
-        with self.assertRaisesRegex(LessmarkError, "executable URL scheme"):
+        with self.assertRaisesRegex(LessmarkError, "safe relative path"):
             parse_lessmark('@link href="javascript:alert(1)"\nExecutable URL schemes are not allowed.\n')
+        self.assertEqual(validate_source('@link href="docs/page.html"\nInternal docs page.\n'), [])
+        with self.assertRaisesRegex(LessmarkError, "safe relative path"):
+            parse_lessmark('@link href="//example.com"\nAmbiguous host.\n')
+        with self.assertRaisesRegex(LessmarkError, "safe relative path"):
+            parse_lessmark('@link href="../page.html"\nParent traversal.\n')
 
     def test_rejects_invalid_agent_context_attrs(self):
         with self.assertRaisesRegex(LessmarkError, "compact language identifier"):
@@ -80,6 +85,16 @@ class LessmarkPythonTests(unittest.TestCase):
             parse_lessmark('@risk level="later"\nRisk levels must stay in the fixed set.\n')
         with self.assertRaisesRegex(LessmarkError, "lowercase slug"):
             parse_lessmark('@depends-on target="../secret"\nDependency targets must be lowercase slugs.\n')
+
+    def test_rejects_invalid_docs_attrs(self):
+        with self.assertRaisesRegex(LessmarkError, "pipe-separated non-empty labels"):
+            parse_lessmark('@table columns="Name|"\nValue\n')
+        with self.assertRaisesRegex(LessmarkError, "@callout kind"):
+            parse_lessmark('@callout kind="custom"\nNo custom callouts.\n')
+        with self.assertRaisesRegex(LessmarkError, "safe relative .html path"):
+            parse_lessmark('@page output="../index.html"\n')
+        with self.assertRaisesRegex(LessmarkError, "safe relative, http, or https URL"):
+            parse_lessmark('@image src="javascript:alert(1)" alt="Bad"\n')
 
     def test_can_include_source_positions_without_changing_default_ast(self):
         source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
@@ -132,7 +147,7 @@ class LessmarkPythonTests(unittest.TestCase):
             [
                 {"message": "@file path must be a relative project path"},
                 {"message": "@api name must be an identifier"},
-                {"message": "@link href must not use an executable URL scheme"},
+                {"message": "@link href must be http, https, mailto, or a safe relative path"},
             ],
         )
 
@@ -188,6 +203,15 @@ class LessmarkPythonTests(unittest.TestCase):
         markdown = to_markdown(source)
         self.assertTrue(markdown.startswith("# Project Context"))
         self.assertIn("- [ ] Add export settings.", markdown)
+
+    def test_exports_docs_blocks_to_markdown(self):
+        source = (ROOT / "fixtures/valid/docs-page.lmk").read_text(encoding="utf-8")
+        markdown = to_markdown(source)
+        self.assertTrue(markdown.startswith("# Docs"))
+        self.assertIn("**explicit**", markdown)
+        self.assertIn("> [!TIP] No hooks by default", markdown)
+        self.assertIn("| Feature | Status |", markdown)
+        self.assertIn("![Build pipeline](assets/diagram.svg)", markdown)
 
     def test_cli_check_json_prints_agent_readable_errors(self):
         output = StringIO()

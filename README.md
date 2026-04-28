@@ -14,7 +14,7 @@
   <a href="./LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-black?style=flat-square"></a>
 </p>
 
-Lessmark is a small Markdown-inspired format built around typed blocks, a stable JSON AST, validation, formatting, and no raw HTML or JSX.
+Lessmark is a small Markdown-inspired format built around typed blocks, a stable JSON AST, validation, formatting, safe HTML rendering, and no raw HTML or JSX.
 It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
 It is intentionally stricter than Markdown and optimized for agent context files.
 
@@ -38,15 +38,17 @@ lessmark check file.lmk
 lessmark format file.lmk
 lessmark from-markdown README.md
 lessmark to-markdown file.lmk
+lessmark render --document docs/index.lmk
+lessmark build docs public
 ```
 
 ## Blocks
 
-Lessmark v0 supports `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `note`, `warning`, `api`, `link`, `metadata`, `risk`, and `depends-on`.
+Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `api`, `metadata`, `risk`, and `depends-on`, plus docs blocks like `page`, `paragraph`, `image`, `list`, `table`, `quote`, `callout`, and `toc`.
 
 See [`docs/spec.md`](./docs/spec.md) and [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json) for the source and AST contracts.
 
-Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), and [`docs/markdown-comparison.md`](./docs/markdown-comparison.md).
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/docs-profile.md`](./docs/docs-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), [`docs/markdown-comparison.md`](./docs/markdown-comparison.md), and [`docs/article-alignment.md`](./docs/article-alignment.md).
 
 <details>
 <summary>API and docs</summary>

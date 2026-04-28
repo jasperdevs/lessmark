@@ -150,7 +150,7 @@ fn markdown_node(node: &Node) -> Option<String> {
         Node::Block {
             name, attrs, text, ..
         } => match name.as_str() {
-            "summary" | "note" => Some(text.clone()),
+            "summary" | "note" | "paragraph" => Some(inline_to_markdown(text)),
             "warning" => Some(format!("> Warning: {}", text)),
             "constraint" => Some(format!("> Constraint: {}", text)),
             "decision" => Some(format!(
@@ -207,8 +207,123 @@ fn markdown_node(node: &Node) -> Option<String> {
                 text
             )),
             "example" => Some(format!("Example:\n\n{}", text)),
+            "page" | "toc" => None,
+            "quote" => Some(quote_to_markdown(
+                text,
+                attrs.get("cite").map(String::as_str).unwrap_or(""),
+            )),
+            "callout" => Some(callout_to_markdown(
+                attrs.get("kind").map(String::as_str).unwrap_or("note"),
+                attrs.get("title").map(String::as_str).unwrap_or(""),
+                text,
+            )),
+            "list" => Some(list_to_markdown(
+                attrs.get("kind").map(String::as_str).unwrap_or("unordered"),
+                text,
+            )),
+            "table" => Some(table_to_markdown(
+                attrs.get("columns").map(String::as_str).unwrap_or(""),
+                text,
+            )),
+            "image" => Some(image_to_markdown(attrs, text)),
             _ => Some(text.clone()),
         },
+    }
+}
+
+fn inline_to_markdown(text: &str) -> String {
+    let replacements = [
+        (r"\{\{strong:([^{}]+)\}\}", "**$1**"),
+        (r"\{\{em:([^{}]+)\}\}", "*$1*"),
+        (r"\{\{code:([^{}]+)\}\}", "`$1`"),
+        (r"\{\{kbd:([^{}]+)\}\}", "`$1`"),
+        (r"\{\{link:([^{}|]+)\|([^{}]+)\}\}", "[$1]($2)"),
+    ];
+    replacements
+        .iter()
+        .fold(text.to_string(), |current, (pattern, replacement)| {
+            Regex::new(pattern)
+                .expect("inline export regex compiles")
+                .replace_all(&current, *replacement)
+                .to_string()
+        })
+}
+
+fn quote_to_markdown(text: &str, cite: &str) -> String {
+    let quoted = inline_to_markdown(text)
+        .lines()
+        .map(|line| format!("> {}", line))
+        .collect::<Vec<_>>()
+        .join("\n");
+    if cite.is_empty() {
+        quoted
+    } else {
+        format!("{}\n>\n> Source: {}", quoted, cite)
+    }
+}
+
+fn callout_to_markdown(kind: &str, title: &str, text: &str) -> String {
+    let label = kind.to_uppercase();
+    let head = if title.is_empty() {
+        format!("> [!{}]", label)
+    } else {
+        format!("> [!{}] {}", label, title)
+    };
+    let body = inline_to_markdown(text)
+        .lines()
+        .map(|line| format!("> {}", line))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{}\n{}", head, body)
+}
+
+fn list_to_markdown(kind: &str, text: &str) -> String {
+    text.lines()
+        .filter(|line| !line.trim().is_empty())
+        .enumerate()
+        .map(|(index, line)| {
+            let item = inline_to_markdown(line.trim_start().trim_start_matches("- ").trim());
+            if kind == "ordered" {
+                format!("{}. {}", index + 1, item)
+            } else {
+                format!("- {}", item)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn table_to_markdown(columns: &str, text: &str) -> String {
+    let header = columns.split('|').collect::<Vec<_>>();
+    let mut table = vec![
+        format!("| {} |", header.join(" | ")),
+        format!("| {} |", vec!["---"; header.len()].join(" | ")),
+    ];
+    for row in text.lines().filter(|line| !line.trim().is_empty()) {
+        let cells = row
+            .split('|')
+            .map(|cell| inline_to_markdown(cell.trim()))
+            .collect::<Vec<_>>();
+        table.push(format!("| {} |", cells.join(" | ")));
+    }
+    table.join("\n")
+}
+
+fn image_to_markdown(attrs: &BTreeMap<String, String>, text: &str) -> String {
+    let image = format!(
+        "![{}]({})",
+        attrs.get("alt").map(String::as_str).unwrap_or(""),
+        attrs.get("src").map(String::as_str).unwrap_or("")
+    );
+    let caption = attrs
+        .get("caption")
+        .map(String::as_str)
+        .unwrap_or(text)
+        .trim();
+    if caption.is_empty() {
+        image
+    } else {
+        format!("{}\n\n{}", image, inline_to_markdown(caption))
     }
 }
 

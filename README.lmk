@@ -2,7 +2,7 @@
 
 @summary
 A strict, agent-readable markdown alternative. Typed blocks, a stable
-JSON AST, validation and formatting, and no raw HTML or JSX.
+JSON AST, validation, formatting, safe HTML rendering, and no raw HTML or JSX.
 
 @warning
 Lessmark is intentionally stricter than Markdown and optimized for agent
@@ -44,11 +44,24 @@ lessmark check file.lmk
 @example
 lessmark format file.lmk
 
+@example
+lessmark render --document docs/index.lmk
+
+@example
+lessmark build docs public
+
 ## Blocks
 
 @note
-summary, decision, constraint, task, file, code, example, note, warning,
-api, link, metadata, risk, and depends-on.
+Agent-context blocks include summary, decision, constraint, task, file,
+code, example, api, metadata, risk, and depends-on. Docs blocks include
+page, paragraph, image, list, table, quote, callout, and toc.
+
+@file path="docs/docs-profile.md"
+Strict docs and static-site rendering profile.
+
+@file path="docs/article-alignment.md"
+Mapping against the BGs Labs Markdown critique.
 
 ## Registration
 

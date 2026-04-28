@@ -86,7 +86,7 @@ export function toMarkdown(lessmark) {
     if (node.type === "heading") return `${"#".repeat(node.level)} ${node.text}`;
     if (node.type !== "block") return "";
 
-    if (node.name === "summary" || node.name === "note") return node.text;
+    if (node.name === "summary" || node.name === "note" || node.name === "paragraph") return inlineToMarkdown(node.text);
     if (node.name === "warning") return `> Warning: ${node.text}`;
     if (node.name === "constraint") return `> Constraint: ${node.text}`;
     if (node.name === "decision") return `**Decision ${node.attrs.id}:** ${node.text}`;
@@ -99,9 +99,69 @@ export function toMarkdown(lessmark) {
     if (node.name === "depends-on") return `> Depends on \`${node.attrs.target}\`: ${node.text}`;
     if (node.name === "code") return `\`\`\`${node.attrs.lang ?? ""}\n${node.text}\n\`\`\``;
     if (node.name === "example") return `Example:\n\n${node.text}`;
+    if (node.name === "page" || node.name === "toc") return "";
+    if (node.name === "quote") return quoteToMarkdown(node.text, node.attrs.cite);
+    if (node.name === "callout") return calloutToMarkdown(node.attrs.kind, node.attrs.title, node.text);
+    if (node.name === "list") return listToMarkdown(node.attrs.kind, node.text);
+    if (node.name === "table") return tableToMarkdown(node.attrs.columns, node.text);
+    if (node.name === "image") return imageToMarkdown(node.attrs, node.text);
     return node.text;
   });
   return `${chunks.filter(Boolean).join("\n\n")}\n`;
+}
+
+function inlineToMarkdown(text) {
+  return String(text)
+    .replace(/\{\{strong:([^{}]+)\}\}/g, "**$1**")
+    .replace(/\{\{em:([^{}]+)\}\}/g, "*$1*")
+    .replace(/\{\{code:([^{}]+)\}\}/g, "`$1`")
+    .replace(/\{\{kbd:([^{}]+)\}\}/g, "`$1`")
+    .replace(/\{\{link:([^{}|]+)\|([^{}]+)\}\}/g, "[$1]($2)");
+}
+
+function quoteToMarkdown(text, cite) {
+  const quoted = inlineToMarkdown(text)
+    .split("\n")
+    .map((line) => `> ${line}`)
+    .join("\n");
+  return cite ? `${quoted}\n>\n> Source: ${cite}` : quoted;
+}
+
+function calloutToMarkdown(kind, title, text) {
+  const label = String(kind || "note").toUpperCase();
+  const head = title ? `> [!${label}] ${title}` : `> [!${label}]`;
+  const body = inlineToMarkdown(text)
+    .split("\n")
+    .map((line) => `> ${line}`)
+    .join("\n");
+  return `${head}\n${body}`;
+}
+
+function listToMarkdown(kind, text) {
+  return String(text)
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line, index) => {
+      const item = inlineToMarkdown(line.replace(/^\s*-\s+/, "").trim());
+      return kind === "ordered" ? `${index + 1}. ${item}` : `- ${item}`;
+    })
+    .join("\n");
+}
+
+function tableToMarkdown(columns, text) {
+  const header = String(columns || "").split("|");
+  const rows = String(text)
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => line.split("|").map((cell) => inlineToMarkdown(cell.trim())));
+  const table = [`| ${header.join(" | ")} |`, `| ${header.map(() => "---").join(" | ")} |`];
+  for (const row of rows) table.push(`| ${row.join(" | ")} |`);
+  return table.join("\n");
+}
+
+function imageToMarkdown(attrs, text) {
+  const image = `![${attrs.alt}](${attrs.src})`;
+  return attrs.caption || text ? `${image}\n\n${inlineToMarkdown(attrs.caption || text)}` : image;
 }
 
 function escapeBlockLine(line) {

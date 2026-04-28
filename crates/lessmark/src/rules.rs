@@ -1,4 +1,6 @@
-use crate::grammar::{BlockAttrSpec, BLOCK_ATTR_SPECS, RISK_LEVELS, TASK_STATUSES};
+use crate::grammar::{
+    BlockAttrSpec, BLOCK_ATTR_SPECS, CALLOUT_KINDS, LIST_KINDS, RISK_LEVELS, TASK_STATUSES,
+};
 use regex::Regex;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -116,12 +118,30 @@ pub fn is_safe_href(href: &str) -> bool {
     uri_scheme_pattern()
         .captures(href)
         .and_then(|captures| captures.get(1))
-        .is_none_or(|scheme| {
-            matches!(
-                scheme.as_str().to_ascii_lowercase().as_str(),
-                "http" | "https" | "mailto"
-            )
-        })
+        .map_or_else(
+            || is_relative_project_path(href),
+            |scheme| {
+                matches!(
+                    scheme.as_str().to_ascii_lowercase().as_str(),
+                    "http" | "https" | "mailto"
+                )
+            },
+        )
+}
+
+pub fn is_safe_resource(src: &str) -> bool {
+    uri_scheme_pattern()
+        .captures(src)
+        .and_then(|captures| captures.get(1))
+        .map_or_else(
+            || is_relative_project_path(src),
+            |scheme| {
+                matches!(
+                    scheme.as_str().to_ascii_lowercase().as_str(),
+                    "http" | "https"
+                )
+            },
+        )
 }
 
 fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<String> {
@@ -156,7 +176,9 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
     if name == "link" {
         if let Some(href) = attrs.get("href") {
             if !is_safe_href(href) {
-                return Some("@link href must not use an executable URL scheme".to_string());
+                return Some(
+                    "@link href must be http, https, mailto, or a safe relative path".to_string(),
+                );
             }
         }
     }
@@ -181,6 +203,43 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
             }
         }
     }
+    if name == "callout" {
+        if let Some(kind) = attrs.get("kind") {
+            if !CALLOUT_KINDS.contains(&kind.as_str()) {
+                return Some(
+                    "@callout kind must be one of: note, tip, warning, caution".to_string(),
+                );
+            }
+        }
+    }
+    if name == "list" {
+        if let Some(kind) = attrs.get("kind") {
+            if !LIST_KINDS.contains(&kind.as_str()) {
+                return Some("@list kind must be one of: unordered, ordered".to_string());
+            }
+        }
+    }
+    if name == "table" {
+        if let Some(columns) = attrs.get("columns") {
+            if !is_valid_table_columns(columns) {
+                return Some("@table columns must be pipe-separated non-empty labels".to_string());
+            }
+        }
+    }
+    if name == "image" {
+        if let Some(src) = attrs.get("src") {
+            if !is_safe_resource(src) {
+                return Some("@image src must be a safe relative, http, or https URL".to_string());
+            }
+        }
+    }
+    if name == "page" {
+        if let Some(output) = attrs.get("output") {
+            if !is_safe_page_output(output) {
+                return Some("@page output must be a safe relative .html path".to_string());
+            }
+        }
+    }
     if name == "depends-on" {
         if let Some(target) = attrs.get("target") {
             if !decision_id_pattern().is_match(target) {
@@ -189,6 +248,15 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
         }
     }
     None
+}
+
+fn is_valid_table_columns(columns: &str) -> bool {
+    let labels = columns.split('|').map(str::trim).collect::<Vec<_>>();
+    !labels.is_empty() && labels.iter().all(|column| !column.is_empty())
+}
+
+fn is_safe_page_output(output: &str) -> bool {
+    is_relative_project_path(output) && output.ends_with(".html")
 }
 
 fn semantic_attr_error_from_value(

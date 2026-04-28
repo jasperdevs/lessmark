@@ -44,6 +44,49 @@ fn rejects_all_invalid_fixtures() {
 }
 
 #[test]
+fn rejects_invalid_docs_attrs() {
+    let cases = [
+        (
+            "@table columns=\"Name|\"\nValue\n",
+            "pipe-separated non-empty labels",
+        ),
+        (
+            "@callout kind=\"custom\"\nNo custom callouts.\n",
+            "@callout kind",
+        ),
+        (
+            "@page output=\"../index.html\"\n",
+            "safe relative .html path",
+        ),
+        (
+            "@image src=\"javascript:alert(1)\" alt=\"Bad\"\n",
+            "safe relative, http, or https URL",
+        ),
+    ];
+    for (source, message) in cases {
+        let error = parse_lessmark(source).expect_err("invalid docs attr rejects");
+        assert!(error.message.contains(message), "{}", error.message);
+    }
+}
+
+#[test]
+fn validates_safe_links() {
+    assert!(validate_source("@link href=\"docs/page.html\"\nInternal docs page.\n").is_empty());
+    for source in [
+        "@link href=\"javascript:alert(1)\"\nExecutable URL schemes are not allowed.\n",
+        "@link href=\"//example.com\"\nAmbiguous host.\n",
+        "@link href=\"../page.html\"\nParent traversal.\n",
+    ] {
+        let error = parse_lessmark(source).expect_err("unsafe link rejects");
+        assert!(
+            error.message.contains("safe relative path"),
+            "{}",
+            error.message
+        );
+    }
+}
+
+#[test]
 fn formatter_is_idempotent() {
     let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
         .expect("fixture is readable");
@@ -126,4 +169,16 @@ fn exports_lessmark_to_markdown() {
     let markdown = to_markdown(&source).expect("exports markdown");
     assert!(markdown.starts_with("# Project Context"));
     assert!(markdown.contains("- [ ] Add export settings."));
+}
+
+#[test]
+fn exports_docs_blocks_to_markdown() {
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/docs-page.lmk"))
+        .expect("fixture is readable");
+    let markdown = to_markdown(&source).expect("exports markdown");
+    assert!(markdown.starts_with("# Docs"));
+    assert!(markdown.contains("**explicit**"));
+    assert!(markdown.contains("> [!TIP] No hooks by default"));
+    assert!(markdown.contains("| Feature | Status |"));
+    assert!(markdown.contains("![Build pipeline](assets/diagram.svg)"));
 }

@@ -15,5 +15,7 @@ Use this before publishing npm, PyPI, crates.io, or a GitHub release.
    - `lessmark format`
    - `lessmark from-markdown`
    - `lessmark to-markdown`
+   - `lessmark render --document`
+   - `lessmark build`
 6. Update changelog/release notes.
 7. Tag only after package dry-runs and CI pass.
