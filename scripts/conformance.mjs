@@ -22,6 +22,10 @@ for (const name of readdirSync(validDir).filter((file) => file.endsWith(".lmk"))
   const formatted = formatLessmark(source);
   assert.equal(pythonText("format", path), formatted, `python format ${name}`);
   assert.equal(rustText(["format", path]), formatted, `rust format ${name}`);
+
+  const exported = toMarkdown(source);
+  assert.equal(pythonText("to-markdown", path), exported, `python to-markdown ${name}`);
+  assert.equal(rustText(["to-markdown", path]), exported, `rust to-markdown ${name}`);
 }
 
 for (const name of readdirSync(invalidDir).filter((file) => file.endsWith(".lmk")).sort()) {
@@ -48,11 +52,6 @@ const markdownSource = readFileSync(markdownFixture, "utf8");
 const imported = fromMarkdown(markdownSource);
 assert.equal(pythonText("from-markdown", markdownFixture), imported, "python from-markdown parity");
 assert.equal(rustText(["from-markdown", markdownFixture]), imported, "rust from-markdown parity");
-
-const lessmarkFixture = join(validDir, "project-context.lmk");
-const exported = toMarkdown(readFileSync(lessmarkFixture, "utf8"));
-assert.equal(pythonText("to-markdown", lessmarkFixture), exported, "python to-markdown parity");
-assert.equal(rustText(["to-markdown", lessmarkFixture]), exported, "rust to-markdown parity");
 
 console.log("conformance ok");
 

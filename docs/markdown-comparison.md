@@ -66,9 +66,10 @@ Overall, if support/network effects are excluded:
 1. A formal language spec with more examples and explicit error cases.
 2. A public conformance badge and test corpus policy.
 3. More fixtures for edge cases: escapes, line endings, Unicode, long files, malformed docs blocks, and renderer failures.
-4. A constrained extension API if build-time hooks are ever added.
-5. IANA submission for `text/vnd.lessmark` after the spec URL and contact are stable.
-6. Editor and GitHub recognition when the language surface settles.
+4. A public policy for named profiles and variants so Lessmark does not fragment into private flavors.
+5. A constrained extension API if build-time hooks are ever added.
+6. IANA submission for `text/vnd.lessmark` after the spec URL and contact are stable.
+7. Editor and GitHub recognition when the language surface settles.
 
 ## Best Current Positioning
 

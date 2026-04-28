@@ -63,6 +63,9 @@ Strict docs and static-site rendering profile.
 @file path="docs/article-alignment.md"
 Mapping against the BGs Labs Markdown critique.
 
+@file path="docs/standardization.md"
+Standardization lessons from Markdown and CommonMark.
+
 ## Registration
 
 @file path="docs/file-type-registration.md"

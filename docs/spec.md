@@ -148,6 +148,17 @@ lessmark build docs public
 
 Rendering escapes text, rejects unknown inline functions, rejects executable link schemes, and never passes raw source text through as HTML.
 
+## Conformance
+
+The conformance contract is:
+
+- `docs/spec.md` for source syntax and behavior.
+- `schemas/ast-v0.schema.json` for AST shape.
+- `fixtures/valid/` and `fixtures/invalid/` for accepted and rejected examples.
+- `scripts/conformance.mjs` for JavaScript, Python, and Rust parity.
+
+Adding syntax requires updating all four surfaces in the same change.
+
 ## AST
 
 The default AST is stable JSON:
