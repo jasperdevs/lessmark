@@ -3,7 +3,7 @@
   "displayName": "Lessmark",
   "description": "Syntax highlighting for Lessmark agent context files.",
   "version": "0.1.2",
-  "publisher": "jasperdevs",
+  "publisher": "JasperDevs",
   "license": "MIT",
   "repository": {
     "type": "git",
