@@ -15,6 +15,7 @@ def main(argv: list[str] | None = None) -> int:
 
     check_parser = subparsers.add_parser("check")
     check_parser.add_argument("file")
+    check_parser.add_argument("--json", action="store_true")
 
     format_parser = subparsers.add_parser("format")
     format_parser.add_argument("file")
@@ -32,6 +33,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "check":
             errors = validate_source(source)
+            if args.json:
+                print(json.dumps({"ok": len(errors) == 0, "errors": errors}, indent=2))
+                return 1 if errors else 0
             if errors:
                 for error in errors:
                     print(f"error: {error['message']}", file=sys.stderr)
@@ -48,10 +52,17 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     except LessmarkError as error:
+        if args.command == "check" and getattr(args, "json", False):
+            print(json.dumps({"ok": False, "errors": [_json_error(error)]}, indent=2))
+            return 1
         print(f"lessmark: {error}", file=sys.stderr)
         return 1
 
     return 1
+
+
+def _json_error(error: LessmarkError) -> dict[str, object]:
+    return {"message": error.message, "line": error.line, "column": error.column}
 
 
 if __name__ == "__main__":

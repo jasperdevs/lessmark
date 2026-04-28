@@ -17,9 +17,14 @@ try {
     const source = await readFile(file, "utf8");
     console.log(JSON.stringify(parseLessmark(source), null, 2));
   } else if (command === "check") {
-    const file = requireFile(args[1]);
+    const json = args.includes("--json");
+    const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--json"));
     const source = await readFile(file, "utf8");
     const errors = validateSource(source);
+    if (json) {
+      console.log(JSON.stringify({ ok: errors.length === 0, errors }, null, 2));
+      process.exit(errors.length > 0 ? 1 : 0);
+    }
     if (errors.length > 0) {
       for (const error of errors) console.error(`error: ${error.message}`);
       process.exit(1);
@@ -39,6 +44,10 @@ try {
     throw new Error(`Unknown command: ${command}`);
   }
 } catch (error) {
+  if (command === "check" && args.includes("--json")) {
+    console.log(JSON.stringify({ ok: false, errors: [toJsonError(error)] }, null, 2));
+    process.exit(1);
+  }
   console.error(`${basename(process.argv[1])}: ${error.message}`);
   process.exit(1);
 }
@@ -56,6 +65,14 @@ function printHelp() {
 Usage:
   lessmark parse file.lmk
   lessmark check file.lmk
+  lessmark check --json file.lmk
   lessmark format file.lmk
   lessmark format --write file.lmk`);
+}
+
+function toJsonError(error) {
+  const result = { message: error.message ?? String(error) };
+  if (Number.isInteger(error.line)) result.line = error.line;
+  if (Number.isInteger(error.column)) result.column = error.column;
+  return result;
 }

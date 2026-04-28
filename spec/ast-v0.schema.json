@@ -95,7 +95,10 @@
           "required": ["path"],
           "additionalProperties": false,
           "properties": {
-            "path": { "type": "string", "minLength": 1 }
+            "path": {
+              "type": "string",
+              "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:[\\\\/])(?![A-Za-z][A-Za-z0-9+.-]*:)(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+"
+            }
           }
         },
         "text": { "type": "string" }
@@ -113,7 +116,7 @@
           "required": ["name"],
           "additionalProperties": false,
           "properties": {
-            "name": { "type": "string", "minLength": 1 }
+            "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$" }
           }
         },
         "text": { "type": "string" }
@@ -131,7 +134,10 @@
           "required": ["href"],
           "additionalProperties": false,
           "properties": {
-            "href": { "type": "string", "minLength": 1 }
+            "href": {
+              "type": "string",
+              "pattern": "^(?!(?!(?:[Hh][Tt][Tt][Pp][Ss]?|[Mm][Aa][Ii][Ll][Tt][Oo]):)[A-Za-z][A-Za-z0-9+.-]*:).+"
+            }
           }
         },
         "text": { "type": "string" }

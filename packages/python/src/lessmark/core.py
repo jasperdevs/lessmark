@@ -164,7 +164,10 @@ def _read_quoted(input_text: str, quote_index: int, line_number: int, start_colu
 
 
 def validate_source(source: str) -> list[dict[str, str]]:
-    return validate_ast(parse_lessmark(source))
+    try:
+        return validate_ast(parse_lessmark(source))
+    except LessmarkError as error:
+        return [_validation_error(error)]
 
 
 def validate_ast(ast: dict[str, Any]) -> list[dict[str, str]]:
@@ -221,6 +224,12 @@ def _validate_block_attrs(name: str, attrs: dict[str, str], line_number: int) ->
         raise LessmarkError("@task status must be one of: todo, doing, done, blocked", line_number, 1)
     if name == "decision" and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
         raise LessmarkError("@decision id must be a lowercase slug", line_number, 1)
+    if name == "file" and not _is_relative_project_path(attrs["path"]):
+        raise LessmarkError("@file path must be a relative project path", line_number, 1)
+    if name == "api" and not re.match(r"^[A-Za-z_][A-Za-z0-9_.-]*$", attrs["name"]):
+        raise LessmarkError("@api name must be an identifier", line_number, 1)
+    if name == "link" and not _is_safe_href(attrs["href"]):
+        raise LessmarkError("@link href must not use an executable URL scheme", line_number, 1)
 
 
 def _assert_safe_text(text: str, location: str, line_number: int, column: int) -> None:
@@ -261,6 +270,12 @@ def _validate_attrs(node: dict[str, Any], errors: list[dict[str, str]]) -> None:
         errors.append({"message": "@task status must be one of: todo, doing, done, blocked"})
     if name == "decision" and attrs.get("id") and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
         errors.append({"message": "@decision id must be a lowercase slug"})
+    if name == "file" and attrs.get("path") and not _is_relative_project_path(attrs["path"]):
+        errors.append({"message": "@file path must be a relative project path"})
+    if name == "api" and attrs.get("name") and not re.match(r"^[A-Za-z_][A-Za-z0-9_.-]*$", attrs["name"]):
+        errors.append({"message": "@api name must be an identifier"})
+    if name == "link" and attrs.get("href") and not _is_safe_href(attrs["href"]):
+        errors.append({"message": "@link href must not use an executable URL scheme"})
 
 
 def _validate_exact_keys(value: dict[str, Any], expected: set[str], errors: list[dict[str, str]], location: str) -> None:
@@ -270,11 +285,35 @@ def _validate_exact_keys(value: dict[str, Any], expected: set[str], errors: list
         errors.append({"message": f'{location} is missing property "{key}"'})
 
 
+def _validation_error(error: LessmarkError) -> dict[str, Any]:
+    return {"message": error.message, "line": error.line, "column": error.column}
+
+
+def _is_relative_project_path(path: str) -> bool:
+    parts = re.split(r"[\\/]+", path)
+    return (
+        len(path) > 0
+        and not path.startswith(("/", "\\"))
+        and not re.match(r"^[A-Za-z]:[\\/]", path)
+        and not re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", path)
+        and ".." not in parts
+    )
+
+
+def _is_safe_href(href: str) -> bool:
+    match = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", href)
+    return match is None or match.group(1).lower() in {"http", "https", "mailto"}
+
+
 def format_lessmark(source: str) -> str:
     return format_ast(parse_lessmark(source))
 
 
 def format_ast(ast: dict[str, Any]) -> str:
+    errors = validate_ast(ast)
+    if errors:
+        messages = "; ".join(error["message"] for error in errors)
+        raise ValueError(f"Cannot format invalid AST: {messages}")
     return "\n\n".join(_format_node(node) for node in ast.get("children", [])) + "\n"
 
 

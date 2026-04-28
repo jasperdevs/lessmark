@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 const exec = promisify(execFile);
 const cli = fileURLToPath(new URL("../bin/lessmark.js", import.meta.url));
 const fixture = fileURLToPath(new URL("../../../fixtures/valid/project-context.lmk", import.meta.url));
+const invalidFixture = fileURLToPath(new URL("../../../fixtures/invalid/raw-html.lmk", import.meta.url));
 
 test("CLI parse prints document AST", async () => {
   const { stdout } = await exec(process.execPath, [cli, "parse", fixture]);
@@ -18,6 +19,20 @@ test("CLI parse prints document AST", async () => {
 test("CLI check accepts valid file", async () => {
   const { stdout } = await exec(process.execPath, [cli, "check", fixture]);
   assert.match(stdout, /ok/);
+});
+
+test("CLI check --json prints agent-readable errors", async () => {
+  await assert.rejects(
+    exec(process.execPath, [cli, "check", "--json", invalidFixture]),
+    (error) => {
+      const result = JSON.parse(error.stdout);
+      assert.equal(result.ok, false);
+      assert.match(result.errors[0].message, /raw HTML/);
+      assert.equal(result.errors[0].line, 2);
+      assert.equal(result.errors[0].column, 1);
+      return true;
+    }
+  );
 });
 
 test("CLI format prints normalized source", async () => {

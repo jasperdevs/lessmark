@@ -1,8 +1,11 @@
 import json
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
-from lessmark import LessmarkError, format_lessmark, parse_lessmark, validate_ast
+from lessmark import LessmarkError, format_ast, format_lessmark, parse_lessmark, validate_ast, validate_source
+from lessmark.cli import main
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -39,6 +42,21 @@ class LessmarkPythonTests(unittest.TestCase):
         with self.assertRaisesRegex(LessmarkError, "@task status must be one of"):
             parse_lessmark('@task status="later"\nUse one of the fixed task statuses.\n')
 
+    def test_rejects_unsafe_file_paths_api_names_and_links(self):
+        with self.assertRaisesRegex(LessmarkError, "relative project path"):
+            parse_lessmark('@file path="../secrets.txt"\nFile paths must stay inside the project.\n')
+        with self.assertRaisesRegex(LessmarkError, "identifier"):
+            parse_lessmark('@api name="123 invalid"\nAPI names must be identifiers.\n')
+        with self.assertRaisesRegex(LessmarkError, "executable URL scheme"):
+            parse_lessmark('@link href="javascript:alert(1)"\nExecutable URL schemes are not allowed.\n')
+
+    def test_validate_source_reports_parse_errors_as_data(self):
+        errors = validate_source("@summary\nDo not use <script>alert(1)</script> here.\n")
+        self.assertEqual(
+            errors,
+            [{"message": "@summary contains raw HTML/JSX-like syntax", "line": 2, "column": 1}],
+        )
+
     def test_validates_required_attrs_on_direct_ast_input(self):
         errors = validate_ast(
             {"type": "document", "children": [{"type": "block", "name": "file", "attrs": {}, "text": "Owns capture state."}]}
@@ -56,6 +74,26 @@ class LessmarkPythonTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0]["message"], '@summary does not allow attribute "mood"')
 
+    def test_validates_semantic_attrs_on_direct_ast_input(self):
+        errors = validate_ast(
+            {
+                "type": "document",
+                "children": [
+                    {"type": "block", "name": "file", "attrs": {"path": "/tmp/secret.txt"}, "text": "Bad file path."},
+                    {"type": "block", "name": "api", "attrs": {"name": "123 invalid"}, "text": "Bad API name."},
+                    {"type": "block", "name": "link", "attrs": {"href": "javascript:alert(1)"}, "text": "Bad link."},
+                ],
+            }
+        )
+        self.assertEqual(
+            errors,
+            [
+                {"message": "@file path must be a relative project path"},
+                {"message": "@api name must be an identifier"},
+                {"message": "@link href must not use an executable URL scheme"},
+            ],
+        )
+
     def test_validates_exact_ast_shape(self):
         errors = validate_ast(
             {"type": "document", "children": [{"type": "heading", "level": 7, "text": "", "extra": True}], "extra": True}
@@ -69,6 +107,22 @@ class LessmarkPythonTests(unittest.TestCase):
                 {"message": "heading text must be a non-empty string"},
             ],
         )
+
+    def test_refuses_to_format_invalid_ast(self):
+        with self.assertRaisesRegex(ValueError, "Cannot format invalid AST"):
+            format_ast({"type": "document", "children": [{"type": "heading", "level": 7, "text": "Too deep"}]})
+
+    def test_cli_check_json_prints_agent_readable_errors(self):
+        output = StringIO()
+        path = ROOT / "fixtures/invalid/raw-html.lmk"
+        with redirect_stdout(output):
+            status = main(["check", str(path), "--json"])
+        result = json.loads(output.getvalue())
+        self.assertEqual(status, 1)
+        self.assertFalse(result["ok"])
+        self.assertIn("raw HTML", result["errors"][0]["message"])
+        self.assertEqual(result["errors"][0]["line"], 2)
+        self.assertEqual(result["errors"][0]["column"], 1)
 
 
 if __name__ == "__main__":

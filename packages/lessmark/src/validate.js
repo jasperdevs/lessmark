@@ -1,4 +1,4 @@
-import { parseLessmark } from "./parser.js";
+import { LessmarkError, parseLessmark } from "./parser.js";
 
 const BLOCK_ATTRS = {
   summary: { allowed: new Set(), required: new Set() },
@@ -17,8 +17,14 @@ const TASK_STATUSES = new Set(["todo", "doing", "done", "blocked"]);
 const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
 
 export function validateSource(source) {
-  const ast = parseLessmark(source);
-  return validateAst(ast);
+  try {
+    return validateAst(parseLessmark(source));
+  } catch (error) {
+    if (error instanceof LessmarkError) {
+      return [toValidationError(error)];
+    }
+    throw error;
+  }
 }
 
 export function validateAst(ast) {
@@ -110,6 +116,15 @@ function validateAttrs(node, errors) {
   if (node.name === "decision" && attrs.id && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(attrs.id)) {
     errors.push({ message: "@decision id must be a lowercase slug" });
   }
+  if (node.name === "file" && attrs.path && !isRelativeProjectPath(attrs.path)) {
+    errors.push({ message: "@file path must be a relative project path" });
+  }
+  if (node.name === "api" && attrs.name && !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(attrs.name)) {
+    errors.push({ message: "@api name must be an identifier" });
+  }
+  if (node.name === "link" && attrs.href && !isSafeHref(attrs.href)) {
+    errors.push({ message: "@link href must not use an executable URL scheme" });
+  }
 }
 
 function isPlainObject(value) {
@@ -128,4 +143,27 @@ function validateExactKeys(value, expected, errors, location) {
       errors.push({ message: `${location} is missing property "${key}"` });
     }
   }
+}
+
+function toValidationError(error) {
+  const result = { message: error.message };
+  if (Number.isInteger(error.line)) result.line = error.line;
+  if (Number.isInteger(error.column)) result.column = error.column;
+  return result;
+}
+
+function isRelativeProjectPath(path) {
+  return (
+    path.length > 0 &&
+    !path.startsWith("/") &&
+    !path.startsWith("\\") &&
+    !/^[A-Za-z]:[\\/]/.test(path) &&
+    !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(path) &&
+    !path.split(/[\\/]+/).includes("..")
+  );
+}
+
+function isSafeHref(href) {
+  const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(href);
+  return !scheme || ["http", "https", "mailto"].includes(scheme[1].toLowerCase());
 }

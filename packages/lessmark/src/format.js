@@ -1,10 +1,15 @@
 import { parseLessmark } from "./parser.js";
+import { validateAst } from "./validate.js";
 
 export function formatLessmark(source) {
   return formatAst(parseLessmark(source));
 }
 
 export function formatAst(ast) {
+  const errors = validateAst(ast);
+  if (errors.length > 0) {
+    throw new Error(`Cannot format invalid AST: ${errors.map((error) => error.message).join("; ")}`);
+  }
   const chunks = ast.children.map(formatNode);
   return `${chunks.join("\n\n")}\n`;
 }

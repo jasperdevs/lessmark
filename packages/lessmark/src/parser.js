@@ -211,6 +211,15 @@ function validateBlockAttrs(name, attrs, lineNumber) {
   if (name === "decision" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(attrs.id)) {
     throw new LessmarkError("@decision id must be a lowercase slug", lineNumber, 1);
   }
+  if (name === "file" && !isRelativeProjectPath(attrs.path)) {
+    throw new LessmarkError("@file path must be a relative project path", lineNumber, 1);
+  }
+  if (name === "api" && !/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(attrs.name)) {
+    throw new LessmarkError("@api name must be an identifier", lineNumber, 1);
+  }
+  if (name === "link" && !isSafeHref(attrs.href)) {
+    throw new LessmarkError("@link href must not use an executable URL scheme", lineNumber, 1);
+  }
 }
 
 function assertSafeText(text, location, lineNumber, column) {
@@ -224,4 +233,20 @@ function assertSafeAttrValue(key, value, lineNumber, column) {
     throw new LessmarkError(`Attribute "${key}" cannot contain control whitespace`, lineNumber, column);
   }
   assertSafeText(value, `attribute "${key}"`, lineNumber, column);
+}
+
+function isRelativeProjectPath(path) {
+  return (
+    path.length > 0 &&
+    !path.startsWith("/") &&
+    !path.startsWith("\\") &&
+    !/^[A-Za-z]:[\\/]/.test(path) &&
+    !/^[A-Za-z][A-Za-z0-9+.-]*:/.test(path) &&
+    !path.split(/[\\/]+/).includes("..")
+  );
+}
+
+function isSafeHref(href) {
+  const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(href);
+  return !scheme || ["http", "https", "mailto"].includes(scheme[1].toLowerCase());
 }
