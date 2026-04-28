@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Odd / oddcorp brand tokens */
+:root {
+  color-scheme: light;
+
+  --bg: #F6F6F6;
+  --surface: #FFFFFF;
+  --surface-alt: #F0F0F0;
+  --fg: #0F0F0F;
+  --fg-muted: #6B6B6B;
+  --fg-faint: #9A9A9A;
+  --accent: #262626;
+  --border: #E5E5E5;
+  --border-soft: #ECECEC;
+
+  /* shadcn token bindings — map shadcn's neutral palette onto Odd tokens */
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--fg);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-alt);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-alt);
+  --muted-foreground: var(--fg-muted);
+  --accent: var(--surface-alt);
+  --accent-foreground: var(--fg);
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: #E5E5E5;
+  --input: #E5E5E5;
+  --ring: var(--fg);
+
+  --radius: 12px;
+
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  --font-serif: "Instrument Serif", "Iowan Old Style", "Apple Garamond", Georgia, serif;
+
+  /* dark surface tokens for the playground editor */
+  --code-bg: #0E0E10;
+  --code-fg: #E7E5E4;
+  --code-faint: #6B6B6B;
+  --code-line: #2A2A2D;
+  --code-key: #FFEFB0;     /* @blocknames + attr names + headings */
+  --code-string: #A6E3A1;  /* "values" */
+  --code-comment: #6B6B6B;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-border-soft: var(--border-soft);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+
+  --color-code-bg: var(--code-bg);
+  --color-code-fg: var(--code-fg);
+  --color-code-faint: var(--code-faint);
+  --color-code-line: var(--code-line);
+  --color-code-key: var(--code-key);
+  --color-code-string: var(--code-string);
+  --color-code-comment: var(--code-comment);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  @keyframes spinner-move {
+  to {
+    stroke-dashoffset: -100;
+    }
+  }
+  @keyframes spinner-dash {
+  0%, 100% {
+    stroke-dasharray: 15 85;
+    }
+  50% {
+    stroke-dasharray: 40 60;
+    }
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* lessmark token highlighter — used by the playground editor */
+.tok-key      { color: var(--code-key); }
+.tok-heading  { color: var(--code-fg); font-weight: 500; }
+.tok-attr     { color: var(--code-fg); }
+.tok-punct    { color: var(--code-faint); }
+.tok-string   { color: var(--code-string); }
+.tok-text     { color: var(--code-fg); }
