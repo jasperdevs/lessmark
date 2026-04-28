@@ -66,6 +66,9 @@ Mapping against the BGs Labs Markdown critique.
 @file path="docs/standardization.md"
 Standardization lessons from Markdown and CommonMark.
 
+@file path="docs/markdown-chaos-timeline.md"
+Governance failure modes Lessmark should avoid.
+
 ## Registration
 
 @file path="docs/file-type-registration.md"

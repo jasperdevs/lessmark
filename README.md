@@ -48,7 +48,7 @@ Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constrain
 
 See [`docs/spec.md`](./docs/spec.md) and [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json) for the source and AST contracts.
 
-Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/docs-profile.md`](./docs/docs-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), [`docs/markdown-comparison.md`](./docs/markdown-comparison.md), [`docs/article-alignment.md`](./docs/article-alignment.md), and [`docs/standardization.md`](./docs/standardization.md).
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/docs-profile.md`](./docs/docs-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), [`docs/markdown-comparison.md`](./docs/markdown-comparison.md), [`docs/article-alignment.md`](./docs/article-alignment.md), [`docs/standardization.md`](./docs/standardization.md), and [`docs/markdown-chaos-timeline.md`](./docs/markdown-chaos-timeline.md).
 
 <details>
 <summary>API and docs</summary>
