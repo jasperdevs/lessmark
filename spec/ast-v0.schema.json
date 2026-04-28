@@ -18,7 +18,7 @@
             "properties": {
               "type": { "const": "heading" },
               "level": { "type": "integer", "minimum": 1, "maximum": 6 },
-              "text": { "type": "string" }
+              "text": { "type": "string", "minLength": 1 }
             }
           },
           { "$ref": "#/$defs/noAttrBlock" },

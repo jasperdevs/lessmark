@@ -1,0 +1,11 @@
+{
+  "type": "document",
+  "children": [
+    {
+      "type": "block",
+      "name": "example",
+      "attrs": {},
+      "text": "  # This is example text, not a heading.\n  @summary\n  This is example text, not a block."
+    }
+  ]
+}

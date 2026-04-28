@@ -75,7 +75,7 @@ function normalizeSource(source) {
 }
 
 function parseHeading(line, lineNumber) {
-  const match = /^(#{1,6}) ([^#].*|[^\s].*|.*)$/.exec(line);
+  const match = /^(#{1,6}) ([^\s].*)$/.exec(line);
   if (!match) {
     throw new LessmarkError("Invalid heading syntax", lineNumber, 1);
   }
@@ -122,7 +122,7 @@ function parseBlock(lines, startIndex) {
       type: "block",
       name,
       attrs,
-      text: body.join("\n").trim()
+      text: body.join("\n")
     },
     nextIndex: index
   };

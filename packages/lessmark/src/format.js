@@ -20,7 +20,7 @@ function formatNode(node) {
       .map((key) => `${key}="${escapeAttr(node.attrs[key])}"`)
       .join(" ");
     const header = attrs ? `@${node.name} ${attrs}` : `@${node.name}`;
-    const text = node.text.trim();
+    const text = stripTrailingWhitespace(String(node.text ?? ""));
     return text ? `${header}\n${stripTrailingWhitespace(text)}` : header;
   }
 

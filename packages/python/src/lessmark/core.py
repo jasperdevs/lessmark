@@ -71,7 +71,7 @@ def parse_lessmark(source: str) -> dict[str, Any]:
 
 
 def _parse_heading(line: str, line_number: int) -> dict[str, Any]:
-    match = re.match(r"^(#{1,6}) (.*)$", line)
+    match = re.match(r"^(#{1,6}) ([^\s].*)$", line)
     if not match:
         raise LessmarkError("Invalid heading syntax", line_number, 1)
     text = match.group(2).rstrip()
@@ -104,7 +104,7 @@ def _parse_block(lines: list[str], start_index: int) -> tuple[dict[str, Any], in
         body.append(line.rstrip())
         index += 1
 
-    return {"type": "block", "name": name, "attrs": attrs, "text": "\n".join(body).strip()}, index
+    return {"type": "block", "name": name, "attrs": attrs, "text": "\n".join(body)}, index
 
 
 def _parse_attrs(input_text: str, line_number: int, start_column: int) -> dict[str, str]:
@@ -169,11 +169,22 @@ def validate_source(source: str) -> list[dict[str, str]]:
 
 def validate_ast(ast: dict[str, Any]) -> list[dict[str, str]]:
     errors: list[dict[str, str]] = []
-    if not ast or ast.get("type") != "document" or not isinstance(ast.get("children"), list):
+    if not isinstance(ast, dict) or ast.get("type") != "document" or not isinstance(ast.get("children"), list):
         return [{"message": "AST root must be a document with children"}]
+    _validate_exact_keys(ast, {"type", "children"}, errors, "document")
 
     for node in ast["children"]:
+        if not isinstance(node, dict):
+            errors.append({"message": "AST child must be an object"})
+            continue
+
         if node.get("type") == "heading":
+            _validate_exact_keys(node, {"type", "level", "text"}, errors, "heading")
+            if not isinstance(node.get("level"), int) or node["level"] < 1 or node["level"] > 6:
+                errors.append({"message": "heading level must be an integer from 1 to 6"})
+            if not isinstance(node.get("text"), str) or len(node["text"]) == 0:
+                errors.append({"message": "heading text must be a non-empty string"})
+                continue
             _validate_text_safety(node.get("text", ""), errors, "heading")
             continue
 
@@ -182,7 +193,10 @@ def validate_ast(ast: dict[str, Any]) -> list[dict[str, str]]:
             continue
 
         name = node.get("name")
-        attrs = node.get("attrs", {})
+        _validate_exact_keys(node, {"type", "name", "attrs", "text"}, errors, f"@{name}")
+        if not isinstance(node.get("text"), str):
+            errors.append({"message": f"@{name} text must be a string"})
+            continue
         _validate_text_safety(node.get("text", ""), errors, f"@{name}")
 
         _validate_attrs(node, errors)
@@ -228,9 +242,15 @@ def _validate_attrs(node: dict[str, Any], errors: list[dict[str, str]]) -> None:
         return
 
     attrs = node.get("attrs", {})
+    if not isinstance(attrs, dict):
+        errors.append({"message": f"@{name} attrs must be an object"})
+        return
     for key, value in attrs.items():
         if key not in spec["allowed"]:
             errors.append({"message": f'@{name} does not allow attribute "{key}"'})
+        if not isinstance(value, str):
+            errors.append({"message": f'Attribute "{key}" must be a string'})
+            continue
         _validate_text_safety(str(value), errors, f'attribute "{key}"')
         if re.search(r"[\r\n\t]", str(value)):
             errors.append({"message": f'Attribute "{key}" cannot contain control whitespace'})
@@ -241,6 +261,13 @@ def _validate_attrs(node: dict[str, Any], errors: list[dict[str, str]]) -> None:
         errors.append({"message": "@task status must be one of: todo, doing, done, blocked"})
     if name == "decision" and attrs.get("id") and not re.match(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", attrs["id"]):
         errors.append({"message": "@decision id must be a lowercase slug"})
+
+
+def _validate_exact_keys(value: dict[str, Any], expected: set[str], errors: list[dict[str, str]], location: str) -> None:
+    for key in value.keys() - expected:
+        errors.append({"message": f'{location} has unknown property "{key}"'})
+    for key in expected - value.keys():
+        errors.append({"message": f'{location} is missing property "{key}"'})
 
 
 def format_lessmark(source: str) -> str:
@@ -260,7 +287,7 @@ def _format_node(node: dict[str, Any]) -> str:
             f'{key}="{_escape_attr(value)}"' for key, value in sorted(node.get("attrs", {}).items())
         )
         header = f"@{node['name']}" + (f" {attrs}" if attrs else "")
-        text = str(node.get("text", "")).strip()
+        text = _strip_trailing_whitespace(str(node.get("text", "")))
         return f"{header}\n{_strip_trailing_whitespace(text)}" if text else header
 
     raise ValueError(f"Cannot format unknown AST node type: {node.get('type')}")
