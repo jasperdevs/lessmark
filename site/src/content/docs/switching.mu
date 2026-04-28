@@ -1,0 +1,5 @@
+# Switching
+
+@summary
+Coming from another format? Pick a tab below for a side-by-side mapping
+into lessmark.

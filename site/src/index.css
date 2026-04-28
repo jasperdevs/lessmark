@@ -1,91 +1,78 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
-/* Odd / oddcorp brand tokens */
 :root {
   color-scheme: light;
 
-  --bg: #F6F6F6;
+  --bg: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-alt: #F0F0F0;
-  --fg: #0F0F0F;
-  --fg-muted: #6B6B6B;
-  --fg-faint: #9A9A9A;
-  --accent: #262626;
-  --border: #E5E5E5;
-  --border-soft: #ECECEC;
-
-  /* shadcn token bindings — map shadcn's neutral palette onto Odd tokens */
-  --background: var(--bg);
-  --foreground: var(--fg);
-  --card: var(--surface);
-  --card-foreground: var(--fg);
-  --popover: var(--surface);
-  --popover-foreground: var(--fg);
-  --primary: var(--fg);
-  --primary-foreground: var(--bg);
-  --secondary: var(--surface-alt);
-  --secondary-foreground: var(--fg);
-  --muted: var(--surface-alt);
-  --muted-foreground: var(--fg-muted);
-  --accent: var(--surface-alt);
-  --accent-foreground: var(--fg);
+  --surface-alt: #FFFFFF;
+  --fg: #111111;
+  --fg-muted: #3A3A3A;
+  --fg-faint: #5E5E5E;
+  --accent: #FFA500;
+  --border: #BFBFBF;
+  --border-soft: #D9D9D9;
   --destructive: #b91c1c;
-  --destructive-foreground: #ffffff;
-  --border: #E5E5E5;
-  --input: #E5E5E5;
-  --ring: var(--fg);
 
   --radius: 12px;
 
-  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
-  --font-serif: "Instrument Serif", "Iowan Old Style", "Apple Garamond", Georgia, serif;
+  --font-sans: "Lucida Console", "Lucida Sans Typewriter", "Courier New", monospace;
+  --font-mono: "Lucida Console", "Lucida Sans Typewriter", "Courier New", monospace;
 
-  /* dark surface tokens for the playground editor */
+  /* dark playground tokens */
   --code-bg: #0E0E10;
   --code-fg: #E7E5E4;
   --code-faint: #6B6B6B;
   --code-line: #2A2A2D;
-  --code-key: #FFEFB0;     /* @blocknames + attr names + headings */
-  --code-string: #A6E3A1;  /* "values" */
+  --code-key: #FFEFB0;
+  --code-string: #A6E3A1;
   --code-comment: #6B6B6B;
+
+  /* themed callout / typed-block surfaces */
+  --tip-bg: #EFF6FF;        --tip-border: #BFDBFE;
+  --note-bg: var(--surface); --note-border: var(--border);
+  --warn-bg: #FFFBEB;       --warn-border: #FCD34D;
+  --caution-bg: #FEF2F2;    --caution-border: #FCA5A5;
+  --critical-fg: #7f1d1d;
+  --doing-fg: #92400e;
+  --blocked-fg: #7f1d1d;
+  --mark-bg: #FFEFB0;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0B0B0C;
+  --surface: #141416;
+  --surface-alt: #1F1F22;
+  --fg: #F2F0EC;
+  --fg-muted: #C2C0BC;
+  --fg-faint: #8B8985;
+  --accent: #FFA500;
+  --border: #3A3A3D;
+  --border-soft: #28282B;
+  --destructive: #f87171;
+
+  --tip-bg: #1A2433;        --tip-border: #2C4A7A;
+  --note-bg: var(--surface); --note-border: var(--border);
+  --warn-bg: #2A2316;       --warn-border: #6B5320;
+  --caution-bg: #2B1818;    --caution-border: #7A2E2E;
+  --critical-fg: #F4B4B4;
+  --doing-fg: #E4B97A;
+  --blocked-fg: #F4B4B4;
+  --mark-bg: #5A4A18;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-alt: var(--surface-alt);
   --color-fg: var(--fg);
   --color-fg-muted: var(--fg-muted);
   --color-fg-faint: var(--fg-faint);
+  --color-border: var(--border);
   --color-border-soft: var(--border-soft);
-
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
+  --color-destructive: var(--destructive);
 
   --color-code-bg: var(--code-bg);
   --color-code-fg: var(--code-fg);
@@ -95,42 +82,323 @@
   --color-code-string: var(--code-string);
   --color-code-comment: var(--code-comment);
 
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  @keyframes spinner-move {
-  to {
-    stroke-dashoffset: -100;
-    }
-  }
-  @keyframes spinner-dash {
-  0%, 100% {
-    stroke-dasharray: 15 85;
-    }
-  50% {
-    stroke-dasharray: 40 60;
-    }
-  }
 }
 
-@layer base {
-  * { @apply border-border; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--font-sans);
-    font-feature-settings: "cv11", "ss01";
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* lessmark token highlighter — used by the playground editor */
+button:not(:disabled), [role="button"]:not(:disabled), a[href] {
+  cursor: pointer;
+}
+button:disabled { cursor: not-allowed; }
+textarea { cursor: text; }
+
+/* Soft fade behind the sticky header. Safe-area aware so iOS notches
+   keep the page background covered under the status bar. */
+.fade-top {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  height: calc(5.5rem + env(safe-area-inset-top, 0px));
+  z-index: 30;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--bg) 0%,
+    var(--bg) 35%,
+    color-mix(in oklab, var(--bg) 80%, transparent) 60%,
+    color-mix(in oklab, var(--bg) 40%, transparent) 80%,
+    transparent 100%
+  );
+}
+
+/* lessmark token highlighter for the playground source view */
 .tok-key      { color: var(--code-key); }
 .tok-heading  { color: var(--code-fg); font-weight: 500; }
 .tok-attr     { color: var(--code-fg); }
 .tok-punct    { color: var(--code-faint); }
+.tok-brace    { color: var(--code-faint); }
+.tok-inline   { color: #8BD5FF; }
 .tok-string   { color: var(--code-string); }
 .tok-text     { color: var(--code-fg); }
+.tok-code     { color: #F5C2E7; }
+.tok-link     { color: #8BD5FF; }
+.tok-emph     { color: #DDB6F2; }
+.tok-del      { color: #A6ADC8; text-decoration: line-through; }
+.tok-mark     { color: #111111; background: var(--code-key); border-radius: 2px; }
+.tok-number   { color: #FAB387; }
+.tok-comment  { color: var(--code-comment); font-style: italic; }
+
+.lessmark-completion,
+.lessmark-hover {
+  position: absolute;
+  z-index: 20;
+  max-width: min(420px, calc(100% - 24px));
+  border: 1px solid var(--code-line);
+  background: #17171A;
+  color: var(--code-fg);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-mono);
+}
+
+.lessmark-completion {
+  width: min(360px, calc(100% - 24px));
+  max-height: 240px;
+  overflow: auto;
+  padding: 4px;
+}
+
+.lessmark-completion button {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px;
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+
+.lessmark-completion button.active,
+.lessmark-completion button:hover {
+  background: var(--code-line);
+}
+
+.lessmark-completion span {
+  color: var(--code-key);
+  white-space: nowrap;
+}
+
+.lessmark-completion small {
+  overflow: hidden;
+  color: var(--code-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.lessmark-hover {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   .lessmark-output: styles the HTML produced by lessmark's renderHtml().
+   We style the package's semantic class names directly. No React wrappers,
+   no parallel renderer, no styling DSL leaking back into the language.
+   ========================================================================== */
+
+.lessmark-output {
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+/* :where() lowers the descendant resets to zero specificity so the
+   sibling-margin rule below can space block children evenly even when
+   they are <p> elements that need a margin reset. */
+.lessmark-output :where(p, ul, ol, blockquote, figure, table) { margin: 0; }
+.lessmark-output > * + * { margin-top: 1em; }
+
+.lessmark-output pre .tok-key     { color: #8BD5FF; }
+.lessmark-output pre .tok-string  { color: #A6E3A1; }
+.lessmark-output pre .tok-number  { color: #FAB387; }
+.lessmark-output pre .tok-comment { color: var(--code-faint); font-style: italic; }
+
+.lessmark-output h1,
+.lessmark-output h2,
+.lessmark-output h3,
+.lessmark-output h4,
+.lessmark-output h5,
+.lessmark-output h6 {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--fg);
+  margin-top: 1.6em;
+  margin-bottom: 0.4em;
+  line-height: 1.25;
+}
+.lessmark-output h1 { font-size: 30px; }
+.lessmark-output h2 { font-size: 22px; }
+.lessmark-output h3 { font-size: 18px; }
+.lessmark-output h4 { font-size: 16px; }
+.lessmark-output h5 { font-size: 15px; }
+.lessmark-output h6 { font-size: 14px; color: var(--fg-muted); }
+.lessmark-output h1::before,
+.lessmark-output h2::before,
+.lessmark-output h3::before,
+.lessmark-output h4::before,
+.lessmark-output h5::before,
+.lessmark-output h6::before {
+  color: var(--fg-faint);
+  font-weight: 400;
+  margin-right: 0.5em;
+}
+.lessmark-output h1::before { content: "#"; }
+.lessmark-output h2::before { content: "##"; }
+.lessmark-output h3::before { content: "###"; }
+.lessmark-output h4::before { content: "####"; }
+.lessmark-output h5::before { content: "#####"; }
+.lessmark-output h6::before { content: "######"; }
+
+.lessmark-output p   { color: var(--fg); }
+.lessmark-output a   { color: var(--fg); text-decoration: underline; text-decoration-color: var(--fg-faint); text-underline-offset: 2px; }
+.lessmark-output a:hover { text-decoration-color: var(--fg); }
+
+.lessmark-output code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--surface-alt);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.lessmark-output kbd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0.05em 0.4em;
+}
+.lessmark-output mark { background: var(--mark-bg); color: var(--fg); padding: 0 0.15em; border-radius: 2px; }
+
+.lessmark-output pre {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 16px 18px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.lessmark-output pre code { background: transparent; padding: 0; border-radius: 0; font-size: inherit; }
+.lessmark-output pre ::selection,
+.lessmark-output pre::selection { background: rgba(255, 255, 255, 0.18); color: inherit; }
+
+.lessmark-output blockquote {
+  padding: 0.4em 0 0.4em 1em;
+  border-left: 2px solid var(--border);
+  color: var(--fg-muted);
+}
+.lessmark-output blockquote cite { display: block; margin-top: 0.5em; font-style: normal; color: var(--fg-faint); font-size: 0.9em; }
+.lessmark-output blockquote cite::before { content: "- "; }
+
+.lessmark-output ul, .lessmark-output ol { padding-left: 1.4em; }
+.lessmark-output li + li { margin-top: 0.25em; }
+
+.lessmark-output table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.lessmark-output th, .lessmark-output td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.lessmark-output th { font-weight: 600; color: var(--fg); border-bottom-color: var(--border); }
+
+.lessmark-output figure img { max-width: 100%; height: auto; border-radius: 8px; }
+.lessmark-output figcaption { margin-top: 0.5em; color: var(--fg-muted); font-size: 0.9em; }
+
+/* typed-block surfaces */
+.lessmark-output .lessmark-warning,
+.lessmark-output .lessmark-constraint,
+.lessmark-output .lessmark-risk,
+.lessmark-output .lessmark-callout {
+  display: block;
+  border-radius: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.lessmark-output .lessmark-callout[data-kind="tip"]      { border-color: var(--tip-border); background: var(--tip-bg); }
+.lessmark-output .lessmark-callout[data-kind="note"]     { border-color: var(--note-border); background: var(--note-bg); }
+.lessmark-output .lessmark-callout[data-kind="warning"]  { border-color: var(--warn-border); background: var(--warn-bg); }
+.lessmark-output .lessmark-callout[data-kind="caution"]  { border-color: var(--caution-border); background: var(--caution-bg); }
+.lessmark-output .lessmark-warning                       { border-color: var(--caution-border); background: var(--caution-bg); }
+.lessmark-output .lessmark-constraint                    { border-color: var(--tip-border); background: var(--tip-bg); }
+.lessmark-output .lessmark-risk[data-level="medium"]     { border-color: var(--warn-border); background: var(--warn-bg); }
+.lessmark-output .lessmark-risk[data-level="high"]       { border-color: var(--caution-border); background: var(--caution-bg); }
+.lessmark-output .lessmark-risk[data-level="critical"]   { border-color: var(--caution-border); background: var(--caution-bg); color: var(--critical-fg); }
+
+.lessmark-output .lessmark-callout > p:first-of-type,
+.lessmark-output .lessmark-warning  > p:first-of-type,
+.lessmark-output .lessmark-constraint > p:first-of-type,
+.lessmark-output .lessmark-risk     > p:first-of-type,
+.lessmark-output .lessmark-decision > p:first-of-type {
+  margin-top: 0.4em;
+}
+
+.lessmark-output .lessmark-decision {
+  border-left: 2px solid var(--border);
+  padding-left: 1em;
+  margin-left: 0;
+}
+
+.lessmark-output .lessmark-task[data-status="done"] { color: var(--fg-muted); text-decoration: line-through; text-decoration-color: var(--fg-faint); }
+.lessmark-output .lessmark-task[data-status="blocked"] { color: var(--blocked-fg); }
+.lessmark-output .lessmark-task[data-status="doing"]   { color: var(--doing-fg); }
+.lessmark-output .lessmark-task                        { font-family: var(--font-mono); font-size: 14px; }
+
+.lessmark-output .lessmark-file,
+.lessmark-output .lessmark-api,
+.lessmark-output .lessmark-depends-on {
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+
+.lessmark-output .lessmark-toc { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 14px; }
+.lessmark-output .lessmark-toc ol { list-style: none; padding-left: 0; }
+.lessmark-output .lessmark-toc .level-3 { padding-left: 1em; }
+.lessmark-output .lessmark-toc .level-4 { padding-left: 2em; }
+
+.lessmark-output .lessmark-footnote {
+  font-size: 13px;
+  color: var(--fg-muted);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 0.5em;
+  padding-top: 0;
+  border-top: 0;
+}
+.lessmark-output .lessmark-footnote::before {
+  content: "[" attr(id) "]";
+  color: var(--fg-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.lessmark-output .lessmark-footnote sup,
+.lessmark-output .lessmark-footnote a[id^="fn"] { display: none; }
+
+.lessmark-output .lessmark-definition dt { font-weight: 600; }
+.lessmark-output .lessmark-definition dd { margin-left: 0; color: var(--fg-muted); }
+
+.lessmark-output .lessmark-nav { display: none; } /* the React shell owns chrome; lessmark-nav stays in source as semantic data */

@@ -1,0 +1,82 @@
+# Skill: capture window
+
+@summary
+A reusable skill an agent can invoke to capture a single application
+window. The agent reads this file, follows the constraints, and produces a
+PNG plus a JSON sidecar.
+
+@metadata key="skill.id"
+capture-window
+
+@metadata key="skill.owner"
+capture-team
+
+@metadata key="skill.version"
+1.2.0
+
+## Inputs
+
+@list kind="unordered"
+- {{code:windowHandle}} — opaque handle returned by the host runtime.
+- {{code:outputPath}} — relative path the PNG will be written to.
+- {{code:metadata}} — optional JSON object merged into the sidecar.
+
+## Outputs
+
+@list kind="unordered"
+- A PNG at {{code:outputPath}}.
+- A JSON sidecar at {{code:outputPath + ".json"}} carrying capture metadata.
+
+## Decisions
+
+@decision id="storage-backend"
+Save captures as PNG plus a sidecar JSON for metadata. No proprietary
+container format.
+
+@decision id="handle-lifetime"
+Treat the window handle as valid only for the duration of a single skill
+invocation. Re-resolve it on every call.
+
+## Constraints
+
+@constraint
+Never upload a capture to a remote service without an opt-in dialog.
+
+@constraint
+Do not require admin privileges. The skill must work for a standard user.
+
+@constraint
+Refuse to capture windows whose process name appears on the
+{{code:capture.deny}} list in the host config.
+
+## Steps
+
+@list kind="ordered"
+- Resolve the window handle. Fail fast if the handle is no longer valid.
+- Check the deny list against the resolved process name.
+- Capture the window pixels into a PNG buffer.
+- Write the PNG to {{code:outputPath}}.
+- Write the JSON sidecar with timestamp, process name, and any caller metadata.
+
+## Failure modes
+
+@risk level="medium"
+Window minimized or off-screen. Capture returns an empty buffer. Detect
+and surface a clear error rather than writing a blank PNG.
+
+@risk level="high"
+Process name changed after the deny check. The skill must re-check before
+writing.
+
+@risk level="critical"
+Path traversal in {{code:outputPath}}. Reject anything that does not pass
+the safe-relative-path check.
+
+## API
+
+@api name="captureWindow"
+Captures a single window by handle. Returns a PNG buffer and a sidecar
+metadata object.
+
+@depends-on target="storage-backend"
+Implements the PNG-plus-sidecar storage decided above.
