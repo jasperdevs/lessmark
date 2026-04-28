@@ -43,7 +43,7 @@ Blank lines separate nodes and have no AST representation.
 
 Loose paragraphs outside typed blocks are invalid in v0.
 
-Lessmark deliberately uses a different methodology than Markdown:
+Lessmark uses a simple pipeline:
 
 ```text
 source text -> parser -> typed AST -> validator -> formatter -> consumer

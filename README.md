@@ -43,9 +43,6 @@ from lessmark import parse_lessmark
 
 - [V0 spec](./spec/lessmark-v0.md)
 - [AST schema](./spec/ast-v0.schema.json)
-- [Methodology](./docs/lessmark-methodology.md)
-- [Markdown research notes](./docs/markdown-research.md)
-- [Design comparison](./docs/design-comparison.md)
 
 </details>
 
