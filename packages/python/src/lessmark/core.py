@@ -61,8 +61,6 @@ CORE_BLOCKS = {
     "file",
     "code",
     "example",
-    "note",
-    "warning",
     "quote",
     "callout",
     "list",
@@ -93,8 +91,6 @@ CORE_BLOCK_NAMES = [
     "file",
     "code",
     "example",
-    "note",
-    "warning",
     "quote",
     "callout",
     "list",
@@ -155,8 +151,6 @@ BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "file": {"allowed": {"path"}, "required": {"path"}},
     "code": {"allowed": {"lang"}, "required": set()},
     "example": {"allowed": set(), "required": set()},
-    "note": {"allowed": set(), "required": set()},
-    "warning": {"allowed": set(), "required": set()},
     "quote": {"allowed": {"cite"}, "required": set()},
     "callout": {"allowed": {"kind", "title"}, "required": {"kind"}},
     "list": {"allowed": {"kind"}, "required": {"kind"}},
@@ -178,6 +172,8 @@ BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
 
 BLOCK_ALIASES = {
     "p": {"name": "paragraph", "attrs": {}},
+    "note": {"name": "callout", "attrs": {"kind": "note"}},
+    "warning": {"name": "callout", "attrs": {"kind": "warning"}},
     "ul": {"name": "list", "attrs": {"kind": "unordered"}},
     "ol": {"name": "list", "attrs": {"kind": "ordered"}},
 }
@@ -236,12 +232,46 @@ def parse_lessmark(source: str, source_positions: bool = False) -> DocumentNode:
             index = next_index
             continue
 
-        raise LessmarkError("Loose text is not allowed outside a typed block; start a new block such as @p", index + 1, 1)
+        node, next_index = _parse_plain_paragraph(lines, index, source_positions)
+        children.append(node)
+        index = next_index
 
     anchor_errors = _get_local_anchor_errors(children)
     if anchor_errors:
         raise LessmarkError(anchor_errors[0], 1, 1)
     return {"type": "document", "children": children}
+
+
+def _parse_plain_paragraph(lines: list[str], start_index: int, source_positions: bool) -> tuple[BlockNode, int]:
+    body: list[str] = []
+    index = start_index
+    end_line = start_index + 1
+    end_column = 1
+
+    while index < len(lines):
+        line = lines[index]
+        if line.strip() == "" or _starts_block_syntax(line):
+            break
+        text_line = _decode_leading_block_escape(line)
+        _assert_safe_text(text_line, "paragraph", index + 1, 1)
+        legacy_error = _legacy_markdown_line_error(text_line)
+        if legacy_error is not None:
+            raise LessmarkError(legacy_error, index + 1, 1)
+        body.append(text_line.rstrip())
+        end_line = index + 1
+        end_column = len(line) + 1
+        index += 1
+
+    node: BlockNode = {
+        "type": "block",
+        "name": "paragraph",
+        "attrs": {},
+        "text": _canonicalize_inline_syntax("\n".join(body)),
+    }
+    _validate_block_body(node, start_index + 1)
+    if source_positions:
+        node["position"] = _position(start_index + 1, 1, end_line, end_column)
+    return node, index
 
 
 def _parse_heading(line: str, line_number: int, source_positions: bool) -> HeadingNode:
@@ -276,6 +306,13 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
     end_line = start_index + 1
     end_column = len(header) + 1
 
+    if _is_bodyless_block(name):
+        node: BlockNode = {"type": "block", "name": name, "attrs": attrs, "text": ""}
+        _validate_block_body(node, start_index + 1)
+        if source_positions:
+            node["position"] = _position(start_index + 1, 1, end_line, end_column)
+        return node, index
+
     while index < len(lines):
         line = lines[index]
         if len(body) == 0 and line.strip() == "" and not _is_literal_block(name):
@@ -283,12 +320,13 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
             continue
         if _is_block_terminator(lines, index, name):
             break
-        _assert_safe_text(line, f"@{name}", index + 1, 1)
+        text_line = line if _is_literal_block(name) else _decode_leading_block_escape(line)
+        _assert_safe_text(text_line, f"@{name}", index + 1, 1)
         if not _is_literal_block(name):
-            legacy_error = _legacy_markdown_line_error(line)
+            legacy_error = _legacy_markdown_line_error(text_line)
             if legacy_error is not None:
                 raise LessmarkError(legacy_error, index + 1, 1)
-        body.append(line.rstrip())
+        body.append(text_line.rstrip())
         end_line = index + 1
         end_column = len(line) + 1
         index += 1
@@ -323,7 +361,7 @@ def _normalize_block_header(raw_name: str, raw_rest: str, line_number: int) -> t
 
 def _is_block_terminator(lines: list[str], index: int, name: str) -> bool:
     line = lines[index]
-    if line.startswith("#") or line.startswith("@"):
+    if _starts_block_syntax(line):
         return True
     if line.strip() != "":
         return False
@@ -333,11 +371,25 @@ def _is_block_terminator(lines: list[str], index: int, name: str) -> bool:
     next_index = index + 1
     while next_index < len(lines) and lines[next_index].strip() == "":
         next_index += 1
-    return next_index >= len(lines) or lines[next_index].startswith(("#", "@"))
+    return next_index >= len(lines) or _starts_block_syntax(lines[next_index])
 
 
 def _is_literal_block(name: str) -> bool:
     return name in {"code", "example", "math", "diagram"}
+
+
+def _is_bodyless_block(name: str) -> bool:
+    return name in {"image", "nav", "page", "separator", "toc"}
+
+
+def _starts_block_syntax(line: str) -> bool:
+    return line.startswith("#") or line.startswith("@")
+
+
+def _decode_leading_block_escape(line: str) -> str:
+    if line.startswith("\\@") or line.startswith("\\#"):
+        return line[1:]
+    return line
 
 
 def _position(start_line: int, start_column: int, end_line: int, end_column: int) -> PositionRange:
@@ -765,9 +817,9 @@ def error_code_for_message(message: str) -> str:
 def get_capabilities() -> dict[str, object]:
     return {
         "language": "lessmark",
-        "version": "0.1.2",
+        "version": "0.1.3",
         "astVersion": "v0",
-        "extensions": [".mu", ".lessmark"],
+        "extensions": [".lmk", ".lessmark"],
         "mediaType": "text/vnd.lessmark; charset=utf-8",
         "blocks": CORE_BLOCK_NAMES,
         "inlineFunctions": INLINE_FUNCTIONS,
@@ -794,9 +846,11 @@ def get_capabilities() -> dict[str, object]:
         },
         "syntaxPolicy": {
             "aliases": True,
+            "plainParagraphs": True,
             "canonicalSource": True,
             "documentedConveniencesOnly": True,
-            "maxSpellingsPerMeaning": 2,
+            "maxSpellingsPerMeaning": 3,
+            "maxSpellingsException": "paragraph",
             "markdownLegacySyntax": False,
             "rawHtml": False,
             "hooks": False,
@@ -821,6 +875,10 @@ def _is_safe_href(href: str) -> bool:
     match = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", href)
     if match:
         return match.group(1).lower() in {"http", "https", "mailto"}
+    if href.startswith("//"):
+        return False
+    if href.startswith("/"):
+        return ".." not in re.split(r"[\\/]+", href)
     return _is_relative_project_path(href)
 
 
@@ -879,8 +937,6 @@ def _get_table_body_errors(columns: str, text: str) -> list[str]:
     column_count = len(_split_table_row(columns))
     for line in (row for row in text.splitlines() if row.strip()):
         cells = _split_table_row(line)
-        if any(cell == "" for cell in cells):
-            return ["@table cells cannot be empty"]
         if len(cells) != column_count:
             return ["@table row cell count must match columns"]
     return []
@@ -1044,6 +1100,8 @@ def _format_node(node: LessmarkNode) -> str:
         return f"{'#' * int(node['level'])} {str(node['text']).strip()}"
 
     if node.get("type") == "block":
+        if node.get("name") == "paragraph" and not node.get("attrs", {}):
+            return _strip_trailing_whitespace(str(node.get("text", "")))
         attrs = " ".join(
             f'{key}="{_escape_attr(value)}"' for key, value in sorted(node.get("attrs", {}).items())
         )
@@ -1146,7 +1204,6 @@ def from_markdown(markdown: str) -> str:
     lines = str(markdown).lstrip("\ufeff").replace("\r\n", "\n").replace("\r", "\n").split("\n")
     children: list[LessmarkNode] = []
     index = 0
-    first_paragraph = True
 
     while index < len(lines):
         line = lines[index]
@@ -1163,7 +1220,6 @@ def from_markdown(markdown: str) -> str:
 
         if _is_markdown_separator(line):
             children.append({"type": "block", "name": "separator", "attrs": {}, "text": ""})
-            first_paragraph = False
             index += 1
             continue
 
@@ -1177,7 +1233,6 @@ def from_markdown(markdown: str) -> str:
                 raise ValueError("Unclosed math block")
             index += 1
             children.append({"type": "block", "name": "math", "attrs": {"notation": "tex"}, "text": "\n".join(body)})
-            first_paragraph = False
             continue
 
         fence = _read_fence_line(line)
@@ -1191,7 +1246,6 @@ def from_markdown(markdown: str) -> str:
                 raise ValueError("Unclosed fenced code block")
             index += 1
             children.append(_fenced_code_node(str(fence["lang"]), body))
-            first_paragraph = False
             continue
 
         task = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", line)
@@ -1204,14 +1258,12 @@ def from_markdown(markdown: str) -> str:
                     "text": _plain_text(task.group(2)),
                 }
             )
-            first_paragraph = False
             index += 1
             continue
 
         markdown_list = _read_markdown_list(lines, index)
         if markdown_list is not None:
             children.append(markdown_list["node"])  # type: ignore[arg-type]
-            first_paragraph = False
             index = int(markdown_list["next_index"])
             continue
 
@@ -1226,26 +1278,23 @@ def from_markdown(markdown: str) -> str:
                 children.append(
                     {
                         "type": "block",
-                        "name": "summary" if first_paragraph else "note",
+                        "name": "paragraph",
                         "attrs": {},
                         "text": _plain_text(image["alt"]),
                     }
                 )
-            first_paragraph = False
             index += 1
             continue
 
         quote = _read_blockquote(lines, index)
         if quote is not None:
             children.append(quote["node"])
-            first_paragraph = False
             index = quote["next_index"]
             continue
 
         table = _read_table(lines, index)
         if table is not None:
             children.append(table["node"])
-            first_paragraph = False
             index = table["next_index"]
             continue
 
@@ -1262,8 +1311,7 @@ def from_markdown(markdown: str) -> str:
         if link and _is_safe_href(link.group(2)):
             children.append({"type": "block", "name": "link", "attrs": {"href": link.group(2)}, "text": link.group(1)})
         else:
-            children.append({"type": "block", "name": "summary" if first_paragraph else "note", "attrs": {}, "text": text})
-        first_paragraph = False
+            children.append({"type": "block", "name": "paragraph", "attrs": {}, "text": text})
 
     return format_ast({"type": "document", "children": children})
 
@@ -1286,10 +1334,8 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
         name = str(node["name"])
         attrs = node.get("attrs", {})
         text = str(node.get("text", ""))
-        if name in {"summary", "note", "paragraph"}:
+        if name in {"summary", "paragraph"}:
             chunks.append(_inline_to_markdown(text))
-        elif name == "warning":
-            chunks.append(f"> Warning: {text}")
         elif name == "constraint":
             chunks.append(f"> Constraint: {text}")
         elif name == "decision":

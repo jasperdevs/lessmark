@@ -48,6 +48,31 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
     itemRefs.current[popup.active]?.scrollIntoView({ block: "nearest" });
   }, [popup]);
 
+  // Floating popups are positioned in viewport coords. Dismiss on outside
+  // scroll/resize so they don't get stranded — but ignore scrolls inside the
+  // popup itself so the user can scroll a long completion list.
+  useEffect(() => {
+    if (!popup && !hover) return;
+    const onScroll = (e: Event) => {
+      const target = e.target as Node | null;
+      if (target instanceof Element && target.closest(".lessmark-completion, .lessmark-hover")) {
+        return;
+      }
+      setPopup(null);
+      setHover(null);
+    };
+    const onResize = () => {
+      setPopup(null);
+      setHover(null);
+    };
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [popup, hover]);
+
   const syncScroll = () => {
     const ta = taRef.current, pre = preRef.current, gutter = gutterRef.current;
     if (!ta || !pre || !gutter) return;
@@ -75,9 +100,17 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
     const ta = taRef.current;
     if (!ta) return;
     const cursor = ta.selectionStart;
-    const next = value.slice(0, from) + item.insert + value.slice(cursor);
     const nextCursor = from + (item.cursorOffset ?? item.insert.length);
-    onChange(next);
+    // Route through execCommand so the change enters the textarea's native
+    // undo stack (ctrl+z / ctrl+shift+z work as expected). Fall back to a
+    // controlled-value update if the browser refuses.
+    ta.focus();
+    ta.setSelectionRange(from, cursor);
+    const inserted = document.execCommand("insertText", false, item.insert);
+    if (!inserted) {
+      const next = value.slice(0, from) + item.insert + value.slice(cursor);
+      onChange(next);
+    }
     setPopup(null);
     requestAnimationFrame(() => {
       ta.focus();
@@ -107,11 +140,15 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
       e.preventDefault();
       const ta = e.currentTarget;
       const start = ta.selectionStart, end = ta.selectionEnd;
-      const next = value.slice(0, start) + "  " + value.slice(end);
-      onChange(next);
-      requestAnimationFrame(() => {
-        ta.selectionStart = ta.selectionEnd = start + 2;
-      });
+      // execCommand keeps the indent insertion in the native undo stack.
+      const inserted = document.execCommand("insertText", false, "  ");
+      if (!inserted) {
+        const next = value.slice(0, start) + "  " + value.slice(end);
+        onChange(next);
+        requestAnimationFrame(() => {
+          ta.selectionStart = ta.selectionEnd = start + 2;
+        });
+      }
     }
   };
 
@@ -167,21 +204,21 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
   );
 
   return (
-    <div className={`relative grid grid-cols-[40px_1fr] min-h-0 ${className}`}>
+    <div className={`lessmark-editor relative grid grid-cols-[40px_minmax(0,1fr)] min-h-0 min-w-0 ${className}`}>
       <div
         ref={gutterRef}
         aria-hidden
-        className="overflow-hidden border-r border-code-line py-3 text-right pr-2 text-code-faint font-[var(--font-code)] text-[12px] leading-[1.6] select-none"
+        className="overflow-hidden border-r border-code-line py-3 text-right pr-2 text-code-faint font-[var(--font-code)] text-[13px] leading-[1.6] select-none"
       >
         {Array.from({ length: lineCount }, (_, i) => (
           <div key={i}>{i + 1}</div>
         ))}
       </div>
-      <div ref={wrapRef} className="relative" onMouseMove={onMouseMove} onMouseLeave={() => setHover(null)}>
+      <div ref={wrapRef} className="relative isolate min-w-0" onMouseMove={onMouseMove} onMouseLeave={() => setHover(null)}>
         <pre
           ref={preRef}
           aria-hidden
-          className="absolute inset-0 m-0 p-3 overflow-auto whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6] text-code-fg pointer-events-none"
+          className="lessmark-editor-code lessmark-scrollbar absolute inset-0 z-0 m-0 p-3 overflow-auto whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6] text-code-fg pointer-events-none"
           dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
         />
         <textarea
@@ -201,7 +238,7 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
           }}
           onScroll={syncScroll}
           spellCheck={false}
-          className="absolute inset-0 m-0 p-3 w-full h-full resize-none bg-transparent border-0 outline-none whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6] text-transparent caret-code-fg selection:bg-code-line"
+          className="lessmark-editor-code lessmark-scrollbar absolute inset-0 z-10 m-0 p-3 w-full h-full resize-none bg-transparent border-0 outline-none whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6] text-transparent caret-code-fg selection:bg-code-line"
         />
       </div>
       {overlays ? createPortal(overlays, portalTarget) : null}

@@ -23,28 +23,28 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class LessmarkPythonTests(unittest.TestCase):
     def test_parses_fixture_ast(self):
-        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
         expected = json.loads((ROOT / "fixtures/valid/project-context.ast.json").read_text(encoding="utf-8"))
         self.assertEqual(parse_lessmark(source), expected)
 
     def test_all_valid_fixtures_have_stable_ast_snapshots(self):
-        for path in sorted((ROOT / "fixtures/valid").glob("*.mu")):
+        for path in sorted((ROOT / "fixtures/valid").glob("*.lmk")):
             source = path.read_text(encoding="utf-8")
             expected = json.loads(path.with_suffix(".ast.json").read_text(encoding="utf-8"))
             self.assertEqual(parse_lessmark(source), expected, path.name)
 
     def test_all_invalid_fixtures_are_rejected_by_the_parser(self):
-        for path in sorted((ROOT / "fixtures/invalid").glob("*.mu")):
+        for path in sorted((ROOT / "fixtures/invalid").glob("*.lmk")):
             with self.subTest(path=path.name):
                 with self.assertRaises(LessmarkError):
                     parse_lessmark(path.read_text(encoding="utf-8"))
 
     def test_format_is_idempotent(self):
-        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
         self.assertEqual(format_lessmark(source), format_lessmark(format_lessmark(source)))
 
     def test_preserves_indented_example_text(self):
-        source = (ROOT / "fixtures/valid/example-code.mu").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/example-code.lmk").read_text(encoding="utf-8")
         expected = json.loads((ROOT / "fixtures/valid/example-code.ast.json").read_text(encoding="utf-8"))
         self.assertEqual(parse_lessmark(source), expected)
         self.assertEqual(format_lessmark(source), source)
@@ -88,7 +88,7 @@ E = mc^2
 graph TD
   A --> B
 
-@callout warning
+@warning
 Watch this.
 
 @definition API
@@ -109,7 +109,7 @@ Homepage.
 Footnote body.
 """
         formatted = format_lessmark(source)
-        self.assertIn("@paragraph\nUse {{strong:bold}}, {{em:emphasis}}, {{code:code}}, {{code:**literal**}}, {{link:Docs|https://example.com}}, {{ref:Decision|storage-backend}}, {{footnote:note}}, {{mark:marked}}, and {{del:gone}}.", formatted)
+        self.assertIn("Use {{strong:bold}}, {{em:emphasis}}, {{code:code}}, {{code:**literal**}}, {{link:Docs|https://example.com}}, {{ref:Decision|storage-backend}}, {{footnote:note}}, {{mark:marked}}, and {{del:gone}}.", formatted)
         self.assertIn('@list kind="unordered"\n- One\n- Two', formatted)
         self.assertIn('@list kind="ordered"\n- First\n- Second', formatted)
         self.assertIn('@decision id="storage-backend"', formatted)
@@ -173,13 +173,27 @@ RFC-0042
             from_markdown("1. One\n2) Two\n")
 
     def test_supports_escaped_pipes_in_table_columns(self):
-        source = '@table columns="Name\\|Alias|Status"\nLessmark\\|mu|done\n'
+        source = '@table columns="Name\\|Alias|Status"\nLessmark\\|lmk|done\n'
         self.assertEqual(validate_source(source), [])
         self.assertIn("| Name\\|Alias | Status |", to_markdown(source))
 
-    def test_loose_text_error_explains_new_blocks(self):
-        with self.assertRaisesRegex(LessmarkError, "start a new block such as @p"):
-            parse_lessmark("@p\nyo\n\nnah\n")
+    def test_supports_empty_table_cells(self):
+        source = '@table columns="Name|Status"\nLessmark|\n|todo\n'
+        self.assertEqual(validate_source(source), [])
+
+    def test_plain_top_level_prose_parses_as_paragraphs(self):
+        ast = parse_lessmark("yo\nwant sup\n\nnah\n")
+        self.assertEqual([(node["name"], node["text"]) for node in ast["children"]], [
+            ("paragraph", "yo\nwant sup"),
+            ("paragraph", "nah"),
+        ])
+        self.assertEqual(format_lessmark("@p\nyo\n\nnah\n"), "yo\n\nnah\n")
+
+    def test_supports_escaped_leading_block_sigils_inside_prose(self):
+        ast = parse_lessmark("\\@mention\n\\#hashtag\n")
+        self.assertEqual([(node["name"], node["text"]) for node in ast["children"]], [
+            ("paragraph", "@mention\n#hashtag"),
+        ])
 
     def test_imports_safe_relative_standalone_markdown_links(self):
         self.assertEqual(from_markdown("[Guide](docs/guide.html)\n"), '@link href="docs/guide.html"\nGuide\n')
@@ -238,20 +252,10 @@ RFC-0042
             parse_lessmark('@nav label="Docs" href="index.html" slot="sidebar"\n')
         with self.assertRaisesRegex(LessmarkError, "primary or footer"):
             parse_lessmark('@nav label="Docs" href="index.html" slot=""\n')
-        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
-            parse_lessmark('@nav label="Docs" href="index.html"\nBody.\n')
-        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
-            parse_lessmark('@page output="index.html"\nBody.\n')
-        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
-            parse_lessmark("@toc\nBody.\n")
-        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
-            parse_lessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n')
         with self.assertRaisesRegex(LessmarkError, "tex, asciimath"):
             parse_lessmark('@math notation="mathml"\nE = mc^2\n')
         with self.assertRaisesRegex(LessmarkError, "mermaid, graphviz, plantuml"):
             parse_lessmark('@diagram kind="unknown"\ngraph TD\n')
-        with self.assertRaisesRegex(LessmarkError, "must not have a body"):
-            parse_lessmark("@separator\nBody.\n")
         with self.assertRaisesRegex(LessmarkError, "does not allow attribute"):
             parse_lessmark('@separator style="thin"\n')
         with self.assertRaisesRegex(LessmarkError, "lowercase slug"):
@@ -266,7 +270,7 @@ RFC-0042
             parse_lessmark('@list kind="unordered"\n- Parent\n    - Child\n')
 
     def test_can_include_source_positions_without_changing_default_ast(self):
-        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
         plain = parse_lessmark(source)
         positioned = parse_lessmark(source, source_positions=True)
         self.assertNotIn("position", plain["children"][0])
@@ -419,6 +423,9 @@ RFC-0042
         self.assertIn("@separator", lessmark)
         self.assertEqual(validate_source(lessmark), [])
 
+    def test_imports_markdown_prose_as_paragraphs(self):
+        self.assertEqual(from_markdown("para one\n\npara two\n"), "para one\n\npara two\n")
+
     def test_imports_normal_markdown_lists(self):
         unordered = from_markdown("- Parent\n  - Child\n- Sibling\n")
         self.assertIn('@list kind="unordered"\n- Parent\n  - Child\n- Sibling', unordered)
@@ -442,14 +449,14 @@ RFC-0042
             from_markdown("```js\nconst a = 1;\n")
 
     def test_exports_lessmark_to_markdown(self):
-        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
         markdown = to_markdown(source)
         self.assertTrue(markdown.startswith("# Project Context"))
         self.assertIn("- [ ] Add export settings.", markdown)
         self.assertEqual(to_markdown("@separator\n"), "---\n")
 
     def test_exports_docs_blocks_to_markdown(self):
-        source = (ROOT / "fixtures/valid/docs-page.mu").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/docs-page.lmk").read_text(encoding="utf-8")
         markdown = to_markdown(source)
         self.assertIn("# Docs Home", markdown)
         self.assertIn("**explicit**", markdown)
@@ -501,7 +508,7 @@ RFC-0042
 
     def test_cli_check_json_prints_agent_readable_errors(self):
         output = StringIO()
-        path = ROOT / "fixtures/invalid/raw-html.mu"
+        path = ROOT / "fixtures/invalid/raw-html.lmk"
         with redirect_stdout(output):
             status = main(["check", str(path), "--json"])
         result = json.loads(output.getvalue())
@@ -518,11 +525,11 @@ RFC-0042
         with redirect_stdout(output):
             status = main(["from-markdown", str(path)])
         self.assertEqual(status, 0)
-        self.assertIn("@summary\nMarkdown import fixture.", output.getvalue())
+        self.assertIn("\nMarkdown import fixture.\n", output.getvalue())
 
     def test_cli_converts_lessmark_to_markdown(self):
         output = StringIO()
-        path = ROOT / "fixtures/valid/project-context.mu"
+        path = ROOT / "fixtures/valid/project-context.lmk"
         with redirect_stdout(output):
             status = main(["to-markdown", str(path)])
         self.assertEqual(status, 0)
@@ -530,7 +537,7 @@ RFC-0042
 
     def test_cli_fix_is_formatter_alias(self):
         output = StringIO()
-        path = ROOT / "fixtures/valid/project-context.mu"
+        path = ROOT / "fixtures/valid/project-context.lmk"
         with redirect_stdout(output):
             status = main(["fix", str(path)])
         self.assertEqual(status, 0)
@@ -538,9 +545,9 @@ RFC-0042
 
     def test_cli_format_check_reports_formatting_status(self):
         with tempfile.TemporaryDirectory(prefix="lessmark-format-check-") as temp:
-            formatted = Path(temp) / "formatted.mu"
-            unformatted = Path(temp) / "unformatted.mu"
-            formatted.write_text((ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8"), encoding="utf-8")
+            formatted = Path(temp) / "formatted.lmk"
+            unformatted = Path(temp) / "unformatted.lmk"
+            formatted.write_text((ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8"), encoding="utf-8")
             unformatted.write_text("@task todo\nDo it.\n", encoding="utf-8")
 
             output = StringIO()

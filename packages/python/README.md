@@ -1,18 +1,18 @@
 # lessmark
 
-Python parser, validator, formatter, and CLI for Lessmark.
+The markdown alternative that agents (and humans) love.
 
-Lessmark is a strict, agent-readable document format for project context. It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
+Python parser, validator, formatter, and CLI for the Lessmark language.
 
 ```py
 from lessmark import parse_lessmark
 
-ast = parse_lessmark("@summary\nTyped context for humans and agents.\n")
-ast_with_positions = parse_lessmark("@summary\nTyped context.\n", source_positions=True)
+ast = parse_lessmark("# Notes\n\nPlain prose becomes a paragraph.\n")
+ast_with_positions = parse_lessmark("Typed context.\n", source_positions=True)
 ```
 
 ```sh
-lessmark parse file.mu
-lessmark check file.mu
-lessmark format file.mu
+lessmark parse file.lmk
+lessmark check file.lmk
+lessmark format file.lmk
 ```

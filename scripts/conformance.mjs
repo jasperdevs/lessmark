@@ -15,10 +15,10 @@ const rootProfilesContract = readFileSync(join(root, "schemas", "profiles-v0.con
 const languageContract = JSON.parse(readFileSync(join(root, "schemas", "language-v0.contract.json"), "utf8"));
 const profilesContract = JSON.parse(readFileSync(join(root, "schemas", "profiles-v0.contract.json"), "utf8"));
 
-for (const name of readdirSync(validDir).filter((file) => file.endsWith(".mu")).sort()) {
+for (const name of readdirSync(validDir).filter((file) => file.endsWith(".lmk")).sort()) {
   const path = join(validDir, name);
   const source = readFileSync(path, "utf8");
-  const expected = JSON.parse(readFileSync(path.replace(/\.mu$/, ".ast.json"), "utf8"));
+  const expected = JSON.parse(readFileSync(path.replace(/\.lmk$/, ".ast.json"), "utf8"));
 
   assert.deepEqual(parseLessmark(source), expected, `js parse ${name}`);
   assert.deepEqual(pythonJson("parse", path), expected, `python parse ${name}`);
@@ -33,7 +33,7 @@ for (const name of readdirSync(validDir).filter((file) => file.endsWith(".mu")).
   assert.equal(rustText(["to-markdown", path]), exported, `rust to-markdown ${name}`);
 }
 
-for (const name of readdirSync(invalidDir).filter((file) => file.endsWith(".mu")).sort()) {
+for (const name of readdirSync(invalidDir).filter((file) => file.endsWith(".lmk")).sort()) {
   const path = join(invalidDir, name);
   const source = readFileSync(path, "utf8");
   const jsErrors = validateSource(source);
@@ -92,7 +92,7 @@ assertLanguageContract(jsInfo, "js");
 const generatedDir = mkdtempSync(join(tmpdir(), "lessmark-generated-conformance-"));
 try {
   for (const [index, source] of generatedValidSources().entries()) {
-    const path = join(generatedDir, `valid-${index}.mu`);
+    const path = join(generatedDir, `valid-${index}.lmk`);
     writeFileSync(path, source, "utf8");
     const expected = parseLessmark(source);
     assert.deepEqual(pythonJson("parse", path), expected, `python generated parse ${index}`);
@@ -103,7 +103,7 @@ try {
     assert.equal(pythonText("to-markdown", path), toMarkdown(source), `python generated markdown ${index}`);
     assert.equal(rustText(["to-markdown", path]), toMarkdown(source), `rust generated markdown ${index}`);
   }
-  const crlfPath = join(generatedDir, "bom-crlf.mu");
+  const crlfPath = join(generatedDir, "bom-crlf.lmk");
   const crlfSource = "\uFEFF# Project\r\n\r\n@summary\r\nBody.\r\n";
   writeFileSync(crlfPath, crlfSource, "utf8");
   const expected = parseLessmark(crlfSource);
@@ -222,7 +222,7 @@ function assertProfileContract(contract) {
   const expectedProfiles = {
     "agent-context": {
       requiredBlocks: ["summary"],
-      recommendedBlocks: ["metadata", "decision", "constraint", "file", "api", "task", "risk", "depends-on", "note", "warning", "example"],
+      recommendedBlocks: ["metadata", "decision", "constraint", "file", "api", "task", "risk", "depends-on", "callout", "example"],
       disallowedFeatures: ["rawHtml", "hooks", "customBlocks", "privateFlavors", "rendererSpecificSyntax"]
     },
     docs: {

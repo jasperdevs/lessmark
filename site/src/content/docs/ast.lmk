@@ -1,0 +1,134 @@
+# The AST
+
+@summary
+Every lessmark parser produces the same JSON tree from the same source.
+This page documents the shape of that tree and shows how to walk and
+transform it.
+
+## The top of the tree
+
+The parser returns a {{code:document}} node. It has one property,
+{{code:children}}, which is an ordered list of every block and heading
+in the source.
+
+@diagram kind="mermaid"
+graph TD
+  Doc["document"] --> H1["heading level 1"]
+  Doc --> P1["paragraph"]
+  Doc --> B1["block decision"]
+  Doc --> B2["block list"]
+  Doc --> P2["paragraph"]
+  B2 --> I1["list-item"]
+  B2 --> I2["list-item"]
+
+@code lang="js"
+{
+  type: "document",
+  children: [ /* heading and block nodes */ ]
+}
+
+## Headings
+
+A heading node carries its level (1, 2, or 3) and the raw text. Inline
+functions inside a heading are left as plain strings.
+
+@code lang="js"
+{
+  type: "heading",
+  level: 1,
+  text: "What is lessmark?"
+}
+
+## Typed blocks
+
+Every typed block uses the same shape.
+
+@code lang="js"
+{
+  type: "block",
+  name: "decision",
+  attrs: { id: "block-list-fixed" },
+  text: "The set of blocks is fixed in the language contract."
+}
+
+@list kind="unordered"
+- {{code:name}} is the block name without the leading {{code:@}}.
+- {{code:attrs}} is an object of declared attributes.
+- {{code:text}} is the body of the block, after dedent. May be empty.
+- Some blocks (like {{code:list}} and {{code:table}}) have a {{code:children}} or {{code:rows}} field instead. The {{link:Blocks reference|docs/blocks}} lists the shape per block.
+
+## Paragraphs
+
+Paragraphs carry their inline functions as raw text. The renderer
+expands {{code:{{strong:bold}}}} and friends at render time.
+
+@code lang="js"
+{
+  type: "paragraph",
+  text: "Inline {{code:functions}} stay as raw strings here."
+}
+
+## Walking the tree
+
+The tree is plain JSON. A walk is a recursive function over
+{{code:children}}.
+
+@code lang="js"
+import { parseLessmark } from "lessmark";
+
+function visit(node, fn) {
+  fn(node);
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) visit(child, fn);
+  }
+}
+
+const ast = parseLessmark(source);
+visit(ast, (n) => {
+  if (n.type === "block" && n.name === "decision") {
+    console.log("decision:", n.attrs.id, n.text);
+  }
+});
+
+## Extracting just one block type
+
+Pull every {{code:@task}} out of a document for a status report.
+
+@code lang="js"
+import { parseLessmark } from "lessmark";
+
+function tasks(source) {
+  const ast = parseLessmark(source);
+  return ast.children
+    .filter((n) => n.type === "block" && n.name === "task")
+    .map((n) => ({ status: n.attrs.status, body: n.text }));
+}
+
+## Transforming the tree
+
+A transform is a walk that returns a new node instead of side
+effects. Lessmark trees are JSON-serializable, so a deep clone is a
+{{code:JSON.parse(JSON.stringify(ast))}}.
+
+@code lang="js"
+function rewriteDecisions(ast, fn) {
+  const clone = JSON.parse(JSON.stringify(ast));
+  for (const node of clone.children) {
+    if (node.type === "block" && node.name === "decision") {
+      Object.assign(node, fn(node));
+    }
+  }
+  return clone;
+}
+
+@callout kind="warning"
+The shipped {{code:renderHtml}} expects valid trees. If you mutate
+attributes, run the new tree through {{link:validateAst|docs/phases}}
+before rendering.
+
+## The contract
+
+The complete AST shape is pinned in
+{{code:schemas/language-v0.contract.json}}. Every package validates
+its output against that file in CI. If you write a tool that consumes
+lessmark trees, validate against the contract too.

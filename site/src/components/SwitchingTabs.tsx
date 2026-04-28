@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Renderer } from "@/components/Renderer";
-import { switching, sourceId } from "@/lib/content";
+import { switching, sourceId, uiText } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
 
 export function SwitchingTabs() {
@@ -9,7 +9,7 @@ export function SwitchingTabs() {
     <section className="mt-8">
       <div
         role="tablist"
-        aria-label="source format"
+        aria-label={uiText["switching.source-format-label"] || "source format"}
         className="flex flex-wrap gap-1 border-b border-border-soft"
       >
         {switching.map((tab) => {

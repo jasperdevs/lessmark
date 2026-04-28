@@ -1,9 +1,9 @@
 [package]
 name = "lessmark"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MIT"
-description = "Canonical parser, validator, formatter, JSON AST, and CLI for Lessmark"
+description = "The markdown alternative that agents (and humans) love."
 repository = "https://github.com/jasperdevs/lessmark"
 readme = "README.md"
 keywords = ["lessmark", "markdown", "ast", "agent", "parser"]

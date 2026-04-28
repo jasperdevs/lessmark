@@ -1,7 +1,7 @@
 {
   "name": "lessmark",
-  "version": "0.1.2",
-  "description": "Strict agent-readable document format parser, validator, formatter, and CLI.",
+  "version": "0.1.3",
+  "description": "The markdown alternative that agents (and humans) love.",
   "type": "module",
   "main": "src/index.js",
   "exports": {
@@ -21,7 +21,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node --check src/index.js && node --check src/capabilities.js && node --check src/grammar.js && node --check src/rules.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check src/markdown.js && node --check src/render.js && node --check bin/lessmark.js",
+    "build": "node --check src/index.js && node --check src/capabilities.js && node --check src/grammar.js && node --check src/rules.js && node --check src/parser.js && node --check src/format.js && node --check src/validate.js && node --check src/markdown.js && node --check src/highlight.js && node --check src/render.js && node --check bin/lessmark.js",
     "test": "node --test"
   },
   "keywords": [

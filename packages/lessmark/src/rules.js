@@ -26,6 +26,8 @@ export function isRelativeProjectPath(path) {
 export function isSafeHref(href) {
   const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(href);
   if (scheme) return ["http", "https", "mailto"].includes(scheme[1].toLowerCase());
+  if (href.startsWith("//")) return false;
+  if (href.startsWith("/")) return !href.split(/[\\/]+/).includes("..");
   return isRelativeProjectPath(href);
 }
 
@@ -329,7 +331,6 @@ function getTableBodyErrors(columns, text) {
   const columnCount = splitTableRow(columns).length;
   for (const line of String(text).split("\n").filter((row) => row.trim() !== "")) {
     const cells = splitTableRow(line);
-    if (cells.some((cell) => cell === "")) return ["@table cells cannot be empty"];
     if (cells.length !== columnCount) return ["@table row cell count must match columns"];
   }
   return [];

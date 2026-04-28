@@ -3,6 +3,8 @@ import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, getB
 
 const BLOCK_ALIASES = {
   p: { name: "paragraph", attrs: {} },
+  note: { name: "callout", attrs: { kind: "note" } },
+  warning: { name: "callout", attrs: { kind: "warning" } },
   ul: { name: "list", attrs: { kind: "unordered" } },
   ol: { name: "list", attrs: { kind: "ordered" } }
 };
@@ -64,7 +66,9 @@ export function parseLessmark(source, options = {}) {
       continue;
     }
 
-    throw new LessmarkError("Loose text is not allowed outside a typed block; start a new block such as @p", index + 1, 1);
+    const parsed = parsePlainParagraph(lines, index, sourcePositions);
+    children.push(parsed.node);
+    index = parsed.nextIndex;
   }
 
   const [anchorError] = getLocalAnchorErrors(children);
@@ -72,6 +76,40 @@ export function parseLessmark(source, options = {}) {
     throw new LessmarkError(anchorError, 1, 1);
   }
   return { type: "document", children };
+}
+
+function parsePlainParagraph(lines, startIndex, sourcePositions) {
+  const body = [];
+  let index = startIndex;
+  let endLine = startIndex + 1;
+  let endColumn = 1;
+
+  while (index < lines.length) {
+    const line = lines[index];
+    if (line.trim() === "" || startsBlockSyntax(line)) {
+      break;
+    }
+    const textLine = decodeLeadingBlockEscape(line);
+    assertSafeText(textLine, "paragraph", index + 1, 1);
+    const legacyError = getLegacyMarkdownLineError(textLine);
+    if (legacyError) throw new LessmarkError(legacyError, index + 1, 1);
+    body.push(textLine.trimEnd());
+    endLine = index + 1;
+    endColumn = line.length + 1;
+    index += 1;
+  }
+
+  const node = {
+    type: "block",
+    name: "paragraph",
+    attrs: {},
+    text: canonicalizeInlineSyntax(body.join("\n"), startIndex + 1)
+  };
+  validateBlockBody(node, startIndex + 1);
+  if (sourcePositions) {
+    node.position = position(startIndex + 1, 1, endLine, endColumn);
+  }
+  return { node, nextIndex: index };
 }
 
 function normalizeSource(source) {
@@ -118,6 +156,15 @@ function parseBlock(lines, startIndex, sourcePositions) {
   let endLine = startIndex + 1;
   let endColumn = header.length + 1;
 
+  if (isBodylessBlock(name)) {
+    const node = { type: "block", name, attrs, text: "" };
+    validateBlockBody(node, startIndex + 1);
+    if (sourcePositions) {
+      node.position = position(startIndex + 1, 1, endLine, endColumn);
+    }
+    return { node, nextIndex: index };
+  }
+
   while (index < lines.length) {
     const line = lines[index];
     if (body.length === 0 && line.trim() === "" && !isLiteralBlock(name)) {
@@ -127,12 +174,13 @@ function parseBlock(lines, startIndex, sourcePositions) {
     if (isBlockTerminator(lines, index, name)) {
       break;
     }
-    assertSafeText(line, `@${name}`, index + 1, 1);
+    const textLine = isLiteralBlock(name) ? line : decodeLeadingBlockEscape(line);
+    assertSafeText(textLine, `@${name}`, index + 1, 1);
     if (!isLiteralBlock(name)) {
-      const legacyError = getLegacyMarkdownLineError(line);
+      const legacyError = getLegacyMarkdownLineError(textLine);
       if (legacyError) throw new LessmarkError(legacyError, index + 1, 1);
     }
-    body.push(line.trimEnd());
+    body.push(textLine.trimEnd());
     endLine = index + 1;
     endColumn = line.length + 1;
     index += 1;
@@ -175,7 +223,7 @@ function normalizeBlockHeader(rawName, rawRest, lineNumber) {
 
 function isBlockTerminator(lines, index, name) {
   const line = lines[index];
-  if (line.startsWith("#") || line.startsWith("@")) return true;
+  if (startsBlockSyntax(line)) return true;
   if (line.trim() !== "") return false;
   if (!isLiteralBlock(name)) return true;
 
@@ -183,11 +231,26 @@ function isBlockTerminator(lines, index, name) {
   while (next < lines.length && lines[next].trim() === "") {
     next += 1;
   }
-  return next >= lines.length || lines[next].startsWith("#") || lines[next].startsWith("@");
+  return next >= lines.length || startsBlockSyntax(lines[next]);
 }
 
 function isLiteralBlock(name) {
   return name === "code" || name === "example" || name === "math" || name === "diagram";
+}
+
+function isBodylessBlock(name) {
+  return name === "image" || name === "nav" || name === "page" || name === "separator" || name === "toc";
+}
+
+function startsBlockSyntax(line) {
+  return line.startsWith("#") || line.startsWith("@");
+}
+
+function decodeLeadingBlockEscape(line) {
+  if (line.startsWith("\\@") || line.startsWith("\\#")) {
+    return line.slice(1);
+  }
+  return line;
 }
 
 function position(startLine, startColumn, endLine, endColumn) {

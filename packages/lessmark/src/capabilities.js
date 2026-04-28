@@ -17,9 +17,9 @@ export const INLINE_FUNCTIONS = [
 export function getCapabilities() {
   return {
     language: "lessmark",
-    version: "0.1.2",
+    version: "0.1.3",
     astVersion: "v0",
-    extensions: [".mu", ".lessmark"],
+    extensions: [".lmk", ".lessmark"],
     mediaType: "text/vnd.lessmark; charset=utf-8",
     blocks: [...CORE_BLOCK_NAMES],
     inlineFunctions: [...INLINE_FUNCTIONS],
@@ -46,9 +46,11 @@ export function getCapabilities() {
     },
     syntaxPolicy: {
       aliases: true,
+      plainParagraphs: true,
       canonicalSource: true,
       documentedConveniencesOnly: true,
-      maxSpellingsPerMeaning: 2,
+      maxSpellingsPerMeaning: 3,
+      maxSpellingsException: "paragraph",
       markdownLegacySyntax: false,
       rawHtml: false,
       hooks: false,

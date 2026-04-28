@@ -45,6 +45,8 @@ declare module "lessmark" {
   export function toMarkdown(source: string): string;
   export function renderHtml(astOrSource: string | LessmarkAst, options?: { document?: boolean }): string;
   export function renderInline(children: LessmarkInline[]): string;
+  export function highlightCode(source: string, lang?: string): string;
+  export function highlightLessmark(source: string): string;
   export function getCapabilities(): unknown;
   export const CORE_BLOCKS: readonly string[];
 }

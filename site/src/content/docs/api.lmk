@@ -1,0 +1,167 @@
+# API reference
+
+@summary
+Every export from the lessmark packages, with signatures and a short
+note. Three runtimes ship today: JavaScript, Python, and Rust. Each
+package implements the same parse and validate pipeline against the
+shared language contract.
+
+## JavaScript
+
+The {{link:lessmark|https://www.npmjs.com/package/lessmark}} package on
+npm. Pure ESM, zero runtime dependencies.
+
+@code lang="sh"
+npm install lessmark
+
+@api name="parseLessmark"
+{{code:parseLessmark(source: string): Document}}. Parse a string into
+the AST. Throws {{code:LessmarkError}} on the first violation.
+
+@api name="renderHtml"
+{{code:renderHtml(ast: Document): string}}. Walk the AST and emit
+semantic HTML. Returns a single string.
+
+@api name="renderInline"
+{{code:renderInline(text: string): string}}. Expand inline functions
+in a string of paragraph or heading text.
+
+@api name="validateAst"
+{{code:validateAst(ast: Document): ValidationError[]}}. Run cross-cut
+checks on a parsed tree. Returns an empty array if the tree is valid.
+
+@api name="validateSource"
+{{code:validateSource(source: string): ValidationError[]}}. Parse and
+validate in one call. Returns errors from either phase.
+
+@api name="formatLessmark"
+{{code:formatLessmark(source: string): string}}. Normalize whitespace,
+attribute order, and block spacing. Idempotent.
+
+@api name="formatAst"
+{{code:formatAst(ast: Document): string}}. Re-emit a parsed tree as
+canonical lessmark source.
+
+@api name="fromMarkdown"
+{{code:fromMarkdown(markdown: string): string}}. Convert a CommonMark
+document to lessmark source on a best-effort basis.
+
+@api name="toMarkdown"
+{{code:toMarkdown(source: string): string}}. Convert a lessmark
+document to CommonMark. Some typed blocks have no Markdown equivalent
+and emit a comment.
+
+@api name="highlightLessmark"
+{{code:highlightLessmark(source: string): string}}. Return HTML with
+class-tagged spans for editor-style highlighting.
+
+@api name="highlightCode"
+{{code:highlightCode(source: string, lang: string): string}}.
+Highlight code in a fenced block. Used by the renderer for
+{{code:@code}} blocks.
+
+@api name="LessmarkError"
+{{code:class LessmarkError extends Error}}. Carries
+{{code:line}}, {{code:column}}, and {{code:code}} fields. Thrown by
+parse and surfaced by validation.
+
+@api name="CORE_BLOCKS"
+A {{code:Set}} of strings. The names of every typed block in the language
+contract. Useful for completion and tooling.
+
+@api name="getCapabilities"
+{{code:getCapabilities(): Capabilities}}. Returns the package version,
+the contract version, and the feature flags this build supports.
+
+## Python
+
+The {{link:lessmark|https://pypi.org/project/lessmark/}} package on PyPI.
+Mirrors the JavaScript surface where it makes sense; render and highlight
+are not yet shipped.
+
+@code lang="sh"
+pip install lessmark
+
+@api name="parse_lessmark"
+{{code:parse_lessmark(source: str) -> dict}}. Parse a string into the
+AST. Raises {{code:LessmarkError}} on the first violation.
+
+@api name="validate_ast"
+{{code:validate_ast(ast: dict) -> list[dict]}}. Run cross-cut checks.
+
+@api name="validate_source"
+{{code:validate_source(source: str) -> list[dict]}}. Parse and
+validate in one call.
+
+@api name="format_lessmark"
+{{code:format_lessmark(source: str) -> str}}. Canonical formatter.
+
+@api name="format_ast"
+{{code:format_ast(ast: dict) -> str}}. Re-emit a tree as source.
+
+@api name="from_markdown"
+{{code:from_markdown(markdown: str) -> str}}. CommonMark to lessmark.
+
+@api name="to_markdown"
+{{code:to_markdown(source: str) -> str}}. Lessmark to CommonMark.
+
+@api name="get_capabilities"
+{{code:get_capabilities() -> dict}}. Build and contract version.
+
+@api name="LessmarkError"
+{{code:class LessmarkError(Exception)}}. Carries {{code:line}},
+{{code:column}}, and {{code:code}}.
+
+@api name="CORE_BLOCKS"
+{{code:frozenset[str]}}. Names of every typed block.
+
+## Rust
+
+The {{link:lessmark|https://crates.io/crates/lessmark}} crate. Parser and
+validator only; render is delegated to a downstream consumer.
+
+@code lang="sh"
+cargo add lessmark
+
+@api name="parse_lessmark"
+{{code:parse_lessmark(source: &str) -> Result<Document, LessmarkError>}}.
+Parse a string into the AST.
+
+@api name="parse_lessmark_with_positions"
+{{code:parse_lessmark_with_positions(source) -> Result of (Document, Vec of PositionRange) plus LessmarkError}}.
+Parse and return per-node source positions.
+
+@api name="validate_document"
+{{code:validate_document(doc: &Document) -> Vec of ValidationError}}.
+Run cross-cut checks on a parsed document.
+
+@api name="validate_source"
+{{code:validate_source(source: &str) -> Vec of ValidationError}}. Parse
+and validate in one call.
+
+@api name="format_lessmark"
+{{code:format_lessmark(source: &str) -> Result<String, LessmarkError>}}.
+Canonical formatter.
+
+@api name="format_document"
+{{code:format_document(doc: &Document) -> String}}. Re-emit a tree as
+source.
+
+@api name="from_markdown"
+{{code:from_markdown(markdown: &str) -> String}}. CommonMark to
+lessmark.
+
+@api name="to_markdown"
+{{code:to_markdown(source: &str) -> Result<String, LessmarkError>}}.
+Lessmark to CommonMark.
+
+## CLI
+
+The {{code:lessmark}} binary. Documented in full on the
+{{link:CLI page|docs/cli}}.
+
+@list kind="unordered"
+- {{code:lessmark parse FILE}}: print the AST as JSON.
+- {{code:lessmark check FILE}}: parse and validate. Exits non-zero on failure.
+- {{code:lessmark format FILE}}: print the canonical formatted source.
+- {{code:lessmark info --json}}: package and contract version.

@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { renderHtml, parseLessmark, LessmarkError } from "lessmark";
+import { useCodeCopyButtons } from "@/lib/code-copy";
+import { useMermaid } from "@/lib/mermaid-render";
 
 type Props = { source: string; className?: string };
 
 export function Renderer({ source, className }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
   const result = useMemo(() => {
     try {
       const ast = parseLessmark(source);
@@ -13,6 +16,9 @@ export function Renderer({ source, className }: Props) {
       return { ok: false as const, message: err.message, line: err.line, column: err.column };
     }
   }, [source]);
+
+  useCodeCopyButtons(ref, result.ok ? result.html : null);
+  useMermaid(ref, result.ok ? result.html : null);
 
   if (!result.ok) {
     return (
@@ -25,6 +31,7 @@ export function Renderer({ source, className }: Props) {
 
   return (
     <div
+      ref={ref}
       className={`lessmark-output ${className ?? ""}`}
       dangerouslySetInnerHTML={{ __html: result.html }}
     />

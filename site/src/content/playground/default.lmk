@@ -1,0 +1,22 @@
+# What is lessmark?
+
+Lessmark is a strict, agent-readable alternative to Markdown. Every
+document is a sequence of typed blocks, and every parser produces the
+same JSON tree.
+
+Lessmark is open source. Check out the
+{{link:source on GitHub|https://github.com/jasperdevs/lessmark}} to see
+how it works.
+
+## How is lessmark different?
+
+Markdown is a presentation format. Lessmark is a structure format. A
+{{code:@decision}} block is a decision, a {{code:@constraint}} block is
+a constraint, and a tool reading the file does not have to guess.
+{{link:Read more|docs/syntax}}.
+
+## Next steps
+
+@list kind="unordered"
+- {{link:Install lessmark|docs/getting-started}}
+- {{link:Explore the syntax|docs/syntax}}

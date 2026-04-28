@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Playground } from "@/components/Playground";
-import { examples, getExample, sourceId } from "@/lib/content";
+import { examples, getExample, sourceId, uiText } from "@/lib/content";
 import { useLiveSourceCtx } from "@/lib/live-source";
 import { ArrowRightIcon } from "@/components/Icons";
 
@@ -26,23 +26,22 @@ export function ExamplePage() {
   const next = idx < examples.length - 1 ? examples[idx + 1] : null;
 
   return (
-    <main className="px-3 pb-3 h-[calc(100vh-72px)] overflow-hidden flex flex-col gap-2">
-      <div className="flex items-center justify-between text-[12px] font-mono shrink-0 px-1">
-        <div className="flex items-baseline gap-3">
+    <main className="px-2 sm:px-3 pb-3 h-[calc(100svh-72px)] min-h-[620px] overflow-hidden flex flex-col gap-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[13px] shrink-0 px-1">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <Link
             to="/examples"
-            className="text-fg-muted hover:text-fg transition-colors"
+            className="text-fg-muted hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
           >
-            ← all examples
+            ← {uiText["examples.back"] || "all examples"}
           </Link>
-          <span className="text-fg-faint">/</span>
-          <span className="text-fg-faint">{ex.slug}.mu</span>
+          <span className="text-fg-faint italic">{ex.slug}.lmk</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-1">
           {prev ? (
             <Link
               to={`/examples/${prev.slug}`}
-              className="text-fg-muted hover:text-fg transition-colors"
+              className="text-fg-muted hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
             >
               ← {prev.slug}
             </Link>
@@ -50,10 +49,10 @@ export function ExamplePage() {
           {next ? (
             <Link
               to={`/examples/${next.slug}`}
-              className="text-fg-muted hover:text-fg transition-colors inline-flex items-center gap-1"
+              className="text-fg-muted hover:text-fg transition-colors inline-flex items-baseline gap-1 underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
             >
               {next.slug}
-              <ArrowRightIcon className="size-3" />
+              <ArrowRightIcon className="size-3 self-center" />
             </Link>
           ) : <span />}
         </div>
@@ -63,7 +62,6 @@ export function ExamplePage() {
           value={liveSource}
           onChange={(v) => ctx.set(id, v)}
           sample={ex.source}
-          fileName={`${ex.slug}.mu`}
           fullHeight
         />
       </div>

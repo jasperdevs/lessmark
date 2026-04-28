@@ -17,8 +17,9 @@
   --radius: 12px;
 
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-code: "Cascadia Code", "Cascadia Mono", "JetBrains Mono", Consolas, "SF Mono", "Liberation Mono", monospace;
+  --font-mono: var(--font-code);
+  --font-display: "Bytesized", "Cascadia Code", monospace;
 
   /* nav underline palette */
   --nav-red: #E34234;
@@ -26,19 +27,19 @@
   --nav-green: #00B55A;
   --nav-blue: #002395;
 
-  /* dark playground tokens */
-  --code-bg: #0E0E10;
-  --code-fg: #E7E5E4;
-  --code-faint: #6B6B6B;
-  --code-line: #2A2A2D;
-  --code-key: #569CD6;
-  --code-string: #CE9178;
-  --code-comment: #6A9955;
-  --code-inline: #4EC9B0;
-  --code-inline-muted: #DCDCAA;
-  --code-emphasis: #C586C0;
-  --code-deleted: #808080;
-  --code-number: #B5CEA8;
+  /* code surface — light mode */
+  --code-bg: #F4F4F5;
+  --code-fg: #1A1A1A;
+  --code-faint: #6B7280;
+  --code-line: #E4E4E7;
+  --code-key: #0F4C9C;
+  --code-string: #A14025;
+  --code-comment: #3F8E55;
+  --code-inline: #0F766E;
+  --code-inline-muted: #9C7400;
+  --code-emphasis: #7B2D8E;
+  --code-deleted: #9CA3AF;
+  --code-number: #5C8A2E;
 
   --editor-popover-bg: var(--surface);
   --editor-popover-fg: var(--fg);
@@ -82,6 +83,20 @@
   --blocked-fg: #F4B4B4;
   --mark-bg: #5A4A18;
 
+  /* code surface — dark mode */
+  --code-bg: #141416;
+  --code-fg: #E7E5E4;
+  --code-faint: #8B8985;
+  --code-line: #2A2A2D;
+  --code-key: #569CD6;
+  --code-string: #CE9178;
+  --code-comment: #6A9955;
+  --code-inline: #4EC9B0;
+  --code-inline-muted: #DCDCAA;
+  --code-emphasis: #C586C0;
+  --code-deleted: #808080;
+  --code-number: #B5CEA8;
+
   --editor-popover-bg: var(--surface-alt);
   --editor-popover-fg: var(--fg);
   --editor-popover-muted: var(--fg-faint);
@@ -119,7 +134,12 @@
   --radius-lg: var(--radius);
 }
 
-html, body { margin: 0; padding: 0; }
+html, body {
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body {
   background: var(--bg);
   color: var(--fg);
@@ -146,49 +166,95 @@ button:not(:disabled), [role="button"]:not(:disabled), a[href] {
 }
 button:disabled { cursor: not-allowed; }
 textarea { cursor: text; }
+img, svg { max-width: 100%; }
 
-/* Hero accent: yellow underline beneath the playful "(and humans)" span. */
+.lessmark-scrollbar {
+  scrollbar-color: var(--code-line) transparent;
+  scrollbar-gutter: stable;
+}
+.lessmark-scrollbar::-webkit-scrollbar,
+.lessmark-output pre::-webkit-scrollbar,
+.lessmark-output table::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.lessmark-scrollbar::-webkit-scrollbar-track,
+.lessmark-output pre::-webkit-scrollbar-track,
+.lessmark-output table::-webkit-scrollbar-track {
+  background: transparent;
+}
+.lessmark-scrollbar::-webkit-scrollbar-thumb,
+.lessmark-output pre::-webkit-scrollbar-thumb,
+.lessmark-output table::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--code-line) 78%, var(--code-fg));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.lessmark-scrollbar::-webkit-scrollbar-thumb:hover,
+.lessmark-output pre::-webkit-scrollbar-thumb:hover,
+.lessmark-output table::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--code-line) 55%, var(--code-fg));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.lessmark-editor-code {
+  font-family: "Cascadia Mono", "Consolas", "Liberation Mono", "Courier New", monospace;
+  font-weight: 400;
+  font-style: normal;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0, "ss01" 0, "cv11" 0, "dlig" 0, "hlig" 0;
+  font-kerning: none;
+  font-variant-numeric: tabular-nums;
+  font-stretch: normal;
+  letter-spacing: 0;
+  word-spacing: 0;
+  tab-size: 2;
+  text-indent: 0;
+  text-rendering: optimizeSpeed;
+}
+.lessmark-editor-code span {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  font-stretch: inherit;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0, "ss01" 0, "cv11" 0, "dlig" 0, "hlig" 0;
+  font-kerning: none;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  word-spacing: 0;
+}
+.lessmark-editor-code .tok-del {
+  text-decoration: none;
+}
+.lessmark-editor-code .tok-mark {
+  color: var(--code-inline-muted);
+  background: transparent;
+  border-radius: 0;
+}
+
+/* Hero accent: italic-only "(and humans)", a touch lighter than surrounding
+   text. No underline — keeps the hero clean. */
 .hero-accent {
-  position: relative;
-  color: var(--accent);
   font-style: italic;
-  font-weight: 700;
-}
-.hero-accent::after {
-  content: "";
-  position: absolute;
-  left: -2%;
-  right: -2%;
-  bottom: -0.06em;
-  height: 0.18em;
-  background: var(--nav-yellow);
-  border-radius: 2px;
-  z-index: -1;
+  font-weight: inherit;
+  color: var(--fg-muted);
 }
 
-/* Color-block underlines on navbar items. */
+/* Hover-only colored underline on navbar items. */
 .nav-link {
   position: relative;
-  padding-bottom: 4px;
+  padding-bottom: 3px;
   font-weight: 500;
+  text-decoration: none;
 }
-.nav-link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background: var(--nav-color, transparent);
-  transition: transform 200ms ease, opacity 200ms ease;
-  transform-origin: left;
-  transform: scaleX(0.55);
-  opacity: 0.55;
-}
-.nav-link:hover::after,
-.nav-link.is-active::after {
-  transform: scaleX(1);
-  opacity: 1;
+.nav-link:hover {
+  text-decoration: underline wavy var(--nav-color, currentColor);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
 }
 
 /* Soft fade behind the sticky header. Safe-area aware so iOS notches
@@ -232,30 +298,32 @@ textarea { cursor: text; }
   position: fixed;
   z-index: 2147483647;
   max-width: min(420px, calc(100% - 24px));
-  border: 1px solid var(--editor-popover-border);
-  background: var(--editor-popover-bg);
-  color: var(--editor-popover-fg);
-  box-shadow: var(--editor-popover-shadow);
-  font-family: var(--font-code);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 8px 24px color-mix(in oklab, var(--fg) 12%, transparent);
+  font-family: var(--font-sans);
+  font-size: 13px;
 }
 
 .lessmark-completion {
-  width: min(360px, calc(100% - 24px));
+  width: min(320px, calc(100% - 24px));
   max-height: 260px;
   overflow: auto;
   padding: 4px;
-  border-radius: 3px;
+  border-radius: 8px;
 }
 
 .lessmark-completion button {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: 88px 1fr;
   gap: 10px;
+  align-items: baseline;
   width: 100%;
   min-height: 28px;
-  padding: 4px 7px;
+  padding: 5px 8px;
   border: 0;
-  border-radius: 2px;
+  border-radius: 4px;
   background: transparent;
   color: inherit;
   text-align: left;
@@ -264,33 +332,31 @@ textarea { cursor: text; }
 
 .lessmark-completion button.active,
 .lessmark-completion button:hover {
-  background: var(--editor-popover-active-bg);
-  color: var(--editor-popover-active-fg);
+  background: var(--surface-alt);
 }
 
 .lessmark-completion span {
-  color: currentColor;
+  color: var(--fg);
+  font-family: var(--font-code);
+  font-size: 12px;
   white-space: nowrap;
 }
 
 .lessmark-completion small {
   overflow: hidden;
-  color: var(--editor-popover-muted);
+  color: var(--fg-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
-}
-.lessmark-completion button.active small,
-.lessmark-completion button:hover small {
-  color: color-mix(in oklab, var(--editor-popover-active-fg) 72%, transparent);
+  font-size: 12px;
 }
 
 .lessmark-hover {
-  padding: 8px 10px;
-  border-radius: 3px;
+  padding: 8px 12px;
+  border-radius: 8px;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
   pointer-events: none;
+  max-width: min(360px, calc(100% - 24px));
 }
 
 /* ==========================================================================
@@ -303,17 +369,29 @@ textarea { cursor: text; }
   color: var(--fg);
   font-family: var(--font-sans);
   font-size: 16px;
+  font-weight: 400;
   line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 
 /* :where() lowers the descendant resets to zero specificity so the
    sibling-margin rule below can space block children evenly even when
    they are <p> elements that need a margin reset. */
-.lessmark-output :where(p, ul, ol, blockquote, figure, table) { margin: 0; }
+.lessmark-output :where(p, ul, ol, li, blockquote, figure, table, pre) { margin: 0; }
 .lessmark-output > * + * { margin-top: 1em; }
 
 .lessmark-output pre .tok-key     { color: var(--code-key); }
+.lessmark-output pre .tok-heading { color: var(--code-fg); font-weight: 500; }
+.lessmark-output pre .tok-attr    { color: var(--code-fg); }
+.lessmark-output pre .tok-punct,
+.lessmark-output pre .tok-brace   { color: var(--code-faint); }
+.lessmark-output pre .tok-inline,
+.lessmark-output pre .tok-link    { color: var(--code-inline); }
 .lessmark-output pre .tok-string  { color: var(--code-string); }
+.lessmark-output pre .tok-code    { color: var(--code-inline-muted); }
+.lessmark-output pre .tok-emph    { color: var(--code-emphasis); }
+.lessmark-output pre .tok-del     { color: var(--code-deleted); text-decoration: line-through; }
+.lessmark-output pre .tok-mark    { color: #111111; background: var(--code-inline-muted); border-radius: 2px; }
 .lessmark-output pre .tok-number  { color: var(--code-number); }
 .lessmark-output pre .tok-comment { color: var(--code-comment); font-style: italic; }
 
@@ -330,6 +408,7 @@ textarea { cursor: text; }
   margin-top: 1.6em;
   margin-bottom: 0.4em;
   line-height: 1.2;
+  text-wrap: balance;
 }
 .lessmark-output h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
 .lessmark-output h2 { font-size: 24px; }
@@ -356,21 +435,24 @@ textarea { cursor: text; }
 .lessmark-output h5::before { content: "#####"; }
 .lessmark-output h6::before { content: "######"; }
 
-.lessmark-output p   { color: var(--fg); }
+.lessmark-output p   { color: var(--fg); text-wrap: pretty; }
 .lessmark-output a   { color: var(--fg); text-decoration: underline; text-decoration-color: var(--fg-faint); text-underline-offset: 2px; }
 .lessmark-output a:hover { text-decoration-color: var(--fg); }
 
 .lessmark-output code {
   font-family: var(--font-code);
   font-size: 0.88em;
+  font-weight: 400;
   background: var(--surface-alt);
   padding: 0.1em 0.35em;
   border-radius: 4px;
   border: 1px solid var(--border-soft);
+  overflow-wrap: anywhere;
 }
 .lessmark-output kbd {
   font-family: var(--font-code);
   font-size: 0.85em;
+  font-weight: 400;
   background: var(--surface);
   border: 1px solid var(--border);
   border-bottom-width: 2px;
@@ -380,6 +462,9 @@ textarea { cursor: text; }
 .lessmark-output mark { background: var(--mark-bg); color: var(--fg); padding: 0 0.15em; border-radius: 2px; }
 
 .lessmark-output pre {
+  position: relative;
+  margin: 1.1em 0;
+  max-width: 100%;
   background: var(--code-bg);
   color: var(--code-fg);
   padding: 16px 18px;
@@ -387,12 +472,75 @@ textarea { cursor: text; }
   overflow-x: auto;
   font-family: var(--font-code);
   font-size: 13px;
+  font-weight: 400;
   line-height: 1.6;
+  tab-size: 2;
+  white-space: pre;
+  border: 1px solid color-mix(in oklab, var(--code-line) 82%, black);
+  scrollbar-color: var(--code-line) var(--code-bg);
+  scrollbar-gutter: stable;
 }
-.lessmark-output pre code { background: transparent; padding: 0; border: 0; border-radius: 0; font-size: inherit; }
-/* Inverted selection inside dark code surfaces. */
+
+/* Copy-to-clipboard button injected by the Renderer for every <pre>. */
+.lessmark-output .code-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--code-faint);
+  border: 1px solid transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease, border-color 120ms ease;
+  padding: 0;
+}
+.lessmark-output pre:hover .code-copy-btn,
+.lessmark-output .code-copy-btn:focus-visible {
+  opacity: 1;
+}
+.lessmark-output .code-copy-btn:hover {
+  color: var(--code-fg);
+  background: color-mix(in oklab, var(--code-line) 60%, transparent);
+  border-color: var(--code-line);
+}
+.lessmark-output .code-copy-btn--copied {
+  opacity: 1;
+  color: var(--code-fg);
+  background: color-mix(in oklab, var(--code-line) 60%, transparent);
+  border-color: var(--code-line);
+}
+.lessmark-output .code-copy-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.lessmark-output pre code {
+  display: block;
+  min-width: max-content;
+  white-space: pre;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.lessmark-output > pre:first-child { margin-top: 0; }
+.lessmark-output > pre:last-child { margin-bottom: 0; }
 .lessmark-output pre ::selection,
-.lessmark-output pre::selection { background: var(--code-fg); color: var(--code-bg); }
+.lessmark-output pre::selection {
+  background: color-mix(in oklab, var(--code-key) 38%, transparent);
+  color: var(--code-fg);
+}
 
 .lessmark-output blockquote {
   padding: 0.4em 0 0.4em 1em;
@@ -402,11 +550,27 @@ textarea { cursor: text; }
 .lessmark-output blockquote cite { display: block; margin-top: 0.5em; font-style: normal; color: var(--fg-faint); font-size: 0.9em; }
 .lessmark-output blockquote cite::before { content: "- "; }
 
-.lessmark-output ul, .lessmark-output ol { padding-left: 1.4em; }
+.lessmark-output ul,
+.lessmark-output ol {
+  padding-left: 1.4em;
+  list-style-position: outside;
+}
+.lessmark-output ul { list-style-type: disc; }
+.lessmark-output ol { list-style-type: decimal; }
+.lessmark-output ul ul { list-style-type: circle; }
+.lessmark-output ul ul ul { list-style-type: square; }
+.lessmark-output ol ol { list-style-type: lower-alpha; }
+.lessmark-output ol ol ol { list-style-type: lower-roman; }
+.lessmark-output li > ul,
+.lessmark-output li > ol { margin-top: 0.25em; }
 .lessmark-output li + li { margin-top: 0.25em; }
 
 .lessmark-output table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-gutter: stable;
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -420,8 +584,31 @@ textarea { cursor: text; }
 .lessmark-output figure img { max-width: 100%; height: auto; border-radius: 8px; }
 .lessmark-output figcaption { margin-top: 0.5em; color: var(--fg-muted); font-size: 0.9em; }
 
+/* Mermaid diagram surface — rendered SVG fills the figure once mermaid hydrates. */
+.lessmark-output figure.lessmark-diagram {
+  display: block;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  padding: 20px;
+  overflow-x: auto;
+  text-align: center;
+}
+.lessmark-output figure.lessmark-diagram[data-mermaid-rendered] svg {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
+.lessmark-output figure.lessmark-diagram pre {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  color: var(--fg-muted);
+}
+
 /* typed-block surfaces */
-.lessmark-output .lessmark-warning,
 .lessmark-output .lessmark-constraint,
 .lessmark-output .lessmark-risk,
 .lessmark-output .lessmark-callout {
@@ -435,14 +622,12 @@ textarea { cursor: text; }
 .lessmark-output .lessmark-callout[data-kind="note"]     { border-color: var(--note-border); background: var(--note-bg); }
 .lessmark-output .lessmark-callout[data-kind="warning"]  { border-color: var(--warn-border); background: var(--warn-bg); }
 .lessmark-output .lessmark-callout[data-kind="caution"]  { border-color: var(--caution-border); background: var(--caution-bg); }
-.lessmark-output .lessmark-warning                       { border-color: var(--caution-border); background: var(--caution-bg); }
 .lessmark-output .lessmark-constraint                    { border-color: var(--tip-border); background: var(--tip-bg); }
 .lessmark-output .lessmark-risk[data-level="medium"]     { border-color: var(--warn-border); background: var(--warn-bg); }
 .lessmark-output .lessmark-risk[data-level="high"]       { border-color: var(--caution-border); background: var(--caution-bg); }
 .lessmark-output .lessmark-risk[data-level="critical"]   { border-color: var(--caution-border); background: var(--caution-bg); color: var(--critical-fg); }
 
 .lessmark-output .lessmark-callout > p:first-of-type,
-.lessmark-output .lessmark-warning  > p:first-of-type,
 .lessmark-output .lessmark-constraint > p:first-of-type,
 .lessmark-output .lessmark-risk     > p:first-of-type,
 .lessmark-output .lessmark-decision > p:first-of-type {
@@ -496,3 +681,135 @@ textarea { cursor: text; }
 .lessmark-output .lessmark-definition dd { margin-left: 0; color: var(--fg-muted); }
 
 .lessmark-output .lessmark-nav { display: none; } /* the React shell owns chrome; lessmark-nav stays in source as semantic data */
+
+.footer-pixel-art :where(.pixel-moon, .pixel-stars, .pixel-clouds, .pixel-hill, .pixel-character, .pixel-arm-left, .pixel-arm-right, .pixel-feet, .pixel-grass) {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-moon {
+  animation: pixel-moon-float 2800ms steps(4, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-stars {
+  animation: pixel-star-twinkle 1800ms steps(2, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-clouds {
+  animation: pixel-cloud-slide 3600ms steps(6, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-hill {
+  animation: pixel-hill-pulse 2200ms steps(2, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-character {
+  animation: pixel-character-bob 1200ms steps(2, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-arm-left {
+  transform-origin: right center;
+  animation: pixel-left-wave 950ms steps(3, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-arm-right {
+  transform-origin: left center;
+  animation: pixel-right-wave 950ms steps(3, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-feet {
+  animation: pixel-feet-tap 700ms steps(2, end) infinite;
+}
+
+.footer-pixel-art[data-animated="true"] .pixel-grass {
+  animation: pixel-grass-rustle 900ms steps(3, end) infinite;
+}
+
+@keyframes pixel-moon-float {
+  0%, 100% { transform: translateY(0); opacity: 0.42; }
+  50% { transform: translateY(-2px); opacity: 0.62; }
+}
+
+@keyframes pixel-star-twinkle {
+  0%, 100% { opacity: 0.28; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes pixel-cloud-slide {
+  0%, 100% { transform: translateX(0); opacity: 0.22; }
+  50% { transform: translateX(4px); opacity: 0.3; }
+}
+
+@keyframes pixel-hill-pulse {
+  0%, 100% { opacity: 0.32; }
+  50% { opacity: 0.42; }
+}
+
+@keyframes pixel-character-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes pixel-left-wave {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-2px, -3px); }
+}
+
+@keyframes pixel-right-wave {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(2px, -3px); }
+}
+
+@keyframes pixel-feet-tap {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1px); }
+}
+
+@keyframes pixel-grass-rustle {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer-pixel-art[data-animated="true"] :where(.pixel-moon, .pixel-stars, .pixel-clouds, .pixel-hill, .pixel-character, .pixel-arm-left, .pixel-arm-right, .pixel-feet, .pixel-grass) {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .lessmark-output {
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .lessmark-output h1 { font-size: 28px; }
+  .lessmark-output h2 { font-size: 22px; }
+  .lessmark-output h3 { font-size: 18px; }
+
+  .lessmark-output h1::before,
+  .lessmark-output h2::before,
+  .lessmark-output h3::before,
+  .lessmark-output h4::before,
+  .lessmark-output h5::before,
+  .lessmark-output h6::before {
+    margin-right: 0.35em;
+  }
+
+  .lessmark-output pre {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  .lessmark-output figure.lessmark-diagram {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .lessmark-output .lessmark-callout,
+  .lessmark-output .lessmark-constraint,
+  .lessmark-output .lessmark-risk {
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+}

@@ -1,0 +1,84 @@
+# Getting started
+
+@summary
+Install lessmark, write a first document, parse it, and run a check.
+You will be productive in five minutes.
+
+## Install
+
+### JavaScript
+
+Available on {{link:npm|https://www.npmjs.com/package/lessmark}}.
+
+@code lang="sh"
+npm install lessmark
+
+### Python
+
+Available on {{link:PyPI|https://pypi.org/project/lessmark/}}.
+
+@code lang="sh"
+pip install lessmark
+
+### Rust
+
+Available on {{link:crates.io|https://crates.io/crates/lessmark}}.
+
+@code lang="sh"
+cargo add lessmark
+
+## Editor support
+
+Install the
+{{link:Lessmark extension for VS Code|https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode}}
+for syntax highlighting on {{code:.lmk}} and {{code:.lessmark}} files,
+plus commands to check and preview the current document.
+
+@code lang="sh"
+code --install-extension JasperDevs.lessmark-vscode
+
+## Write your first document
+
+Lessmark documents can mix plain prose, headings, and typed blocks.
+Use at-sign blocks when you need explicit data. Save this as notes.lmk:
+
+@code lang="lessmark"
+  # Project context
+
+  @summary
+  A small CLI for tracking time across projects.
+
+  Plain paragraphs work without a tag.
+
+  @decision id="storage-backend"
+  Store entries in a single SQLite file, not per-project.
+
+  @constraint
+  Do not block the UI while syncing.
+
+## Parse it
+
+@code lang="sh"
+lessmark parse notes.lmk
+
+You get a stable JSON tree describing every block. The same call works
+in JavaScript, Python, and Rust and returns the same output.
+
+## Validate it
+
+@callout kind="tip" title="Use check before committing"
+The check command catches missing required attributes, unknown block
+names, broken cross-references, and unsafe URLs. Add it to your
+pre-commit hook.
+
+@code lang="sh"
+lessmark check notes.lmk
+
+## Where to go next
+
+@list kind="unordered"
+- Read the syntax reference for headings, blocks, and inline functions.
+- Read the block reference for every block in the language.
+- Browse examples to see real documents (resumes, RFCs, postmortems).
+- Open the playground to edit live in the browser.
+

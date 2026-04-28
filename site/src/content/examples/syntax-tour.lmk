@@ -1,0 +1,138 @@
+# Syntax tour
+
+@summary
+A short tour of every typed block and inline function in lessmark. Copy
+any block into your own document and adjust the body or attributes.
+
+## Inline functions
+
+This paragraph uses {{strong:bold}}, {{em:italic}}, {{code:inline code}},
+{{kbd:Ctrl+S}}, {{mark:highlight}}, and {{del:strikethrough}}. Visit
+{{link:GitHub|https://github.com/jasperdevs/lessmark}} for an external
+link. See {{ref:the block-list decision|block-list-fixed}} for an
+internal cross reference.
+
+## Decisions and constraints
+
+@decision id="block-list-fixed"
+The set of blocks is fixed in the language contract. New blocks are
+added only when an existing combination of blocks cannot express what a
+real document needs.
+
+@constraint
+Every block has a stable JSON shape across packages. A document parsed
+by JavaScript, Python, and Rust produces the same tree.
+
+## Tasks
+
+@task status="todo"
+A task that has not been started.
+
+@task status="doing"
+A task currently in progress.
+
+@task status="done"
+A task that has been completed.
+
+@task status="blocked"
+A task waiting on something else.
+
+## Callouts
+
+@callout kind="note" title="Heads up"
+A short note. Callouts can carry an optional {{code:title}} attribute.
+
+@callout kind="tip"
+A tip surfaces a recommended pattern.
+
+@callout kind="warning"
+A warning flags risk a reader should consider before acting.
+
+@callout kind="caution"
+A caution is stronger than a warning. Treat it as a hard rule.
+
+## Quick asides
+
+@callout kind="note"
+Generated files live in {{code:dist/}} and are gitignored.
+
+@callout kind="warning"
+Embedding a script tag in any block body is a parse error.
+
+## Lists
+
+@list kind="unordered"
+- One package per runtime.
+- One CLI.
+- One contract.
+
+@list kind="ordered"
+- Write the document.
+- Parse it with any package.
+- Render the tree, or hand it to the agent that needs it.
+
+## Tables
+
+@table columns="Code|Meaning|Exit"
+0|Success|exits 0
+1|Validation or parse error|exits 1
+2|I/O error|exits 2
+
+## Code blocks
+
+@code lang="js"
+import { parseLessmark, renderHtml } from "lessmark";
+
+const tree = parseLessmark(source);
+const html = renderHtml(tree);
+
+@code lang="py"
+from lessmark import parse, render_html
+
+tree = parse(source)
+html = render_html(tree)
+
+@code lang="sh"
+lessmark parse notes.lmk
+lessmark check --json notes.lmk
+
+## Quotes
+
+@quote cite="Donald Knuth"
+Premature optimization is the root of all evil.
+
+## Files and APIs
+
+@file path="schemas/language-v0.contract.json"
+The canonical contract. Every package validates against this file.
+
+@api name="parseLessmark"
+Parses a string and returns the AST.
+
+@api name="renderHtml"
+Walks an AST and emits semantic HTML.
+
+## Risks
+
+@risk level="low"
+Adding a new optional attribute to an existing block.
+
+@risk level="medium"
+Adding a new block that overlaps with an existing one.
+
+@risk level="high"
+Changing how an existing block parses. Old documents stop parsing.
+
+## Cross references
+
+@definition term="lessmark"
+A strict markdown alternative with typed blocks and a stable JSON tree.
+
+@reference target="block-list-fixed"
+See the decision above for why the block set is closed.
+
+@depends-on target="block-list-fixed"
+Every renderer assumes the block set is closed under the contract.
+
+@link href="https://github.com/jasperdevs/lessmark"
+The project on GitHub.

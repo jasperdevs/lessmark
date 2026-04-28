@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$extensions = @(".mu", ".lessmark")
+$extensions = @(".lmk", ".lessmark")
 $progId = "Lessmark.Document"
 $contentType = "text/vnd.lessmark"
 
@@ -34,7 +34,7 @@ if ($SetDefaultApp) {
   Set-ItemProperty -Path $commandKey -Name "(default)" -Value 'notepad.exe "%1"'
 }
 
-Write-Host "Registered .mu and .lessmark as $contentType for the current Windows user."
+Write-Host "Registered .lmk and .lessmark as $contentType for the current Windows user."
 if (-not $SetDefaultApp) {
   Write-Host "Default app was not changed. Re-run with -SetDefaultApp to open Lessmark files with Notepad by default."
 }

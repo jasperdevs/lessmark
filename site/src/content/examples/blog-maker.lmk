@@ -1,0 +1,37 @@
+# Blog Post Maker
+
+@summary
+A starter template for a blog post. Replace this summary with your dek,
+swap the heading above, and fill in the sections below. Every block is
+optional. Keep what you need.
+
+## Intro
+
+Write a short intro paragraph here. Use {{em:emphasis}} where it adds
+meaning, and {{code:inline code}} for literal names.
+
+## A section heading
+
+Body copy goes here. Add as many sections as you need.
+
+@callout kind="tip"
+Use callouts for tips, warnings, or asides.
+
+## Code
+
+Drop a snippet to show readers what you mean.
+
+@code lang="js"
+// your code here
+
+## A pull quote
+
+@quote cite="Author"
+A line from your subject, when it lands the point better than your
+prose can.
+
+## Closing
+
+Wrap up with a short paragraph and a link to a related post or the
+project on
+{{link:GitHub|https://github.com/jasperdevs/lessmark}}.

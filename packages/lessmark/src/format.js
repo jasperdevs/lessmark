@@ -20,6 +20,9 @@ function formatNode(node) {
   }
 
   if (node.type === "block") {
+    if (node.name === "paragraph" && Object.keys(node.attrs).length === 0) {
+      return stripTrailingWhitespace(String(node.text ?? ""));
+    }
     const attrs = Object.keys(node.attrs)
       .sort()
       .map((key) => `${key}="${escapeAttr(node.attrs[key])}"`)

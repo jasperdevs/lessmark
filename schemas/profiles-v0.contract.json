@@ -9,7 +9,7 @@
       "renderer": "none required",
       "securityModel": "non-executable source; no raw HTML, hooks, custom blocks, or path traversal",
       "requiredBlocks": ["summary"],
-      "recommendedBlocks": ["metadata", "decision", "constraint", "file", "api", "task", "risk", "depends-on", "note", "warning", "example"],
+      "recommendedBlocks": ["metadata", "decision", "constraint", "file", "api", "task", "risk", "depends-on", "callout", "example"],
       "disallowedFeatures": ["rawHtml", "hooks", "customBlocks", "privateFlavors", "rendererSpecificSyntax"]
     },
     {

@@ -1,3 +1,4 @@
+import { highlightCode } from "./highlight.js";
 import { parseLessmark } from "./parser.js";
 import { DECISION_ID_PATTERN, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
 
@@ -28,10 +29,7 @@ function renderNode(node, ast, context) {
   switch (node.name) {
     case "summary":
     case "paragraph":
-    case "note":
       return `<p>${renderInline(node.text)}</p>`;
-    case "warning":
-      return `<aside class="lessmark-warning">${renderInline(node.text)}</aside>`;
     case "constraint":
       return `<aside class="lessmark-constraint">${renderInline(node.text)}</aside>`;
     case "decision":
@@ -343,112 +341,6 @@ ${body}
 </body>
 </html>
 `;
-}
-
-function highlightCode(text, lang = "") {
-  const normalized = String(lang).toLowerCase();
-  if (["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(normalized)) {
-    return highlightScript(text);
-  }
-  if (["json", "jsonc"].includes(normalized)) {
-    return highlightJson(text);
-  }
-  if (["sh", "shell", "bash", "zsh", "powershell", "ps1"].includes(normalized)) {
-    return highlightShell(text);
-  }
-  return escapeHtml(text);
-}
-
-function highlightScript(text) {
-  const keywords = new Set([
-    "async", "await", "break", "case", "catch", "class", "const", "continue", "default", "do",
-    "else", "export", "extends", "finally", "for", "from", "function", "if", "import", "in",
-    "instanceof", "let", "new", "of", "return", "static", "switch", "throw", "try", "typeof",
-    "var", "void", "while", "yield", "true", "false", "null", "undefined"
-  ]);
-  return tokenizeCode(text, (source, index) => {
-    const string = readStringToken(source, index, ["'", '"', "`"]);
-    if (string) return ["string", string];
-    if (source.startsWith("//", index)) return ["comment", readUntilNewline(source, index)];
-    if (source.startsWith("/*", index)) return ["comment", readBlockComment(source, index)];
-    const word = /^[A-Za-z_$][A-Za-z0-9_$]*/.exec(source.slice(index))?.[0];
-    if (word && keywords.has(word)) return ["key", word];
-    const number = /^(?:0x[0-9a-fA-F]+|\d+(?:\.\d+)?)/.exec(source.slice(index))?.[0];
-    if (number) return ["number", number];
-    return null;
-  });
-}
-
-function highlightJson(text) {
-  return tokenizeCode(text, (source, index) => {
-    const string = readStringToken(source, index, ['"']);
-    if (string) return ["string", string];
-    const keyword = /^(?:true|false|null)\b/.exec(source.slice(index))?.[0];
-    if (keyword) return ["key", keyword];
-    const number = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/i.exec(source.slice(index))?.[0];
-    if (number) return ["number", number];
-    return null;
-  });
-}
-
-function highlightShell(text) {
-  return tokenizeCode(text, (source, index) => {
-    const string = readStringToken(source, index, ["'", '"']);
-    if (string) return ["string", string];
-    if (source[index] === "#") return ["comment", readUntilNewline(source, index)];
-    const flag = /^--?[A-Za-z0-9][A-Za-z0-9-]*/.exec(source.slice(index))?.[0];
-    if (flag) return ["key", flag];
-    return null;
-  });
-}
-
-function tokenizeCode(text, readToken) {
-  const source = String(text);
-  let index = 0;
-  let output = "";
-  while (index < source.length) {
-    const token = readToken(source, index);
-    if (token) {
-      const [kind, value] = token;
-      output += `<span class="tok-${kind}">${escapeHtml(value)}</span>`;
-      index += value.length;
-      continue;
-    }
-    output += escapeHtml(source[index]);
-    index += 1;
-  }
-  return output;
-}
-
-function readStringToken(source, index, quotes) {
-  const quote = source[index];
-  if (!quotes.includes(quote)) return null;
-  let cursor = index + 1;
-  let escaping = false;
-  while (cursor < source.length) {
-    const char = source[cursor];
-    cursor += 1;
-    if (escaping) {
-      escaping = false;
-      continue;
-    }
-    if (char === "\\") {
-      escaping = true;
-      continue;
-    }
-    if (char === quote) break;
-  }
-  return source.slice(index, cursor);
-}
-
-function readUntilNewline(source, index) {
-  const end = source.indexOf("\n", index);
-  return end === -1 ? source.slice(index) : source.slice(index, end);
-}
-
-function readBlockComment(source, index) {
-  const end = source.indexOf("*/", index + 2);
-  return end === -1 ? source.slice(index) : source.slice(index, end + 2);
 }
 
 function escapeHtml(value) {

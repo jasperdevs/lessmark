@@ -16,7 +16,7 @@ fn parses_all_valid_fixtures_to_stable_ast() {
     let fixtures = repo_root().join("fixtures/valid");
     for entry in fs::read_dir(&fixtures).expect("valid fixtures directory exists") {
         let path = entry.expect("valid fixture entry").path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("mu") {
+        if path.extension().and_then(|ext| ext.to_str()) != Some("lmk") {
             continue;
         }
         let source = fs::read_to_string(&path).expect("fixture is readable");
@@ -36,7 +36,7 @@ fn rejects_all_invalid_fixtures() {
     let fixtures = repo_root().join("fixtures/invalid");
     for entry in fs::read_dir(&fixtures).expect("invalid fixtures directory exists") {
         let path = entry.expect("invalid fixture entry").path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("mu") {
+        if path.extension().and_then(|ext| ext.to_str()) != Some("lmk") {
             continue;
         }
         let source = fs::read_to_string(&path).expect("fixture is readable");
@@ -75,25 +75,11 @@ fn rejects_invalid_docs_attrs() {
             "@nav label=\"Docs\" href=\"index.html\" slot=\"\"\n",
             "primary or footer",
         ),
-        (
-            "@nav label=\"Docs\" href=\"index.html\"\nBody.\n",
-            "must not have a body",
-        ),
-        (
-            "@page output=\"index.html\"\nBody.\n",
-            "must not have a body",
-        ),
-        ("@toc\nBody.\n", "must not have a body"),
-        (
-            "@image src=\"assets/diagram.svg\" alt=\"Diagram\"\nBody.\n",
-            "must not have a body",
-        ),
         ("@math notation=\"mathml\"\nE = mc^2\n", "tex, asciimath"),
         (
             "@diagram kind=\"unknown\"\ngraph TD\n",
             "mermaid, graphviz, plantuml",
         ),
-        ("@separator\nBody.\n", "must not have a body"),
         ("@separator style=\"thin\"\n", "does not allow attribute"),
         (
             "@reference target=\"../secret\"\nBad target.\n",
@@ -169,7 +155,7 @@ fn cli_info_json_prints_machine_readable_capabilities() {
 
 #[test]
 fn formatter_is_idempotent() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
         .expect("fixture is readable");
     let once = format_lessmark(&source).expect("format once");
     let twice = format_lessmark(&once).expect("format twice");
@@ -178,7 +164,7 @@ fn formatter_is_idempotent() {
 
 #[test]
 fn formatter_preserves_indented_example_text() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/example-code.mu"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/example-code.lmk"))
         .expect("fixture is readable");
     assert_eq!(format_lessmark(&source).expect("format example"), source);
 }
@@ -223,7 +209,7 @@ E = mc^2
 graph TD
   A --> B
 
-@callout warning
+@warning
 Watch this.
 
 @definition API
@@ -244,7 +230,7 @@ Homepage.
 Footnote body.
 "#;
     let formatted = format_lessmark(source).expect("authoring conveniences format");
-    assert!(formatted.contains("@paragraph\nUse {{strong:bold}}, {{em:emphasis}}, {{code:code}}, {{code:**literal**}}, {{link:Docs|https://example.com}}, {{ref:Decision|storage-backend}}, {{footnote:note}}, {{mark:marked}}, and {{del:gone}}."));
+    assert!(formatted.contains("Use {{strong:bold}}, {{em:emphasis}}, {{code:code}}, {{code:**literal**}}, {{link:Docs|https://example.com}}, {{ref:Decision|storage-backend}}, {{footnote:note}}, {{mark:marked}}, and {{del:gone}}."));
     assert!(formatted.contains("@list kind=\"unordered\"\n- One\n- Two"));
     assert!(formatted.contains("@list kind=\"ordered\"\n- First\n- Second"));
     assert!(formatted.contains("@decision id=\"storage-backend\""));
@@ -290,7 +276,7 @@ fn supports_strict_nested_lists() {
 
 #[test]
 fn supports_escaped_pipes_in_table_columns() {
-    let source = "@table columns=\"Name\\|Alias|Status\"\nLessmark\\|mu|done\n";
+    let source = "@table columns=\"Name\\|Alias|Status\"\nLessmark\\|lmk|done\n";
     assert!(validate_source(source).is_empty());
     assert!(to_markdown(source)
         .expect("exports table")
@@ -298,9 +284,31 @@ fn supports_escaped_pipes_in_table_columns() {
 }
 
 #[test]
-fn loose_text_error_explains_new_blocks() {
-    let error = parse_lessmark("@p\nyo\n\nnah\n").expect_err("loose text rejects");
-    assert!(error.message.contains("start a new block such as @p"));
+fn supports_empty_table_cells() {
+    let source = "@table columns=\"Name|Status\"\nLessmark|\n|todo\n";
+    assert!(validate_source(source).is_empty());
+}
+
+#[test]
+fn plain_top_level_prose_parses_as_paragraphs() {
+    let document = parse_lessmark("yo\nwant sup\n\nnah\n").expect("plain prose parses");
+    let value = serde_json::to_value(document).expect("document serializes");
+    assert_eq!(value["children"][0]["name"], "paragraph");
+    assert_eq!(value["children"][0]["text"], "yo\nwant sup");
+    assert_eq!(value["children"][1]["name"], "paragraph");
+    assert_eq!(value["children"][1]["text"], "nah");
+    assert_eq!(
+        format_lessmark("@p\nyo\n\nnah\n").expect("plain paragraph formats"),
+        "yo\n\nnah\n"
+    );
+}
+
+#[test]
+fn supports_escaped_leading_block_sigils_inside_prose() {
+    let document = parse_lessmark("\\@mention\n\\#hashtag\n").expect("escaped sigils parse");
+    let value = serde_json::to_value(document).expect("document serializes");
+    assert_eq!(value["children"][0]["name"], "paragraph");
+    assert_eq!(value["children"][0]["text"], "@mention\n#hashtag");
 }
 
 #[test]
@@ -323,7 +331,7 @@ fn rejects_legacy_markdown_block_syntax_inside_lessmark_prose() {
 
 #[test]
 fn can_include_source_positions_without_changing_default_ast() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
         .expect("fixture is readable");
     let plain = serde_json::to_value(parse_lessmark(&source).expect("valid fixture parses"))
         .expect("document serializes");
@@ -455,6 +463,14 @@ fn imports_common_gfm_blocks_into_typed_lessmark_blocks() {
 }
 
 #[test]
+fn imports_markdown_prose_as_paragraphs() {
+    assert_eq!(
+        from_markdown("para one\n\npara two\n").expect("imports prose"),
+        "para one\n\npara two\n"
+    );
+}
+
+#[test]
 fn imports_normal_markdown_lists() {
     let unordered = from_markdown("- Parent\n  - Child\n- Sibling\n").expect("imports unordered");
     assert!(unordered.contains("@list kind=\"unordered\"\n- Parent\n  - Child\n- Sibling"));
@@ -516,7 +532,7 @@ fn rejects_unclosed_markdown_code_fences() {
 
 #[test]
 fn exports_lessmark_to_markdown() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
         .expect("fixture is readable");
     let markdown = to_markdown(&source).expect("exports markdown");
     assert!(markdown.starts_with("# Project Context"));
@@ -529,7 +545,7 @@ fn exports_lessmark_to_markdown() {
 
 #[test]
 fn exports_docs_blocks_to_markdown() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/docs-page.mu"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/docs-page.lmk"))
         .expect("fixture is readable");
     let markdown = to_markdown(&source).expect("exports markdown");
     assert!(markdown.contains("# Docs Home"));

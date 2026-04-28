@@ -26,7 +26,6 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
     let lines = normalized.split('\n').collect::<Vec<_>>();
     let mut children = Vec::new();
     let mut index = 0;
-    let mut first_paragraph = true;
 
     while index < lines.len() {
         let line = lines[index];
@@ -53,7 +52,6 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
                 text: String::new(),
                 position: None,
             });
-            first_paragraph = false;
             index += 1;
             continue;
         }
@@ -77,7 +75,6 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
                 text: body.join("\n"),
                 position: None,
             });
-            first_paragraph = false;
             continue;
         }
 
@@ -98,7 +95,6 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             index += 1;
 
             children.push(fenced_code_node(&fence.lang, &body));
-            first_paragraph = false;
             continue;
         }
 
@@ -114,14 +110,12 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
                 text: plain_text(text),
                 position: None,
             });
-            first_paragraph = false;
             index += 1;
             continue;
         }
 
         if let Some((node, next_index)) = read_markdown_list(&lines, index)? {
             children.push(node);
-            first_paragraph = false;
             index = next_index;
             continue;
         }
@@ -145,27 +139,24 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
                 });
             } else {
                 children.push(Node::Block {
-                    name: if first_paragraph { "summary" } else { "note" }.to_string(),
+                    name: "paragraph".to_string(),
                     attrs: BTreeMap::new(),
                     text: plain_text(&image.alt),
                     position: None,
                 });
             }
-            first_paragraph = false;
             index += 1;
             continue;
         }
 
         if let Some((node, next_index)) = read_blockquote(&lines, index) {
             children.push(node);
-            first_paragraph = false;
             index = next_index;
             continue;
         }
 
         if let Some((node, next_index)) = read_table(&lines, index) {
             children.push(node);
-            first_paragraph = false;
             index = next_index;
             continue;
         }
@@ -191,13 +182,12 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             });
         } else {
             children.push(Node::Block {
-                name: if first_paragraph { "summary" } else { "note" }.to_string(),
+                name: "paragraph".to_string(),
                 attrs: BTreeMap::new(),
                 text: plain_text(&raw_text),
                 position: None,
             });
         }
-        first_paragraph = false;
     }
 
     format_document(&Document::new(children)).map_err(|errors| {
@@ -355,8 +345,7 @@ fn markdown_node(node: &Node, footnote_ids: &BTreeSet<String>) -> Option<String>
         Node::Block {
             name, attrs, text, ..
         } => match name.as_str() {
-            "summary" | "note" | "paragraph" => Some(inline_to_markdown(text)),
-            "warning" => Some(format!("> Warning: {}", text)),
+            "summary" | "paragraph" => Some(inline_to_markdown(text)),
             "constraint" => Some(format!("> Constraint: {}", text)),
             "decision" => Some(format!(
                 "### {}\n\n**Decision:** {}",

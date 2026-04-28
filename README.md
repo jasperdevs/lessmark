@@ -2,9 +2,9 @@
   <img src="./assets/brand/bannerlong.png" alt="lessmark" width="100%" />
 </p>
 
-<h1 align="center">lessmark</h1>
+<h1 align="center">lessmark &lt;M</h1>
 
-<p align="center">A strict, agent-readable document format for project context.</p>
+<p align="center">The markdown alternative that agents (and humans) love.</p>
 
 <p align="center">
   <a href="https://lessmark.org"><img alt="website" src="https://img.shields.io/badge/site-lessmark.org-black?style=flat-square"></a>
@@ -16,11 +16,10 @@
   <a href="./LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-black?style=flat-square"></a>
 </p>
 
-Lessmark is a small Markdown-inspired format built around typed blocks, a stable JSON AST, validation, formatting, safe HTML rendering, and no raw HTML or JSX.
-It rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
-It is intentionally stricter than Markdown and optimized for agent context files.
+Lessmark is a strict document language with plain prose, typed blocks, a stable JSON AST, canonical formatting, validation, and safe rendering.
+It rejects raw HTML, hidden execution surfaces, undefined attributes, and most legacy Markdown ambiguity.
 
-The Rust crate, npm package, and Python package are conformance-checked for source parsing, formatting, Markdown export, validation errors, and the shared language contract. Safe HTML rendering and static-site builds are npm CLI features.
+JavaScript, Python, and Rust stay fixture-compatible for parsing, formatting, Markdown conversion, validation, and the shared language contract. HTML rendering and static docs builds are part of the npm CLI.
 
 ## Install
 
@@ -32,29 +31,36 @@ npm install lessmark
 pip install lessmark
 ```
 
-## CLI
+<details>
+<summary>CLI</summary>
 
 ```sh
-lessmark parse file.mu
-lessmark check file.mu
-lessmark check --json file.mu
-lessmark format file.mu
-lessmark format --check file.mu
-lessmark fix --write file.mu
+lessmark parse file.lmk
+lessmark check file.lmk
+lessmark check --json file.lmk
+lessmark format file.lmk
+lessmark format --check file.lmk
+lessmark fix --write file.lmk
 lessmark from-markdown README.md
-lessmark to-markdown file.mu
-lessmark render --document file.mu
+lessmark to-markdown file.lmk
+lessmark render --document file.lmk
 lessmark build --strict input public
 lessmark info --json
 ```
 
 `check --json` returns stable error `code` values for tools. `format --check` exits non-zero when source is not canonical. `info --json` exposes the v0 block set, inline functions, CLI features, and syntax policy.
 
-## Blocks
+</details>
 
-Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `api`, `metadata`, `risk`, and `depends-on`, plus docs blocks like `page`, `nav`, `paragraph`, `image`, `list`, `table`, `quote`, `callout`, `toc`, `definition`, `reference`, and `footnote`.
+<details>
+<summary>Blocks</summary>
 
-Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [lessmark.org](https://lessmark.org) for docs.
+Lessmark v0 supports plain top-level paragraphs, agent-context blocks like `summary`, `decision`, `constraint`, `task`, `file`, `code`, `example`, `api`, `metadata`, `risk`, and `depends-on`, plus docs blocks like `page`, `nav`, `image`, `list`, `table`, `quote`, `callout`, `toc`, `definition`, `reference`, and `footnote`.
+
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [lessmark.org](https://lessmark.org) for docs.
+
+Editor support: [Lessmark for VS Code](https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode).
+</details>
 
 <details>
 <summary>API and docs</summary>
@@ -72,9 +78,9 @@ from lessmark import parse_lessmark
 ### Rust
 
 ```sh
-cargo run -p lessmark -- parse file.mu
-cargo run -p lessmark -- check file.mu
-cargo run -p lessmark -- format file.mu
+cargo run -p lessmark -- parse file.lmk
+cargo run -p lessmark -- check file.lmk
+cargo run -p lessmark -- format file.lmk
 ```
 
 ### Checks

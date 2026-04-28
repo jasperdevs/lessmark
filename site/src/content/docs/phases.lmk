@@ -1,0 +1,80 @@
+# Phases of rendering
+
+@summary
+A lessmark document moves through three phases on its way from text to
+output. Knowing where you are in the pipeline tells you which errors
+mean what and where to plug in your own code.
+
+## The pipeline
+
+@diagram kind="mermaid"
+flowchart LR
+  A["Source .lmk"] --> B["Parse"]
+  B --> C["AST"]
+  C --> D["Validate"]
+  D --> E["Render"]
+  E --> F["HTML, JSX, PDF"]
+
+Every package ships the same three phases. They are pure functions of
+their input, so you can stop after any of them.
+
+## Phase 1: parse
+
+@decision id="parse-strict"
+The parser fails on the first violation. Lessmark does not try to
+recover from a bad document. A failure here means the source itself is
+invalid.
+
+The parser turns the string into the AST documented on the
+{{link:AST page|docs/ast}}. Errors are thrown as {{code:LessmarkError}}
+with a line and column.
+
+@code lang="js"
+import { parseLessmark, LessmarkError } from "lessmark";
+
+try {
+  const ast = parseLessmark(source);
+} catch (e) {
+  if (e instanceof LessmarkError) {
+    console.error(`line ${e.line}, column ${e.column}: ${e.message}`);
+  }
+  throw e;
+}
+
+## Phase 2: validate
+
+Validation catches things the grammar cannot. Cross-references that
+point at undefined ids. Block attributes that are valid syntax but not
+allowed for that block. Inline links that resolve to an unsafe URL
+scheme.
+
+@code lang="js"
+import { parseLessmark, validateAst } from "lessmark";
+
+const ast = parseLessmark(source);
+const errors = validateAst(ast);
+if (errors.length > 0) {
+  for (const err of errors) console.error(err.message);
+}
+
+@callout kind="tip"
+Use {{code:validateSource}} to combine parse and validate in one
+call. Use {{code:validateAst}} when you already have a parsed tree.
+
+## Phase 3: render
+
+The renderer is a walker over the AST. The shipped
+{{code:renderHtml}} produces semantic HTML. The
+{{link:Render page|docs/render}} covers React, Next.js, and custom
+walkers.
+
+@constraint
+The renderer never inspects raw source. It only sees the AST. Every
+guarantee about the output comes from the parse and validate phases.
+
+## Why three phases
+
+@list kind="unordered"
+- Each phase is a pure function with one input and one output. Nothing is implicit.
+- A tool that only needs the AST does not have to render. A linter parses, validates, and stops.
+- The same AST renders identically in every language package.

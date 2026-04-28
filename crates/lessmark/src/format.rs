@@ -34,6 +34,9 @@ fn format_node(node: &Node) -> String {
         Node::Block {
             name, attrs, text, ..
         } => {
+            if name == "paragraph" && attrs.is_empty() {
+                return strip_trailing_whitespace(text);
+            }
             let attrs = attrs
                 .iter()
                 .map(|(key, value)| format!("{}=\"{}\"", key, escape_attr(value)))

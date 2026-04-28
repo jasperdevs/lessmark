@@ -7,6 +7,8 @@ import {
   formatLessmark,
   formatAst,
   fromMarkdown,
+  highlightCode,
+  highlightLessmark,
   renderHtml,
   toMarkdown,
   validateAst,
@@ -20,25 +22,25 @@ async function read(path) {
 }
 
 test("parses valid fixture into stable AST", async () => {
-  const source = await read("fixtures/valid/project-context.mu");
+  const source = await read("fixtures/valid/project-context.lmk");
   const expected = JSON.parse(await read("fixtures/valid/project-context.ast.json"));
   assert.deepEqual(parseLessmark(source), expected);
 });
 
 test("all valid fixtures have stable AST snapshots", async () => {
   const names = await readdir(new URL("fixtures/valid/", root));
-  const fixtures = names.filter((name) => name.endsWith(".mu")).sort();
+  const fixtures = names.filter((name) => name.endsWith(".lmk")).sort();
 
   for (const fixture of fixtures) {
     const source = await read(`fixtures/valid/${fixture}`);
-    const expected = JSON.parse(await read(`fixtures/valid/${fixture.replace(/\.mu$/, ".ast.json")}`));
+    const expected = JSON.parse(await read(`fixtures/valid/${fixture.replace(/\.lmk$/, ".ast.json")}`));
     assert.deepEqual(parseLessmark(source), expected, fixture);
   }
 });
 
 test("all invalid fixtures are rejected by the parser", async () => {
   const names = await readdir(new URL("fixtures/invalid/", root));
-  const fixtures = names.filter((name) => name.endsWith(".mu")).sort();
+  const fixtures = names.filter((name) => name.endsWith(".lmk")).sort();
 
   for (const fixture of fixtures) {
     const source = await read(`fixtures/invalid/${fixture}`);
@@ -66,22 +68,24 @@ test("schema href patterns match safe link rules", async () => {
     assert.equal(href.test("https://example.com"), true);
     assert.equal(href.test("mailto:team@example.com"), true);
     assert.equal(href.test("javascript:alert(1)"), false);
-    assert.equal(href.test("/abs.html"), false);
+    assert.equal(href.test("/abs.html"), true);
+    assert.equal(href.test("/docs/getting-started"), true);
     assert.equal(href.test("../up.html"), false);
     assert.equal(href.test("docs/../up.html"), false);
+    assert.equal(href.test("/up/../bad"), false);
     assert.equal(href.test("//example.com"), false);
   }
 });
 
 test("formatter is deterministic and idempotent", async () => {
-  const source = await read("fixtures/valid/project-context.mu");
+  const source = await read("fixtures/valid/project-context.lmk");
   const once = formatLessmark(source);
   const twice = formatLessmark(once);
   assert.equal(once, twice);
 });
 
 test("preserves indented example text", async () => {
-  const source = await read("fixtures/valid/example-code.mu");
+  const source = await read("fixtures/valid/example-code.lmk");
   const expected = JSON.parse(await read("fixtures/valid/example-code.ast.json"));
   assert.deepEqual(parseLessmark(source), expected);
   assert.equal(formatLessmark(source), source);
@@ -126,7 +130,7 @@ E = mc^2
 graph TD
   A --> B
 
-@callout warning
+@warning
 Watch this.
 
 @definition API
@@ -147,7 +151,7 @@ Homepage.
 Footnote body.
 `;
   const formatted = formatLessmark(source);
-  assert.match(formatted, /@paragraph\nUse \{\{strong:bold\}\}, \{\{em:emphasis\}\}, \{\{code:code\}\}, \{\{code:\*\*literal\*\*\}\}, \{\{link:Docs\|https:\/\/example\.com\}\}, \{\{ref:Decision\|storage-backend\}\}, \{\{footnote:note\}\}, \{\{mark:marked\}\}, and \{\{del:gone\}\}\./);
+  assert.match(formatted, /Use \{\{strong:bold\}\}, \{\{em:emphasis\}\}, \{\{code:code\}\}, \{\{code:\*\*literal\*\*\}\}, \{\{link:Docs\|https:\/\/example\.com\}\}, \{\{ref:Decision\|storage-backend\}\}, \{\{footnote:note\}\}, \{\{mark:marked\}\}, and \{\{del:gone\}\}\./);
   assert.match(formatted, /@list kind="unordered"\n- One\n- Two/);
   assert.match(formatted, /@list kind="ordered"\n- First\n- Second/);
   assert.match(formatted, /@decision id="storage-backend"/);
@@ -213,55 +217,68 @@ test("supports strict nested lists", () => {
 });
 
 test("supports escaped pipes in table columns", () => {
-  const source = '@table columns="Name\\|Alias|Status"\nLessmark\\|mu|done\n';
+  const source = '@table columns="Name\\|Alias|Status"\nLessmark\\|lmk|done\n';
   assert.equal(validateSource(source).length, 0);
   assert.match(toMarkdown(source), /\| Name\\\|Alias \| Status \|/);
   assert.match(renderHtml(source), /<th>Name\|Alias<\/th>/);
 });
 
-test("loose text error explains new blocks", () => {
-  assert.throws(() => parseLessmark("@p\nyo\n\nnah\n"), /start a new block such as @p/);
+test("supports empty table cells", () => {
+  const source = '@table columns="Name|Status"\nLessmark|\n|todo\n';
+  assert.equal(validateSource(source).length, 0);
+});
+
+test("plain top-level prose parses as paragraphs", () => {
+  const ast = parseLessmark("yo\nwant sup\n\nnah\n");
+  assert.deepEqual(ast.children.map((node) => [node.name, node.text]), [
+    ["paragraph", "yo\nwant sup"],
+    ["paragraph", "nah"]
+  ]);
+  assert.equal(formatLessmark("@p\nyo\n\nnah\n"), "yo\n\nnah\n");
+  assert.match(renderHtml("yo\nwant sup\n\nnah\n"), /<p>yo\nwant sup<\/p>\n<p>nah<\/p>/);
+});
+
+test("supports escaped leading block sigils inside prose", () => {
+  const ast = parseLessmark("\\@mention\n\\#hashtag\n");
+  assert.deepEqual(ast.children.map((node) => [node.name, node.text]), [
+    ["paragraph", "@mention\n#hashtag"]
+  ]);
 });
 
 test("rejects empty headings", async () => {
-  const source = await read("fixtures/invalid/empty-heading.mu");
+  const source = await read("fixtures/invalid/empty-heading.lmk");
   assert.throws(() => parseLessmark(source), /Invalid heading syntax/);
 });
 
-test("rejects loose text outside typed blocks", async () => {
-  const source = await read("fixtures/invalid/loose-text.mu");
-  assert.throws(() => parseLessmark(source), /start a new block such as @p/);
-});
-
 test("rejects raw HTML-like text during parsing", async () => {
-  const source = await read("fixtures/invalid/raw-html.mu");
+  const source = await read("fixtures/invalid/raw-html.lmk");
   assert.throws(() => parseLessmark(source), /raw HTML/);
 });
 
 test("rejects attributes not defined by the block type", async () => {
-  const source = await read("fixtures/invalid/unknown-attribute.mu");
+  const source = await read("fixtures/invalid/unknown-attribute.lmk");
   assert.throws(() => parseLessmark(source), /does not allow attribute/);
 });
 
 test("rejects task statuses outside the fixed set", async () => {
-  const source = await read("fixtures/invalid/bad-task-status.mu");
+  const source = await read("fixtures/invalid/bad-task-status.lmk");
   assert.throws(() => parseLessmark(source), /@task status must be one of/);
 });
 
 test("rejects unsafe file paths, API names, and links", async () => {
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-file-path.mu")), /relative project path/);
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-api-name.mu")), /identifier/);
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-link-href.mu")), /safe relative path/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-file-path.lmk")), /relative project path/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-api-name.lmk")), /identifier/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-link-href.lmk")), /safe relative path/);
   assert.equal(validateSource('@link href="docs/page.html"\nInternal docs page.\n').length, 0);
   assert.throws(() => parseLessmark('@link href="//example.com"\nAmbiguous host.\n'), /safe relative path/);
   assert.throws(() => parseLessmark('@link href="../page.html"\nParent traversal.\n'), /safe relative path/);
 });
 
 test("rejects invalid agent-context attrs", async () => {
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-code-lang.mu")), /compact language identifier/);
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-metadata-key.mu")), /lowercase dotted key/);
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-risk-level.mu")), /risk level/);
-  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-depends-on-target.mu")), /lowercase slug/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-code-lang.lmk")), /compact language identifier/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-metadata-key.lmk")), /lowercase dotted key/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-risk-level.lmk")), /risk level/);
+  await assert.rejects(async () => parseLessmark(await read("fixtures/invalid/bad-depends-on-target.lmk")), /lowercase slug/);
 });
 
 test("rejects invalid docs attrs", () => {
@@ -272,21 +289,27 @@ test("rejects invalid docs attrs", () => {
   assert.throws(() => parseLessmark('@nav label="Docs" href="javascript:alert(1)"\n'), /safe relative path/);
   assert.throws(() => parseLessmark('@nav label="Docs" href="index.html" slot="sidebar"\n'), /primary or footer/);
   assert.throws(() => parseLessmark('@nav label="Docs" href="index.html" slot=""\n'), /primary or footer/);
-  assert.throws(() => parseLessmark('@nav label="Docs" href="index.html"\nBody.\n'), /must not have a body/);
-  assert.throws(() => parseLessmark('@page output="index.html"\nBody.\n'), /must not have a body/);
-  assert.throws(() => parseLessmark("@toc\nBody.\n"), /must not have a body/);
-  assert.throws(() => parseLessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n'), /must not have a body/);
   assert.throws(() => parseLessmark('@math notation="mathml"\nE = mc^2\n'), /tex, asciimath/);
   assert.throws(() => parseLessmark('@diagram kind="unknown"\ngraph TD\n'), /mermaid, graphviz, plantuml/);
-  assert.throws(() => parseLessmark("@separator\nBody.\n"), /must not have a body/);
   assert.throws(() => parseLessmark('@separator style="thin"\n'), /does not allow attribute/);
   assert.throws(() => parseLessmark('@reference target="../secret"\nBad target.\n'), /lowercase slug/);
   assert.throws(() => parseLessmark('@reference target="missing-section"\nBad target.\n'), /Unknown local reference target/);
   assert.throws(() => parseLessmark('@definition term="Term<T>"\nBad term.\n'), /raw HTML/);
 });
 
+test("bodyless blocks do not consume following text as their body", () => {
+  for (const source of ["@separator\nBody.\n", "@separator\n\nBody.\n"]) {
+    const ast = parseLessmark(source);
+    assert.equal(ast.children.length, 2);
+    assert.equal(ast.children[0].name, "separator");
+    assert.equal(ast.children[0].text, "");
+    assert.equal(ast.children[1].name, "paragraph");
+    assert.equal(ast.children[1].text, "Body.");
+  }
+});
+
 test("can include source positions without changing the default AST", async () => {
-  const source = await read("fixtures/valid/project-context.mu");
+  const source = await read("fixtures/valid/project-context.lmk");
   const plain = parseLessmark(source);
   const positioned = parseLessmark(source, { sourcePositions: true });
   assert.equal(Object.hasOwn(plain.children[0], "position"), false);
@@ -298,7 +321,7 @@ test("can include source positions without changing the default AST", async () =
 });
 
 test("validateSource reports parse errors as data", async () => {
-  const source = await read("fixtures/invalid/raw-html.mu");
+  const source = await read("fixtures/invalid/raw-html.lmk");
   assert.deepEqual(validateSource(source), [
     { code: "raw_html", message: "@summary contains raw HTML/JSX-like syntax", line: 2, column: 1 }
   ]);
@@ -421,7 +444,7 @@ console.log("ok");
 `;
   const lessmark = fromMarkdown(source);
   assert.match(lessmark, /^# Project/);
-  assert.match(lessmark, /@summary\nShort project summary\./);
+  assert.match(lessmark, /Short project summary\./);
   assert.match(lessmark, /@task status="todo"\nAdd export settings\./);
   assert.match(lessmark, /@task status="done"\nShip parser\./);
   assert.match(lessmark, /@code lang="js"\nconsole\.log/);
@@ -467,6 +490,10 @@ test("imports common GFM blocks into typed Lessmark blocks", () => {
   assert.match(lessmark, /@table columns="Feature\|Status"\nImages\|done\nTables \\\\?\| escaped\|done/);
   assert.match(lessmark, /@separator/);
   assert.equal(validateSource(lessmark).length, 0);
+});
+
+test("imports markdown prose as paragraphs", () => {
+  assert.equal(fromMarkdown("para one\n\npara two\n"), "para one\n\npara two\n");
 });
 
 test("imports and exports math and diagram blocks", () => {
@@ -540,7 +567,7 @@ Homepage
 });
 
 test("exports docs blocks to Markdown without losing structure", async () => {
-  const markdown = toMarkdown(await read("fixtures/valid/docs-page.mu"));
+  const markdown = toMarkdown(await read("fixtures/valid/docs-page.lmk"));
   assert.match(markdown, /# Docs Home/);
   assert.match(markdown, /\*\*explicit\*\*/);
   assert.match(markdown, /==marked text==/);
@@ -575,7 +602,7 @@ test("rejects unresolved inline local targets", () => {
 });
 
 test("renders strict docs blocks to safe HTML", async () => {
-  const source = await read("fixtures/valid/docs-page.mu");
+  const source = await read("fixtures/valid/docs-page.lmk");
   const html = renderHtml(source, { document: true });
   assert.match(html, /<title>Docs Home<\/title>/);
   assert.match(html, /<nav class="lessmark-nav" aria-label="Primary"><a href="index.html">Home<\/a><a href="spec.html">Spec<\/a><\/nav>/);
@@ -603,8 +630,18 @@ test("renders code blocks with safe lightweight highlighting", () => {
   assert.match(html, /<span class="tok-comment">\/\/ safe<\/span>/);
 });
 
+test("uses shared highlighting for Lessmark code examples", () => {
+  const source = '@code lang="lessmark"\n  @ul\n  - item\n\n@ul\n- real\n';
+  const highlighted = highlightLessmark(source);
+  const renderedCode = renderHtml('@code lang="lessmark"\n  @ul\n  - item\n');
+  assert.match(highlighted, /<span class="tok-key">@code<\/span>/);
+  assert.match(highlighted, /<span class="tok-key">@ul<\/span>/);
+  assert.match(renderedCode, /<span class="tok-key">@ul<\/span>/);
+  assert.match(highlightCode("const x = 1; // ok", "js"), /<span class="tok-comment">\/\/ ok<\/span>/);
+});
+
 test("renders and exports nested explicit inline functions", async () => {
-  const source = await read("fixtures/valid/nested-inline.mu");
+  const source = await read("fixtures/valid/nested-inline.lmk");
   const html = renderHtml(source, { document: true });
   const markdown = toMarkdown(source);
   assert.match(html, /<strong>Bold <em>inside<\/em><\/strong>/);

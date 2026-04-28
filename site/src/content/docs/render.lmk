@@ -1,0 +1,125 @@
+# Render
+
+@summary
+How to take a parsed lessmark document and turn it into HTML, React,
+or any other output your project needs. The grammar stops where the
+AST starts. The render side is just code.
+
+## The shortest path
+
+Parse a string, walk the tree, emit HTML. The JavaScript package ships
+both calls.
+
+@code lang="js"
+import { parseLessmark, renderHtml } from "lessmark";
+
+const ast = parseLessmark(source);
+const html = renderHtml(ast);
+
+The same shape works in Python.
+
+@code lang="py"
+from lessmark import parse_lessmark
+# render_html is not yet shipped in the Python package; walk the AST or
+# render in your own template engine.
+
+ast = parse_lessmark(source)
+
+## Render in React
+
+The renderer returns a plain HTML string. The simplest path is to drop
+it into an article element with {{code:dangerouslySetInnerHTML}}. The
+example below uses {{code:React.createElement}} so this page can ship
+through the lessmark parser without escaping.
+
+In a real project, write the same component in JSX. The
+{{code:dangerouslySetInnerHTML}} prop expects an object with a
+{{code:__html}} string.
+
+@code lang="js"
+import { createElement, useMemo } from "react";
+import { parseLessmark, renderHtml } from "lessmark";
+
+export function Article({ source }) {
+  const html = useMemo(() => renderHtml(parseLessmark(source)), [source]);
+  return createElement("article", {
+    className: "lessmark-output",
+    dangerouslySetInnerHTML: { __html: html },
+  });
+}
+
+@callout kind="tip"
+Wrap the call in {{code:useMemo}} keyed on the source. Re-parsing on
+every keystroke is fast, but pointless.
+
+## Render in Next.js
+
+Read the {{code:.lmk}} file at build time, parse it, and render the HTML
+in a server component.
+
+@code lang="js"
+import fs from "node:fs/promises";
+import { createElement } from "react";
+import { parseLessmark, renderHtml } from "lessmark";
+
+export default async function Page() {
+  const source = await fs.readFile("content/post.lmk", "utf8");
+  const html = renderHtml(parseLessmark(source));
+  return createElement("article", {
+    dangerouslySetInnerHTML: { __html: html },
+  });
+}
+
+@callout kind="note" title="Static export"
+This pattern works with {{code:next export}} and the App Router. The
+parser runs at build time, so the runtime payload is plain HTML.
+
+## Custom render
+
+The shipped {{code:renderHtml}} is one walker over the AST. If your
+project needs different markup, JSX, or PDF, walk the tree yourself.
+
+@diagram kind="mermaid"
+flowchart LR
+  AST["AST root"] --> W["walk node"]
+  W --> Q{"node type"}
+  Q -->|document| D["concat children"]
+  Q -->|heading| H["h1, h2, h3"]
+  Q -->|paragraph| P["p"]
+  Q -->|block| B{"block name"}
+  B -->|decision| Dc["aside decision"]
+  B -->|callout| Cl["aside callout"]
+  B -->|code| Co["pre code"]
+  B -->|other| Etc["other tags"]
+
+The {{link:AST guide|docs/ast}} covers the shape of every node. The
+{{link:phases page|docs/phases}} covers where rendering sits in the
+pipeline.
+
+@code lang="js"
+import { parseLessmark } from "lessmark";
+
+function tag(name, attrs, text) {
+  const a = Object.entries(attrs)
+    .map(([k, v]) => ` ${k}="${v}"`)
+    .join("");
+  return `<${name}${a}>${text}</${name}>`;
+}
+
+function walk(node) {
+  if (node.type === "document") return node.children.map(walk).join("");
+  if (node.type === "heading") return tag("h" + node.level, {}, node.text);
+  if (node.type === "block" && node.name === "decision") {
+    return tag("aside", { class: "decision", id: node.attrs.id }, node.text);
+  }
+  return "";
+}
+
+const html = walk(parseLessmark(source));
+
+## What the renderer does not do
+
+@list kind="unordered"
+- It does not sanitize HTML. The grammar already rejects raw HTML and unsafe URL schemes at parse time, so the renderer has nothing to strip.
+- It does not load fonts, themes, or CSS. The output is class-tagged HTML. Style it however your project styles content.
+- It does not run any code in your document. Lessmark is pure data.

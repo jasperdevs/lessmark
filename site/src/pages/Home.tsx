@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import { useMemo, useRef, useState } from "react";
 import { parseLessmark, renderHtml } from "lessmark";
 import { ArrowRightIcon } from "@/components/Icons";
+import { AstIcon, SourceIcon, TerminalIcon } from "@/components/PixelIcons";
 import { Link } from "react-router-dom";
-import { sourceId } from "@/lib/content";
+import { sourceId, playgroundDefault, uiText } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
+import { useCodeCopyButtons } from "@/lib/code-copy";
+import { useMermaid } from "@/lib/mermaid-render";
 import { Playground } from "@/components/Playground";
 
 type AstNode = {
@@ -15,20 +17,8 @@ type AstNode = {
   attrs?: Record<string, string>;
 };
 
-const HERO_DEMO = `# Project context
-
-@summary
-A small CLI for tracking time across projects.
-
-@decision id="storage-backend"
-Save entries in a single SQLite file.
-
-@constraint
-Do not block the UI while syncing.
-
-@task status="doing"
-Migrate hotkey registration off the deprecated win32 path.
-`;
+const HERO_DEMO = playgroundDefault;
+const text = (key: string, fallback: string) => uiText[key] || fallback;
 
 type Section = {
   slug: string;
@@ -93,33 +83,32 @@ export function Home() {
   const [demoSource, setDemoSource] = useState(HERO_DEMO);
 
   return (
-    <main className="mx-auto max-w-[880px] px-6 pb-16">
+    <main className="mx-auto max-w-[880px] px-4 sm:px-6 pb-16">
       <section
         data-hero
-        className="pt-20 pb-16 grid justify-items-center gap-8 text-center"
+        className="pt-10 sm:pt-16 pb-10 sm:pb-12 grid justify-items-center gap-6 sm:gap-7 text-center"
       >
-        <img
-          src="/lessmarklogowhitebackground.svg"
-          alt=""
-          className="size-[160px] md:size-[200px]"
-        />
-        <h1 className="font-sans font-extrabold text-[clamp(40px,6.4vw,72px)] leading-[1.05] tracking-[-0.025em] max-w-[20ch] text-fg">
+        <div className="flex flex-col items-center gap-1">
+          <img
+            src="/lessmarklogowhitebackground.svg"
+            alt=""
+            className="size-[116px] sm:size-[140px] md:size-[180px]"
+          />
+          <span
+            className="font-sans font-bold text-[clamp(36px,5vw,56px)] leading-none tracking-[-0.02em] text-fg"
+          >
+            {text("header.brand", "lessmark")}
+          </span>
+        </div>
+        <h1 className="font-sans font-bold text-[clamp(28px,4vw,42px)] leading-[1.15] tracking-[-0.02em] max-w-[24ch] text-fg">
           <HeroTitle text={heroTitle} />
         </h1>
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-[15px]">
-          <Link
-            to="/docs/getting-started"
-            className="inline-flex items-center gap-2 rounded-full bg-fg text-bg px-6 py-3 font-semibold hover:opacity-90 transition-opacity"
-          >
-            Get started
-            <ArrowRightIcon className="size-4" />
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[15px] text-fg-muted">
+          <Link to="/docs/getting-started" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
+            {text("home.docs-link", "getting started")}
           </Link>
-          <Link
-            to="/playground"
-            className="inline-flex items-center gap-2 rounded-full border border-fg text-fg px-6 py-3 font-semibold hover:bg-fg hover:text-bg transition-colors"
-          >
-            Playground
-            <ArrowRightIcon className="size-4" />
+          <Link to="/playground" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
+            {text("home.playground-link", "playground")}
           </Link>
         </div>
       </section>
@@ -127,23 +116,21 @@ export function Home() {
       <Divider />
 
       <section className="py-8">
-        <div className="mb-3 flex items-center justify-between text-[12px] font-mono text-fg-faint">
-          <span>edit on the left, see the rendered HTML on the right.</span>
-          <Link
-            to="/playground"
-            className="hover:text-fg transition-colors inline-flex items-center gap-1"
-          >
-            open full playground
-            <ArrowRightIcon className="size-3" />
-          </Link>
-        </div>
-        <div className="h-[420px]">
+        <div className="h-[620px] md:h-[460px]">
           <Playground
             value={demoSource}
             onChange={setDemoSource}
             sample={HERO_DEMO}
-            fileName="project.mu"
             fullHeight
+            previewToolbar={
+              <Link
+                to="/playground"
+                className="text-fg-faint hover:text-fg transition-colors inline-flex items-center gap-1.5"
+              >
+                {text("home.open-playground", "open full playground")}
+                <ArrowRightIcon className="size-3" />
+              </Link>
+            }
           />
         </div>
       </section>
@@ -168,19 +155,21 @@ export function Home() {
       <Divider />
 
       <section className="py-10">
-        <h2 className="font-mono font-semibold text-[20px] tracking-[-0.005em] text-fg mb-4">
-          Next
+        <h2 className="font-sans font-bold text-[20px] tracking-[-0.01em] text-fg mb-3">
+          {text("home.next-heading", "Next")}
         </h2>
         <Link
           to="/docs/getting-started"
-          className="group flex items-center justify-between gap-3 rounded-md border border-border-soft bg-surface px-5 py-4 hover:bg-surface-alt transition-colors"
+          className="group flex items-baseline gap-2 text-fg hover:text-fg"
         >
-          <div className="flex flex-col">
-            <span className="font-mono text-[15px] text-fg">Read the getting-started guide</span>
-            <span className="font-mono text-[13px] text-fg-faint">install a package, write your first document</span>
-          </div>
-          <ArrowRightIcon className="size-4 text-fg-muted group-hover:text-fg transition-colors" />
+          <span className="text-[15px] underline underline-offset-4 decoration-fg-faint group-hover:decoration-fg">
+            {text("home.next-link", "Read the getting-started guide")}
+          </span>
+          <ArrowRightIcon className="size-3.5 text-fg-muted group-hover:text-fg transition-colors" />
         </Link>
+        <p className="text-[14px] text-fg-faint mt-1">
+          {text("home.next-summary", "install a package, write your first document")}
+        </p>
       </section>
     </main>
   );
@@ -188,13 +177,19 @@ export function Home() {
 
 function ContentSection({ section }: { section: Section }) {
   const html = useMemo(() => sectionHtml(section), [section]);
+  const ref = useRef<HTMLElement>(null);
+  useCodeCopyButtons(ref, html);
+  useMermaid(ref, html);
   return (
     <article
+      ref={ref}
       className="lessmark-output py-8"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 }
+
+const FEATURE_ICONS = [SourceIcon, TerminalIcon, AstIcon];
 
 function FeatureTrio({ section }: { section: Section }) {
   const items = useMemo(
@@ -207,36 +202,42 @@ function FeatureTrio({ section }: { section: Section }) {
   );
   return (
     <section className="py-10">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {items.map((sub, i) => (
-          <FeatureCard
-            key={sub.heading}
-            heading={sub.heading}
-            html={sub.html}
-            icon={<PixelIcon variant={i} />}
-          />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-8">
+        {items.map((sub, i) => {
+          const Icon = FEATURE_ICONS[i % FEATURE_ICONS.length];
+          return (
+            <FeatureCard
+              key={sub.heading}
+              icon={<Icon className="size-8 text-fg" />}
+              heading={sub.heading}
+              html={sub.html}
+            />
+          );
+        })}
       </div>
     </section>
   );
 }
 
 function FeatureCard({
+  icon,
   heading,
   html,
-  icon,
 }: {
+  icon: React.ReactNode;
   heading: string;
   html: string;
-  icon: ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useCodeCopyButtons(ref, html);
   return (
-    <div className="flex flex-col gap-3">
-      <div className="text-fg">{icon}</div>
-      <h3 className="font-mono font-semibold text-[16px] tracking-[-0.005em] text-fg">
+    <div className="flex flex-col gap-2">
+      <div className="size-8 mb-1 flex items-center justify-start">{icon}</div>
+      <h3 className="font-sans font-bold text-[16px] tracking-[-0.01em] text-fg">
         {heading}
       </h3>
       <div
+        ref={ref}
         className="lessmark-output text-[14px] [&>*]:!mt-0 [&_p]:!leading-[1.6]"
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -254,112 +255,6 @@ function HeroTitle({ text }: { text: string }) {
       <span className="hero-accent">{target}</span>
       {text.slice(idx + target.length)}
     </>
-  );
-}
-
-function PixelGrid({ rows }: { rows: string[] }) {
-  const size = rows.length;
-  const cells: { x: number; y: number }[] = [];
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < rows[y].length; x++) {
-      if (rows[y][x] === "#") cells.push({ x, y });
-    }
-  }
-  return (
-    <svg
-      width={32}
-      height={32}
-      viewBox={`0 0 ${size} ${size}`}
-      aria-hidden="true"
-      shapeRendering="crispEdges"
-    >
-      {cells.map((c) => (
-        <rect
-          key={`${c.x}-${c.y}`}
-          x={c.x}
-          y={c.y}
-          width={1}
-          height={1}
-          fill="currentColor"
-        />
-      ))}
-    </svg>
-  );
-}
-
-function PixelIcon({ variant }: { variant: number }) {
-  if (variant === 0) {
-    // open source: heart
-    return (
-      <PixelGrid
-        rows={[
-          "................",
-          "................",
-          "..###.....###...",
-          ".#####...#####..",
-          "###############.",
-          "###############.",
-          "###############.",
-          ".#############..",
-          "..###########...",
-          "...#########....",
-          "....#######.....",
-          ".....#####......",
-          "......###.......",
-          ".......#........",
-          "................",
-          "................",
-        ]}
-      />
-    );
-  }
-  if (variant === 1) {
-    // agents and humans: smiley face
-    return (
-      <PixelGrid
-        rows={[
-          "................",
-          "....########....",
-          "..############..",
-          ".##############.",
-          ".##############.",
-          "###.########.###",
-          "###.########.###",
-          "################",
-          "################",
-          "################",
-          "###.########.###",
-          ".###.######.###.",
-          ".####.####.####.",
-          "..############..",
-          "....########....",
-          "................",
-        ]}
-      />
-    );
-  }
-  // adopt anywhere: cube/box with depth
-  return (
-    <PixelGrid
-      rows={[
-        "................",
-        "...##########...",
-        "..############..",
-        ".####....####...",
-        ".####....####...",
-        ".####....####...",
-        "##############..",
-        "##############..",
-        "##############..",
-        "##.#######.###..",
-        "##.#######.###..",
-        "##.#######.###..",
-        "##.#######.###..",
-        "##############..",
-        "..############..",
-        "................",
-      ]}
-    />
   );
 }
 

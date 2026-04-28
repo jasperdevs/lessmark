@@ -1,11 +1,33 @@
 import { parseLessmark } from "lessmark";
 
 type Entry = { slug: string; source: string; title: string; summary: string };
+type AstNode = {
+  type: string;
+  name?: string;
+  text?: string;
+  attrs?: Record<string, string>;
+};
+
+export function readMetadata(source: string): Record<string, string> {
+  if (!source) return {};
+  try {
+    const ast = parseLessmark(source) as { children: AstNode[] };
+    const meta: Record<string, string> = {};
+    for (const node of ast.children) {
+      if (node.type === "block" && node.name === "metadata" && node.attrs?.key) {
+        meta[node.attrs.key] = (node.text ?? "").trim();
+      }
+    }
+    return meta;
+  } catch {
+    return {};
+  }
+}
 
 function buildIndex(modules: Record<string, string>): Entry[] {
   return Object.entries(modules)
     .map(([path, source]) => {
-      const slug = path.split("/").pop()!.replace(/\.mu$/, "");
+      const slug = path.split("/").pop()!.replace(/\.lmk$/, "");
       const ast = parseLessmark(source);
       const heading = ast.children.find((n) => n.type === "heading");
       const summary = ast.children.find((n) => n.type === "block" && n.name === "summary");
@@ -19,25 +41,37 @@ function buildIndex(modules: Record<string, string>): Entry[] {
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-const docModules = import.meta.glob("../content/docs/*.mu", {
+const docModules = import.meta.glob("../content/docs/*.lmk", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
 
-const exampleModules = import.meta.glob("../content/examples/*.mu", {
+const exampleModules = import.meta.glob("../content/examples/*.lmk", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
 
-const homeModules = import.meta.glob("../content/home/*.mu", {
+const homeModules = import.meta.glob("../content/home/*.lmk", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
 
-const switchingModules = import.meta.glob("../content/switching/*.mu", {
+const switchingModules = import.meta.glob("../content/switching/*.lmk", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+const chromeModules = import.meta.glob("../content/chrome/*.lmk", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
+const playgroundModules = import.meta.glob("../content/playground/*.lmk", {
   query: "?raw",
   import: "default",
   eager: true,
@@ -45,13 +79,13 @@ const switchingModules = import.meta.glob("../content/switching/*.mu", {
 
 function readByName(modules: Record<string, string>, name: string): string {
   for (const [path, src] of Object.entries(modules)) {
-    if (path.endsWith(`/${name}.mu`)) return src;
+    if (path.endsWith(`/${name}.lmk`)) return src;
   }
   return "";
 }
 
-const DOCS_ORDER = ["getting-started", "switching", "syntax", "hacks", "blocks", "validation", "cli", "faq"];
-const EXAMPLES_ORDER = ["syntax-tour", "skill", "resume", "changelog"];
+const DOCS_ORDER = ["getting-started", "switching", "syntax", "blocks", "validation", "render", "phases", "ast", "api", "cli", "hacks", "faq"];
+const EXAMPLES_ORDER = ["syntax-tour", "blog-maker", "skill", "resume", "changelog"];
 
 function order(entries: Entry[], priority: string[]): Entry[] {
   const rank = (slug: string) => {
@@ -65,18 +99,17 @@ export const docs = order(buildIndex(docModules), DOCS_ORDER);
 export const examples = order(buildIndex(exampleModules), EXAMPLES_ORDER);
 
 export const home: string = readByName(homeModules, "home");
+export const footer: string = readByName(chromeModules, "footer");
+export const header: string = readByName(chromeModules, "header");
+export const ui: string = readByName(chromeModules, "ui");
+export const uiText: Record<string, string> = readMetadata(ui);
+export const playgroundDefault: string = readByName(playgroundModules, "default");
 
 const SWITCHING_ORDER = ["markdown", "mdx", "asciidoc", "rst"];
-const SWITCHING_LABELS: Record<string, string> = {
-  markdown: "Markdown",
-  mdx: "MDX",
-  asciidoc: "AsciiDoc",
-  rst: "reStructuredText",
-};
 export const switching: { slug: string; label: string; source: string }[] =
   SWITCHING_ORDER.map((slug) => ({
     slug,
-    label: SWITCHING_LABELS[slug] ?? slug,
+    label: uiText[`switching.${slug}`] ?? slug,
     source: readByName(switchingModules, slug),
   })).filter((t) => t.source);
 
@@ -85,10 +118,14 @@ export const sourceId = {
   doc: (slug: string) => `docs/${slug}`,
   example: (slug: string) => `examples/${slug}`,
   switching: (slug: string) => `switching/${slug}`,
+  chrome: (slug: string) => `chrome/${slug}`,
 } as const;
 
 export const allSources: Record<string, string> = {
   [sourceId.home()]: home,
+  [sourceId.chrome("footer")]: footer,
+  [sourceId.chrome("header")]: header,
+  [sourceId.chrome("ui")]: ui,
   ...Object.fromEntries(docs.map((d) => [sourceId.doc(d.slug), d.source])),
   ...Object.fromEntries(examples.map((e) => [sourceId.example(e.slug), e.source])),
   ...Object.fromEntries(switching.map((s) => [sourceId.switching(s.slug), s.source])),

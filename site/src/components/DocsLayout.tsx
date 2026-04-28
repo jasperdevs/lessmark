@@ -1,26 +1,24 @@
 import { NavLink } from "react-router-dom";
 import type { ReactNode } from "react";
-import { docs } from "@/lib/content";
+import { docs, uiText } from "@/lib/content";
 
 type Props = { children: ReactNode };
 
 export function DocsLayout({ children }: Props) {
   return (
-    <div className="mx-auto max-w-[1080px] px-6 py-10 grid gap-10 md:grid-cols-[220px_1fr]">
+    <div className="mx-auto max-w-[1080px] px-4 sm:px-6 py-8 sm:py-10 grid gap-8 md:gap-10 md:grid-cols-[220px_1fr]">
       <aside className="md:sticky md:top-20 md:self-start">
-        <div className="text-[12px] uppercase tracking-[0.16em] font-bold text-fg-muted mb-3">
-          Docs
-        </div>
-        <nav className="flex flex-col gap-0.5 text-[14px]">
+        <div className="text-[12px] text-fg-faint mb-3">{uiText["docs.sidebar-label"] || "Docs"}</div>
+        <nav className="flex flex-wrap gap-x-4 gap-y-1 text-[14px] md:flex-col">
           {docs.map((d) => (
             <NavLink
               key={d.slug}
               to={`/docs/${d.slug}`}
               className={({ isActive }) =>
-                `px-3 py-1.5 rounded-md transition-colors ${
+                `py-1 transition-colors ${
                   isActive
-                    ? "bg-surface-alt text-fg font-semibold"
-                    : "text-fg-muted hover:text-fg hover:bg-surface-alt/60"
+                    ? "text-fg font-semibold underline underline-offset-4 decoration-fg"
+                    : "text-fg-muted hover:text-fg hover:underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
                 }`
               }
             >

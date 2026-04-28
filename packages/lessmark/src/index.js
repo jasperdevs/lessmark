@@ -5,3 +5,4 @@ export { formatLessmark, formatAst } from "./format.js";
 export { errorCodeForMessage, validateAst, validateSource } from "./validate.js";
 export { fromMarkdown, toMarkdown } from "./markdown.js";
 export { renderHtml, renderInline } from "./render.js";
+export { highlightCode, highlightLessmark } from "./highlight.js";

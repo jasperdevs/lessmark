@@ -1,10 +1,11 @@
 {
   "name": "lessmark-vscode",
   "displayName": "Lessmark",
-  "description": "Syntax highlighting for Lessmark agent context files.",
-  "version": "0.1.2",
+  "description": "The markdown alternative that agents (and humans) love.",
+  "version": "0.1.3",
   "publisher": "JasperDevs",
   "license": "MIT",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/jasperdevs/lessmark.git",
@@ -13,6 +14,7 @@
   "main": "./extension.js",
   "files": [
     "extension.js",
+    "icon.png",
     "language-configuration.json",
     "syntaxes",
     "README.md",
@@ -32,7 +34,7 @@
       {
         "id": "lessmark",
         "aliases": ["Lessmark", "lessmark"],
-        "extensions": [".mu", ".lessmark"],
+        "extensions": [".lmk", ".lessmark"],
         "configuration": "./language-configuration.json"
       }
     ],

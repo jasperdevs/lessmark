@@ -1,7 +1,7 @@
 {
   "language": "lessmark",
   "astVersion": "v0",
-  "extensions": [".mu", ".lessmark"],
+  "extensions": [".lmk", ".lessmark"],
   "mediaType": "text/vnd.lessmark; charset=utf-8",
   "blocks": [
     "summary",
@@ -14,8 +14,6 @@
     "file",
     "code",
     "example",
-    "note",
-    "warning",
     "quote",
     "callout",
     "list",
@@ -45,9 +43,11 @@
   },
   "syntaxPolicy": {
     "aliases": true,
+    "plainParagraphs": true,
     "canonicalSource": true,
     "documentedConveniencesOnly": true,
-    "maxSpellingsPerMeaning": 2,
+    "maxSpellingsPerMeaning": 3,
+    "maxSpellingsException": "paragraph",
     "markdownLegacySyntax": false,
     "rawHtml": false,
     "hooks": false,

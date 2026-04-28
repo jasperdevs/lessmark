@@ -39,17 +39,54 @@ fn parse_source(source: &str, source_positions: bool) -> Result<Document, Lessma
             index = parsed.next_index;
             continue;
         }
-        return Err(LessmarkError::new(
-            "Loose text is not allowed outside a typed block; start a new block such as @p",
-            index + 1,
-            1,
-        ));
+        let parsed = parse_plain_paragraph(&lines, index, source_positions)?;
+        children.push(parsed.node);
+        index = parsed.next_index;
     }
 
     if let Some(error) = get_local_anchor_errors(&children).into_iter().next() {
         return Err(LessmarkError::new(error, 1, 1));
     }
     Ok(Document::new(children))
+}
+
+fn parse_plain_paragraph(
+    lines: &[&str],
+    start_index: usize,
+    source_positions: bool,
+) -> Result<ParsedBlock, LessmarkError> {
+    let mut body = Vec::new();
+    let mut index = start_index;
+    let mut end_line = start_index + 1;
+    let mut end_column = 1;
+
+    while index < lines.len() {
+        let line = lines[index];
+        if line.trim().is_empty() || starts_block_syntax(line) {
+            break;
+        }
+        let text_line = decode_leading_block_escape(line);
+        assert_safe_text(&text_line, "paragraph", index + 1, 1)?;
+        if let Some(error) = get_legacy_markdown_line_error(&text_line) {
+            return Err(LessmarkError::new(error, index + 1, 1));
+        }
+        body.push(text_line.trim_end().to_string());
+        end_line = index + 1;
+        end_column = line.len() + 1;
+        index += 1;
+    }
+
+    let text = canonicalize_inline_syntax(&body.join("\n"))?;
+    validate_block_body("paragraph", &BTreeMap::new(), &text, start_index + 1)?;
+    Ok(ParsedBlock {
+        node: Node::Block {
+            name: "paragraph".to_string(),
+            attrs: BTreeMap::new(),
+            text,
+            position: source_positions.then(|| position(start_index + 1, 1, end_line, end_column)),
+        },
+        next_index: index,
+    })
 }
 
 fn normalize_source(source: &str) -> String {
@@ -125,6 +162,20 @@ fn parse_block(
     let mut index = start_index + 1;
     let mut end_line = start_index + 1;
     let mut end_column = header.len() + 1;
+
+    if is_bodyless_block(name) {
+        validate_block_body(name, &attrs, "", start_index + 1)?;
+        return Ok(ParsedBlock {
+            node: Node::Block {
+                name: name.to_string(),
+                attrs,
+                text: String::new(),
+                position: source_positions.then(|| position(start_index + 1, 1, end_line, end_column)),
+            },
+            next_index: index,
+        });
+    }
+
     while index < lines.len() {
         let line = lines[index];
         if body.is_empty() && line.trim().is_empty() && !is_literal_block(name) {
@@ -134,13 +185,18 @@ fn parse_block(
         if is_block_terminator(&lines, index, name) {
             break;
         }
-        assert_safe_text(line, &format!("@{}", name), index + 1, 1)?;
+        let text_line = if is_literal_block(name) {
+            line.to_string()
+        } else {
+            decode_leading_block_escape(line)
+        };
+        assert_safe_text(&text_line, &format!("@{}", name), index + 1, 1)?;
         if !is_literal_block(name) {
-            if let Some(error) = get_legacy_markdown_line_error(line) {
+            if let Some(error) = get_legacy_markdown_line_error(&text_line) {
                 return Err(LessmarkError::new(error, index + 1, 1));
             }
         }
-        body.push(line.trim_end().to_string());
+        body.push(text_line.trim_end().to_string());
         end_line = index + 1;
         end_column = line.len() + 1;
         index += 1;
@@ -166,7 +222,7 @@ fn parse_block(
 
 fn is_block_terminator(lines: &[&str], index: usize, name: &str) -> bool {
     let line = lines[index];
-    if line.starts_with('#') || line.starts_with('@') {
+    if starts_block_syntax(line) {
         return true;
     }
     if !line.trim().is_empty() {
@@ -180,11 +236,27 @@ fn is_block_terminator(lines: &[&str], index: usize, name: &str) -> bool {
     while next < lines.len() && lines[next].trim().is_empty() {
         next += 1;
     }
-    next >= lines.len() || lines[next].starts_with('#') || lines[next].starts_with('@')
+    next >= lines.len() || starts_block_syntax(lines[next])
 }
 
 fn is_literal_block(name: &str) -> bool {
     matches!(name, "code" | "example" | "math" | "diagram")
+}
+
+fn is_bodyless_block(name: &str) -> bool {
+    matches!(name, "image" | "nav" | "page" | "separator" | "toc")
+}
+
+fn starts_block_syntax(line: &str) -> bool {
+    line.starts_with('#') || line.starts_with('@')
+}
+
+fn decode_leading_block_escape(line: &str) -> String {
+    if line.starts_with("\\@") || line.starts_with("\\#") {
+        line[1..].to_string()
+    } else {
+        line.to_string()
+    }
 }
 
 fn position(
@@ -234,7 +306,7 @@ fn normalize_block_header(
     let mut attrs = BTreeMap::new();
     let mut name = raw_name;
     match raw_name {
-        "p" | "ul" | "ol" => {
+        "p" | "note" | "warning" | "ul" | "ol" => {
             if !raw_rest.trim().is_empty() {
                 return Err(LessmarkError::new(
                     format!("@{} does not accept attributes", raw_name),
@@ -244,6 +316,14 @@ fn normalize_block_header(
             }
             match raw_name {
                 "p" => name = "paragraph",
+                "note" => {
+                    name = "callout";
+                    attrs.insert("kind".to_string(), "note".to_string());
+                }
+                "warning" => {
+                    name = "callout";
+                    attrs.insert("kind".to_string(), "warning".to_string());
+                }
                 "ul" => {
                     name = "list";
                     attrs.insert("kind".to_string(), "unordered".to_string());

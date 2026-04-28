@@ -1,7 +1,7 @@
 * text=auto eol=lf
 
-*.mu text eol=lf
-*.lessmark text eol=lf
+*.lmk text eol=lf linguist-language=Markdown
+*.lessmark text eol=lf linguist-language=Markdown
 
 site/dist/** linguist-generated=true
 fixtures/**/*.ast.json linguist-generated=true

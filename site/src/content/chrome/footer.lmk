@@ -1,0 +1,24 @@
+# Footer
+
+@metadata key="brand"
+lessmark
+
+@nav label="MIT" href="https://github.com/jasperdevs/lessmark/blob/main/LICENSE"
+
+@nav label="github" href="https://github.com/jasperdevs/lessmark"
+
+@nav label="vscode" href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode"
+
+@nav label="@jasperdevs" href="https://x.com/jasperdevs"
+
+@nav label="contact" href="mailto:jasper.mceligott@gmail.com"
+
+@metadata key="dark-label"
+dark mode
+
+@metadata key="light-label"
+light mode
+
+@metadata key="source-button"
+this site was built with lessmark →
+

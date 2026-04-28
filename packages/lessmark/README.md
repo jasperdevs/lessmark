@@ -1,13 +1,14 @@
 # lessmark
 
-Strict, agent-readable documents and safe static docs pages.
+The markdown alternative that agents (and humans) love.
 
-Lessmark rejects raw HTML/JSX, execution hooks, custom block syntax, and undefined attributes.
+Lessmark is a strict document language with plain prose, typed blocks, a stable JSON AST, canonical formatting, validation, and safe rendering.
+It rejects raw HTML, hidden execution surfaces, undefined attributes, and most legacy Markdown ambiguity.
 
 ```js
 import { parseLessmark, validateSource, formatLessmark, renderHtml } from "lessmark";
 
-const source = "@summary\nTyped context for humans and agents.\n";
+const source = "# Notes\n\nPlain prose becomes a paragraph.\n";
 const ast = parseLessmark(source);
 const astWithPositions = parseLessmark(source, { sourcePositions: true });
 const errors = validateSource(source);
@@ -18,12 +19,12 @@ const html = renderHtml(source, { document: true });
 The package also exposes the `lessmark` command:
 
 ```sh
-lessmark parse file.mu
-lessmark check file.mu
-lessmark check --json file.mu
-lessmark format file.mu
-lessmark format --check file.mu
-lessmark render --document file.mu
+lessmark parse file.lmk
+lessmark check file.lmk
+lessmark check --json file.lmk
+lessmark format file.lmk
+lessmark format --check file.lmk
+lessmark render --document file.lmk
 lessmark build --strict input public
 lessmark info --json
 ```

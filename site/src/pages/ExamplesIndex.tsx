@@ -1,43 +1,33 @@
 import { Link } from "react-router-dom";
-import { examples } from "@/lib/content";
-import { ArrowRightIcon } from "@/components/Icons";
+import { examples, uiText } from "@/lib/content";
 
 export function ExamplesIndex() {
   return (
-    <main className="mx-auto max-w-[1080px] px-6 py-12">
+    <main className="mx-auto max-w-[880px] px-4 sm:px-6 py-10 sm:py-12">
       <div className="mb-10">
-        <h1 className="text-[36px] leading-[1.1] tracking-[-0.02em] font-semibold">
-          <span className="font-mono font-normal text-fg-faint mr-2">#</span>
-          examples
+        <h1 className="font-bold text-[clamp(32px,4.5vw,44px)] leading-[1.1] tracking-[-0.02em] text-fg">
+          {uiText["examples.index-heading"] || "Examples"}
         </h1>
-        <p className="mt-2 text-fg-muted max-w-[60ch]">
-          Real documents written in lessmark. Each example is editable side by side with the rendered output.
-        </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <ul className="flex flex-col">
         {examples.map((e) => (
-          <Link
-            key={e.slug}
-            to={`/examples/${e.slug}`}
-            className="group rounded-[14px] border border-border-soft bg-surface p-6 hover:border-border transition-colors"
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-[18px] leading-[1.25] tracking-tight font-semibold">
+          <li key={e.slug} className="border-t border-border-soft py-5">
+            <Link to={`/examples/${e.slug}`} className="group block">
+              <h2 className="font-bold text-[18px] tracking-[-0.01em] text-fg group-hover:underline underline-offset-4 decoration-fg-faint group-hover:decoration-fg">
                 {e.title}
               </h2>
-              <ArrowRightIcon className="size-4 text-fg-faint group-hover:text-fg transition-colors" />
-            </div>
-            {e.summary && (
-              <p className="mt-2 text-[14px] leading-[1.55] text-fg-muted line-clamp-3">
-                {e.summary}
-              </p>
-            )}
-            <div className="mt-3 text-[12px] font-mono text-fg-faint">
-              {e.slug}.mu
-            </div>
-          </Link>
+              {e.summary && (
+                <p className="mt-1 text-[14px] leading-[1.55] text-fg-muted">
+                  {e.summary}
+                </p>
+              )}
+              <div className="mt-1.5 text-[12px] text-fg-faint italic">
+                {e.slug}.lmk
+              </div>
+            </Link>
+          </li>
         ))}
-      </div>
+      </ul>
     </main>
   );
 }

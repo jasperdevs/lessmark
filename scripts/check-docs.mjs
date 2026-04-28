@@ -7,7 +7,7 @@ import { parseLessmark } from "../packages/lessmark/src/index.js";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const docsDir = join(root, "docs");
 
-assert.equal(existsSync(join(root, "README.mu")), false, "README.mu must not exist; README.md is required for platforms");
+assert.equal(existsSync(join(root, "README.lmk")), false, "README.lmk must not exist; README.md is required for platforms");
 
 const markdownFiles = walk(root)
   .filter((file) => extname(file).toLowerCase() === ".md")
@@ -22,10 +22,10 @@ const docsMarkdown = existsSync(docsDir)
       .map((file) => relative(root, file).split(sep).join("/"))
   : [];
 
-assert.deepEqual(docsMarkdown, [], `docs/ must use Lessmark .mu files: ${docsMarkdown.join(", ")}`);
+assert.deepEqual(docsMarkdown, [], `docs/ must use Lessmark .lmk files: ${docsMarkdown.join(", ")}`);
 
 if (existsSync(docsDir)) {
-  for (const file of walk(docsDir).filter((path) => extname(path).toLowerCase() === ".mu")) {
+  for (const file of walk(docsDir).filter((path) => extname(path).toLowerCase() === ".lmk")) {
     parseLessmark(readFileSync(file, "utf8"));
   }
 }

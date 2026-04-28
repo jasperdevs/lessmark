@@ -1,0 +1,92 @@
+# From AsciiDoc
+
+@summary
+Most AsciiDoc constructs map cleanly to lessmark. Block-level elements use
+{{code:@name}} prefixes instead of square-bracket roles, and inline
+formatting uses double-curly-brace functions.
+
+## Headings
+
+AsciiDoc {{code:=}} headings become {{code:#}} headings. Levels still go
+one through six, and a blank line is required after every heading.
+
+@code lang="asciidoc"
+= Document title
+== Section
+=== Subsection
+
+@code lang="lessmark"
+  # Document title
+  ## Section
+  ### Subsection
+
+## Inline formatting
+
+@table columns="AsciiDoc|Lessmark"
+*bold*|`{{strong:bold}}` or `**bold**`
+_emphasis_|`{{em:emphasis}}` or `*emphasis*`
+`monospace`|`{{code:monospace}}` or backticks
+[mark]#highlighted#|`{{mark:highlighted}}` or `==highlighted==`
+~strikethrough~|`{{del:strikethrough}}` or `~~strikethrough~~`
++++raw+++|not allowed; raw HTML and pass-through macros are rejected
+
+## Lists
+
+AsciiDoc nests with extra asterisks. Lessmark uses two-space indentation
+and a single dash per item.
+
+@code lang="asciidoc"
+* one
+* two
+** nested
+
+@code lang="lessmark"
+  @list kind="unordered"
+  - one
+  - two
+    - nested
+
+## Admonitions
+
+AsciiDoc admonitions ({{code:NOTE:}}, {{code:WARNING:}},
+{{code:CAUTION:}}) become {{code:@callout}} blocks with a
+{{code:kind}}.
+
+@code lang="asciidoc"
+NOTE: Generated files live in dist/.
+
+WARNING: Hotkey changes break old workflows.
+
+@code lang="lessmark"
+  @callout kind="note"
+  Generated files live in {{code:dist/}}.
+
+  @callout kind="warning"
+  Hotkey changes break old workflows.
+
+## Source blocks
+
+AsciiDoc source blocks delimit code with a fenced line. Lessmark uses
+{{code:@code}} with an optional {{code:lang}} attribute.
+
+@code lang="asciidoc"
+[source,js]
+----
+console.log("hello");
+----
+
+@code lang="lessmark"
+  @code lang="js"
+  console.log("hello");
+
+## Cross references
+
+AsciiDoc {{code:‹‹section-id››}} cross references become inline
+{{code:{{ref:#section-id}}}} functions. Targets must already exist in the
+same document, either as a heading slug or a {{code:@decision}} id.
+
+## Includes
+
+AsciiDoc {{code:include::}} directives have no equivalent. Lessmark does
+not include other files at parse time. Compose the final document
+upstream and ship it as one source.

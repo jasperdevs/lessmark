@@ -6,7 +6,6 @@ export function fromMarkdown(markdown) {
   const lines = String(markdown).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n");
   const children = [];
   let index = 0;
-  let firstParagraph = true;
 
   while (index < lines.length) {
     const line = lines[index];
@@ -25,7 +24,6 @@ export function fromMarkdown(markdown) {
 
     if (isMarkdownSeparator(line)) {
       children.push({ type: "block", name: "separator", attrs: {}, text: "" });
-      firstParagraph = false;
       index += 1;
       continue;
     }
@@ -42,7 +40,6 @@ export function fromMarkdown(markdown) {
       }
       index += 1;
       children.push({ type: "block", name: "math", attrs: { notation: "tex" }, text: body.join("\n") });
-      firstParagraph = false;
       continue;
     }
 
@@ -60,7 +57,6 @@ export function fromMarkdown(markdown) {
       index += 1;
       const fenced = fencedCodeNode(fence.lang, body);
       children.push(fenced);
-      firstParagraph = false;
       continue;
     }
 
@@ -72,7 +68,6 @@ export function fromMarkdown(markdown) {
         attrs: { status: task[1].toLowerCase() === "x" ? "done" : "todo" },
         text: plainText(task[2])
       });
-      firstParagraph = false;
       index += 1;
       continue;
     }
@@ -80,7 +75,6 @@ export function fromMarkdown(markdown) {
     const list = readMarkdownList(lines, index);
     if (list) {
       children.push(list.node);
-      firstParagraph = false;
       index = list.nextIndex;
       continue;
     }
@@ -92,9 +86,8 @@ export function fromMarkdown(markdown) {
         if (image.caption) attrs.caption = plainText(image.caption);
         children.push({ type: "block", name: "image", attrs, text: "" });
       } else {
-        children.push({ type: "block", name: firstParagraph ? "summary" : "note", attrs: {}, text: plainText(image.alt) });
+        children.push({ type: "block", name: "paragraph", attrs: {}, text: plainText(image.alt) });
       }
-      firstParagraph = false;
       index += 1;
       continue;
     }
@@ -102,7 +95,6 @@ export function fromMarkdown(markdown) {
     const quote = readBlockquote(lines, index);
     if (quote) {
       children.push(quote.node);
-      firstParagraph = false;
       index = quote.nextIndex;
       continue;
     }
@@ -110,7 +102,6 @@ export function fromMarkdown(markdown) {
     const table = readTable(lines, index);
     if (table) {
       children.push(table.node);
-      firstParagraph = false;
       index = table.nextIndex;
       continue;
     }
@@ -130,9 +121,8 @@ export function fromMarkdown(markdown) {
     if (link && isSafeHref(link[2])) {
       children.push({ type: "block", name: "link", attrs: { href: link[2] }, text: link[1] });
     } else {
-      children.push({ type: "block", name: firstParagraph ? "summary" : "note", attrs: {}, text });
+      children.push({ type: "block", name: "paragraph", attrs: {}, text });
     }
-    firstParagraph = false;
   }
 
   return formatAst({ type: "document", children });
@@ -145,8 +135,7 @@ export function toMarkdown(lessmark) {
     if (node.type === "heading") return `${"#".repeat(node.level)} ${inlineToMarkdown(node.text)}`;
     if (node.type !== "block") return "";
 
-    if (node.name === "summary" || node.name === "note" || node.name === "paragraph") return inlineToMarkdown(node.text);
-    if (node.name === "warning") return `> Warning: ${node.text}`;
+    if (node.name === "summary" || node.name === "paragraph") return inlineToMarkdown(node.text);
     if (node.name === "constraint") return `> Constraint: ${node.text}`;
     if (node.name === "decision") return `### ${node.attrs.id}\n\n**Decision:** ${inlineToMarkdown(node.text)}`;
     if (node.name === "task") return `- [${node.attrs.status === "done" ? "x" : " "}] ${node.text}`;

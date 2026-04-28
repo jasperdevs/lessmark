@@ -9,10 +9,10 @@ import { promisify } from "node:util";
 
 const exec = promisify(execFile);
 const cli = fileURLToPath(new URL("../bin/lessmark.js", import.meta.url));
-const fixture = fileURLToPath(new URL("../../../fixtures/valid/project-context.mu", import.meta.url));
+const fixture = fileURLToPath(new URL("../../../fixtures/valid/project-context.lmk", import.meta.url));
 const siteFixture = fileURLToPath(new URL("../../../fixtures/site/basic", import.meta.url));
 const markdownFixture = fileURLToPath(new URL("../../../fixtures/valid/markdown-import.fixture", import.meta.url));
-const invalidFixture = fileURLToPath(new URL("../../../fixtures/invalid/raw-html.mu", import.meta.url));
+const invalidFixture = fileURLToPath(new URL("../../../fixtures/invalid/raw-html.lmk", import.meta.url));
 
 test("CLI parse prints document AST", async () => {
   const { stdout } = await exec(process.execPath, [cli, "parse", fixture]);
@@ -62,8 +62,8 @@ test("CLI format prints normalized source", async () => {
 test("CLI format --check reports formatting status", async () => {
   const temp = await mkdtemp(join(tmpdir(), "lessmark-format-check-"));
   try {
-    const formatted = join(temp, "formatted.mu");
-    const unformatted = join(temp, "unformatted.mu");
+    const formatted = join(temp, "formatted.lmk");
+    const unformatted = join(temp, "unformatted.lmk");
     await writeFile(formatted, await readFile(fixture, "utf8"), "utf8");
     await writeFile(unformatted, "@task todo\nDo it.\n", "utf8");
     const { stdout } = await exec(process.execPath, [cli, "format", "--check", formatted]);
@@ -89,7 +89,7 @@ test("CLI fix is a formatter alias", async () => {
 test("CLI converts Markdown to Lessmark", async () => {
   const { stdout } = await exec(process.execPath, [cli, "from-markdown", markdownFixture]);
   assert.match(stdout, /^# Imported Context/);
-  assert.match(stdout, /@summary\nMarkdown import fixture\./);
+  assert.match(stdout, /\nMarkdown import fixture\.\n/);
 });
 
 test("CLI converts Lessmark to Markdown", async () => {
@@ -99,7 +99,7 @@ test("CLI converts Lessmark to Markdown", async () => {
 });
 
 test("CLI renders a Lessmark document to HTML", async () => {
-  const docsFixture = fileURLToPath(new URL("../../../fixtures/valid/docs-page.mu", import.meta.url));
+  const docsFixture = fileURLToPath(new URL("../../../fixtures/valid/docs-page.lmk", import.meta.url));
   const { stdout } = await exec(process.execPath, [cli, "render", "--document", docsFixture]);
   assert.match(stdout, /<!doctype html>/);
   assert.match(stdout, /<table>/);
@@ -112,7 +112,7 @@ test("CLI builds a directory of Lessmark pages", async () => {
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
     await writeFile(join(input, "assets", "diagram.svg"), "<svg></svg>\n", "utf8");
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="index.html"\n\n@nav label="Home" href="index.html"\n\n@nav label="Guide" href="guide.html"\n\n# Home\n\n@paragraph\nBuilt page.\n\n@image src="assets/diagram.svg" alt="Diagram"\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@nav label="Home" href="index.html"\n\n@nav label="Guide" href="guide.html"\n\n# Home\n\n@paragraph\nBuilt page.\n\n@image src="assets/diagram.svg" alt="Diagram"\n', "utf8");
     await writeFile(join(input, "guide.lessmark"), '@page title="Guide" output="guide.html"\n\n# Guide\n\n@paragraph\nAlias page.\n', "utf8");
     await exec(process.execPath, [cli, "build", "--strict", input, output]);
     const html = await readFile(join(output, "index.html"), "utf8");
@@ -136,8 +136,8 @@ test("CLI build --strict rejects broken site references before writing", async (
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(input, { recursive: true });
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="index.html"\n\n@nav label="Missing" href="missing.html"\n\n@link href="assets/missing.pdf"\nMissing asset.\n\n@image src="assets/missing.svg" alt="Missing"\n', "utf8");
-    await writeFile(join(input, "again.mu"), '@page title="Again" output="index.html"\n\n@paragraph\nDuplicate output.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@nav label="Missing" href="missing.html"\n\n@link href="assets/missing.pdf"\nMissing asset.\n\n@image src="assets/missing.svg" alt="Missing"\n', "utf8");
+    await writeFile(join(input, "again.lmk"), '@page title="Again" output="index.html"\n\n@paragraph\nDuplicate output.\n', "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
       (error) => {
@@ -160,7 +160,7 @@ test("CLI build --strict rejects unsafe inline links before writing", async () =
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(input, { recursive: true });
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="index.html"\n\n@paragraph\n{{link:Docs|javascript:alert(1)}}\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@paragraph\n{{link:Docs|javascript:alert(1)}}\n', "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
       (error) => {
@@ -182,7 +182,7 @@ test("CLI build --strict rejects generated page and static asset output collisio
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "docs"), { recursive: true });
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nHome.\n', "utf8");
     await writeFile(join(input, "docs", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
@@ -204,7 +204,7 @@ test("CLI build --strict rejects case-insensitive output collisions", async () =
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "Docs"), { recursive: true });
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nHome.\n', "utf8");
     await writeFile(join(input, "Docs", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
@@ -225,7 +225,7 @@ test("CLI build --strict rejects case-insensitive static asset collisions", asyn
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
     await mkdir(join(input, "Assets"), { recursive: true });
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@paragraph\nHome.\n', "utf8");
     await writeFile(join(input, "assets", "logo.svg"), "<svg></svg>\n", "utf8");
     await writeFile(join(input, "Assets", "logo.svg"), "<svg></svg>\n", "utf8");
     const rootEntries = await readdir(input);
@@ -251,7 +251,7 @@ test("CLI build --strict ignores nested output directory on rebuild", async () =
     const input = join(temp, "src");
     const output = join(input, "public");
     await mkdir(input, { recursive: true });
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="index.html"\n\n@paragraph\nGenerated page.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@paragraph\nGenerated page.\n', "utf8");
     await exec(process.execPath, [cli, "build", "--strict", input, output]);
     await exec(process.execPath, [cli, "build", "--strict", input, output]);
     const html = await readFile(join(output, "index.html"), "utf8");
@@ -267,7 +267,7 @@ test("CLI build without --strict preserves legacy page-over-asset behavior", asy
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "docs"), { recursive: true });
-    await writeFile(join(input, "index.mu"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nGenerated page.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nGenerated page.\n', "utf8");
     await writeFile(join(input, "docs", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await exec(process.execPath, [cli, "build", input, output]);
     const html = await readFile(join(output, "docs", "index.html"), "utf8");

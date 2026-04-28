@@ -1,0 +1,325 @@
+# Syntax
+
+@summary
+Complete reference for lessmark. Every block, every inline function, with
+examples you can copy.
+
+## Document shape
+
+Plain prose is allowed at the top level and becomes a paragraph block in
+the AST. Named blocks still start with an at-sign, headings start with a
+hash, and raw HTML or JSX is forbidden everywhere.
+
+## Headings
+
+ATX-style only, levels one through six, single space after the hash.
+Always leave a blank line after a heading.
+
+@code lang="lessmark"
+  # Document title
+  ## Section
+  ### Subsection
+  #### Sub-subsection
+
+## Paragraphs
+
+Plain text is the normal paragraph syntax. Separate paragraphs with a
+blank line. The parser records each one as a {{code:paragraph}} block.
+The explicit forms {{code:@p}} and {{code:@paragraph}} still work when
+you want to force prose meaning, but {{code:lessmark format}} writes
+ordinary plain paragraphs.
+
+@code lang="lessmark"
+  Plain prose. Use {{strong:bold}}, {{em:italic}}, and {{code:inline code}}
+  inside any prose body.
+
+## Inline syntax
+
+Inside any prose body, double curly braces invoke an inline function.
+The general shape is {{code:{{name:value}}}} or
+{{code:{{name:value|extra}}}}.
+
+@list kind="unordered"
+- strong, for bold.
+- em, for italic.
+- code, for inline code.
+- kbd, for keyboard keys.
+- mark, for highlights.
+- del, for strikethrough.
+- sup, for superscript.
+- sub, for subscript.
+- link, with a label and a safe href.
+- ref, with a label and an in-document target.
+- footnote, with a footnote id.
+
+@code lang="lessmark"
+  Press {{kbd:Ctrl+S}} to save. The {{mark:highlight}} survives diffs.
+  Visit {{link:our docs|https://example.com/docs}} for the full list.
+
+## Authoring shortcuts
+
+Lessmark accepts a typing layer that formats back to the canonical form.
+Agents always see the canonical tree; humans do not have to type the
+longest form every time.
+
+After {{code:lessmark format}}, the document below becomes plain
+paragraph text, {{code:{{strong:bold}}}}, {{code:{{em:emphasis}}}},
+{{code:{{code:code}}}}, {{code:{{del:strikethrough}}}},
+{{code:{{mark:highlight}}}}, {{code:{{link:Docs|https://example.com}}}},
+{{code:{{footnote:knuth-1974}}}}, {{code:@task status="todo"}}, and
+{{code:@decision id="storage-backend"}}. For a full list of authoring
+shortcuts, see the Hacks page.
+
+@code lang="lessmark"
+  Use **bold**, *emphasis*, `code`, ~~strikethrough~~, ==highlight==,
+  [Docs](https://example.com), and footnote pointers like [^knuth-1974].
+
+  @footnote knuth-1974
+  Example citation.
+
+  @task todo
+  Add export settings.
+
+  @decision storage-backend
+  Use SQLite.
+
+## Code blocks
+
+Use {{code:@code}} with an optional language attribute. Indent two
+spaces if the body itself contains lines that start with an at-sign or
+hash, since either would otherwise terminate the block.
+
+@code lang="lessmark"
+  @code lang="js"
+  function add(a, b) {
+    return a + b;
+  }
+
+## Lists
+
+One item per line, prefixed with {{code:- }}. Nested items use exactly
+two spaces per level and cannot skip levels.
+
+@code lang="lessmark"
+  @list kind="unordered"
+  - First item
+  - Second item
+  - Third item
+
+  @list kind="ordered"
+  - First step
+    - First sub-step
+  - Second step
+  - Third step
+
+## Tables
+
+Pipe-separated rows. The first row is the header.
+
+@code lang="lessmark"
+  @table columns="Code|Meaning"
+  0|Success
+  1|Validation error
+  2|I/O error
+
+## Quotes
+
+@code lang="lessmark"
+  @quote cite="Donald Knuth"
+  Premature optimization is the root of all evil.
+
+## Callouts
+
+Boxed notes with a kind and an optional title.
+
+@code lang="lessmark"
+  @callout kind="note" title="One-time setup"
+  Run {{code:lessmark info --json}} to see what your installed version
+  supports.
+
+  @callout kind="tip"
+  Add {{code:lessmark check}} to your pre-commit hook.
+
+  @callout kind="warning"
+  This rewrites the file in place.
+
+  @callout kind="caution"
+  Removing a decision id breaks every {{code:{{ref:...}}}} that points at it.
+
+## Images
+
+The image block is body-less. Use the {{code:caption}} attribute for the
+figure label.
+
+@code lang="lessmark"
+  @image src="diagrams/flow.png" alt="Capture pipeline overview" caption="Capture pipeline. Each stage runs in its own task."
+
+## Math
+
+Notation is one of {{code:tex}} or {{code:asciimath}}. The body is
+preserved verbatim and rendered by your math toolchain downstream.
+
+@code lang="lessmark"
+  @math notation="tex"
+  E = mc^2
+
+## Diagrams
+
+Kind is one of {{code:mermaid}}, {{code:graphviz}}, or {{code:plantuml}}.
+The body is preserved verbatim.
+
+@code lang="lessmark"
+  @diagram kind="mermaid"
+  graph TD
+    A --> B
+    B --> C
+
+## Separators
+
+A horizontal rule between sections. Body-less.
+
+@code lang="lessmark"
+  @separator
+
+## Agent context blocks
+
+Blocks that carry intent an agent can act on without scraping prose.
+
+### summary
+
+@code lang="lessmark"
+  @summary
+  A small CLI for tracking time across projects.
+
+### decision
+
+A binding choice with a stable id. Other blocks can point at the id.
+
+@code lang="lessmark"
+  @decision id="storage-backend"
+  Store entries in a single SQLite file, not per-project.
+
+### constraint
+
+@code lang="lessmark"
+  @constraint
+  Do not block the UI while syncing.
+
+### task
+
+Status is one of {{code:todo}}, {{code:doing}}, {{code:done}},
+{{code:blocked}}.
+
+@code lang="lessmark"
+  @task status="doing"
+  Migrate hotkey registration off the deprecated win32 path.
+
+### file
+
+@code lang="lessmark"
+  @file path="src/Capture/Service.cs"
+  Owns stitching and capture state.
+
+### api
+
+@code lang="lessmark"
+  @api name="captureWindow"
+  Captures a single window by handle. Returns a PNG buffer.
+
+### metadata
+
+@code lang="lessmark"
+  @metadata key="project.stage"
+  beta
+
+### risk
+
+Level is one of {{code:low}}, {{code:medium}}, {{code:high}},
+{{code:critical}}.
+
+@code lang="lessmark"
+  @risk level="medium"
+  Changing capture flow can break workflows users have built around the
+  current shortcut behavior.
+
+### depends-on
+
+@code lang="lessmark"
+  @depends-on target="storage-backend"
+  Implements the SQLite write path described in the decision.
+
+## Cross-reference blocks
+
+### toc
+
+Renders a table of contents for the page's headings.
+
+@code lang="lessmark"
+  @toc
+
+### definition
+
+@code lang="lessmark"
+  @definition term="agent context"
+  A document an LLM reads to understand a project.
+
+### reference
+
+@code lang="lessmark"
+  @decision id="storage-backend"
+  Store entries in SQLite.
+
+  @reference target="storage-backend"
+  See the storage decision for the SQLite rationale.
+
+### footnote
+
+Inline pointers use {{code:{{footnote:id}}}}. The matching definition
+block must appear in the same document.
+
+@code lang="lessmark"
+  This claim is well-established{{footnote:knuth-1974}}.
+
+  @footnote id="knuth-1974"
+  Donald Knuth, "Structured Programming with go to Statements", 1974.
+
+### link
+
+A standalone link block. Inline links use {{code:{{link:label|url}}}}
+inside any prose body.
+
+@code lang="lessmark"
+  @link href="https://example.com/spec"
+  Read the full specification
+
+## Page structure
+
+### page
+
+@code lang="lessmark"
+  @page title="Getting started" output="getting-started.html"
+
+### nav
+
+One nav block per link. Slot is optional and defaults to {{code:primary}}.
+
+@code lang="lessmark"
+  @nav slot="primary" label="Home" href="/"
+  @nav slot="primary" label="Docs" href="/docs"
+  @nav slot="primary" label="Examples" href="/examples"
+
+## Anchors
+
+Every heading and every {{code:@decision}} block gets a slug-style anchor.
+Inline {{code:{{ref:label|target-id}}}} points at those anchors and
+validation rejects broken references.
+
+## Safety
+
+@constraint
+Lessmark refuses raw HTML, JSX, and unsafe URL schemes. Anything that
+looks executable raises a parse error before it ever reaches a renderer.
+
+@callout kind="warning"
+Embedding a script tag in any block body is a parse error, not a warning.
+The parser stops at the first violation.

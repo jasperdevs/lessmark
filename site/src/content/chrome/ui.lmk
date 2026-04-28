@@ -1,0 +1,97 @@
+# UI
+
+@metadata key="header.brand"
+lessmark
+
+@metadata key="home.docs-link"
+getting started
+
+@metadata key="home.playground-link"
+playground
+
+@metadata key="home.open-playground"
+open full playground
+
+@metadata key="home.next-heading"
+Next
+
+@metadata key="home.next-link"
+Read the getting-started guide
+
+@metadata key="home.next-summary"
+install a package, write your first document
+
+@metadata key="docs.sidebar-label"
+Docs
+
+@metadata key="docs.previous"
+previous
+
+@metadata key="docs.next"
+next
+
+@metadata key="examples.index-heading"
+Examples
+
+@metadata key="examples.back"
+all examples
+
+@metadata key="source.panel-label"
+Edit page source
+
+@metadata key="source.close-label"
+Close source panel
+
+@metadata key="source.reset"
+reset
+
+@metadata key="source.close"
+close
+
+@metadata key="source.live-note"
+edits update the page live
+
+@metadata key="source.modified"
+modified
+
+@metadata key="playground.reset"
+reset
+
+@metadata key="playground.format"
+format
+
+@metadata key="playground.resize-title"
+drag to resize
+
+@metadata key="playground.preview-label"
+preview view
+
+@metadata key="playground.view-html"
+html
+
+@metadata key="playground.view-tree"
+tree
+
+@metadata key="playground.view-ast"
+ast
+
+@metadata key="playground.error-line"
+line
+
+@metadata key="playground.error-column"
+column
+
+@metadata key="switching.source-format-label"
+source format
+
+@metadata key="switching.markdown"
+Markdown
+
+@metadata key="switching.mdx"
+MDX
+
+@metadata key="switching.asciidoc"
+AsciiDoc
+
+@metadata key="switching.rst"
+reStructuredText

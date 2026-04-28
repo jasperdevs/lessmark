@@ -59,3 +59,28 @@ export function SunIcon({ className }: Props) {
     </svg>
   );
 }
+
+export function XIcon({ className }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M18.244 2H21.5l-7.51 8.59L23 22h-6.937l-5.43-7.103L4.4 22H1.142l8.034-9.19L1 2h7.094l4.913 6.49L18.244 2zm-2.43 18h1.92L7.32 4H5.27l10.544 16z"/>
+    </svg>
+  );
+}
+
+export function VSCodeIcon({ className }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M17.86 2.16a1.5 1.5 0 0 0-1.6.18L3.43 12.05 2.4 11.06a.9.9 0 0 0-1.23.04l-.92.92a.9.9 0 0 0 0 1.27l1.86 1.71-1.86 1.71a.9.9 0 0 0 0 1.27l.92.92a.9.9 0 0 0 1.23.04l1.03-.99 12.83 9.71a1.5 1.5 0 0 0 1.6.18l3.4-1.64a1.4 1.4 0 0 0 .79-1.26V5.06a1.4 1.4 0 0 0-.79-1.26zM17.4 17.97 8.2 12 17.4 6.03z"/>
+    </svg>
+  );
+}
+
+export function MailIcon({ className }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </svg>
+  );
+}

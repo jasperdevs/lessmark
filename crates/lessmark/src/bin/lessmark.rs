@@ -35,7 +35,7 @@ fn info_command(args: &[String]) -> i32 {
         "language": "lessmark",
         "version": env!("CARGO_PKG_VERSION"),
         "astVersion": "v0",
-        "extensions": [".mu", ".lessmark"],
+        "extensions": [".lmk", ".lessmark"],
         "mediaType": "text/vnd.lessmark; charset=utf-8",
         "blocks": [
             "summary",
@@ -48,8 +48,6 @@ fn info_command(args: &[String]) -> i32 {
             "file",
             "code",
             "example",
-            "note",
-            "warning",
             "quote",
             "callout",
             "list",
@@ -92,9 +90,11 @@ fn info_command(args: &[String]) -> i32 {
         },
         "syntaxPolicy": {
             "aliases": true,
+            "plainParagraphs": true,
             "canonicalSource": true,
             "documentedConveniencesOnly": true,
-            "maxSpellingsPerMeaning": 2,
+            "maxSpellingsPerMeaning": 3,
+            "maxSpellingsException": "paragraph",
             "markdownLegacySyntax": false,
             "rawHtml": false,
             "hooks": false,
@@ -156,7 +156,7 @@ fn from_markdown_command(args: &[String]) -> i32 {
 
 fn to_markdown_command(args: &[String]) -> i32 {
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark to-markdown <file.mu>");
+        eprintln!("Usage: lessmark to-markdown <file.lmk>");
         return 1;
     };
     let source = match read_file(path) {
@@ -177,7 +177,7 @@ fn to_markdown_command(args: &[String]) -> i32 {
 
 fn parse_command(args: &[String]) -> i32 {
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark parse <file.mu>");
+        eprintln!("Usage: lessmark parse <file.lmk>");
         return 1;
     };
     let source = match read_file(path) {
@@ -202,7 +202,7 @@ fn parse_command(args: &[String]) -> i32 {
 fn check_command(args: &[String]) -> i32 {
     let json_output = args.iter().any(|arg| arg == "--json");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark check [--json] <file.mu>");
+        eprintln!("Usage: lessmark check [--json] <file.lmk>");
         return 1;
     };
     let source = match read_file(path) {
@@ -238,7 +238,7 @@ fn format_command(args: &[String]) -> i32 {
     let write = args.iter().any(|arg| arg == "--write" || arg == "-w");
     let check = args.iter().any(|arg| arg == "--check");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark format [--write|--check] <file.mu>");
+        eprintln!("Usage: lessmark format [--write|--check] <file.lmk>");
         return 1;
     };
     let source = match read_file(path) {

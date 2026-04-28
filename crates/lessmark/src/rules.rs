@@ -194,7 +194,15 @@ pub fn is_safe_href(href: &str) -> bool {
         .captures(href)
         .and_then(|captures| captures.get(1))
         .map_or_else(
-            || is_relative_project_path(href),
+            || {
+                if href.starts_with("//") {
+                    return false;
+                }
+                if href.starts_with('/') {
+                    return !href.split(['/', '\\']).any(|part| part == "..");
+                }
+                is_relative_project_path(href)
+            },
             |scheme| {
                 matches!(
                     scheme.as_str().to_ascii_lowercase().as_str(),
@@ -423,9 +431,6 @@ fn get_table_body_errors(columns: &str, text: &str) -> Vec<String> {
     let column_count = split_table_row(columns).len();
     for line in text.lines().filter(|line| !line.trim().is_empty()) {
         let cells = split_table_row(line);
-        if cells.iter().any(String::is_empty) {
-            return vec!["@table cells cannot be empty".to_string()];
-        }
         if cells.len() != column_count {
             return vec!["@table row cell count must match columns".to_string()];
         }

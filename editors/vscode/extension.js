@@ -6,7 +6,7 @@ const vscode = require("vscode");
 const diagnosticCollection = vscode.languages.createDiagnosticCollection("lessmark");
 const BLOCK_DOCS = new Map([
   ["summary", "Document summary. Body is plain inline text."],
-  ["paragraph", "Paragraph body. Use explicit inline functions like {{strong:text}}, {{ref:Label|target}}, and {{link:Label|https://example.com}}."],
+  ["paragraph", "Paragraph body. Plain top-level prose is also parsed as a paragraph. Use inline functions like {{strong:text}}, {{ref:Label|target}}, and {{link:Label|https://example.com}}."],
   ["decision", "Decision block. Required: id=\"lowercase-slug\". The id becomes a local reference target."],
   ["constraint", "Constraint body. Use for rules the document must preserve."],
   ["task", "Task block. Required: status=\"todo|doing|done|blocked\"."],
