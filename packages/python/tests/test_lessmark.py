@@ -106,6 +106,25 @@ class LessmarkPythonTests(unittest.TestCase):
             ],
         )
 
+    def test_validates_non_string_attrs_without_treating_present_values_as_missing(self):
+        errors = validate_ast(
+            {
+                "type": "document",
+                "children": [
+                    {"type": "block", "name": "summary", "attrs": {"mood": 1}, "text": "Bad custom attr."},
+                    {"type": "block", "name": "task", "attrs": {"status": 1}, "text": "Bad status type."},
+                ],
+            }
+        )
+        self.assertEqual(
+            errors,
+            [
+                {"message": 'Attribute "mood" must be a string'},
+                {"message": '@summary does not allow attribute "mood"'},
+                {"message": 'Attribute "status" must be a string'},
+            ],
+        )
+
     def test_validates_exact_ast_shape(self):
         errors = validate_ast(
             {"type": "document", "children": [{"type": "heading", "level": 7, "text": "", "extra": True}], "extra": True}

@@ -39,7 +39,7 @@ export function getBlockAttrErrors(name, attrs) {
   }
 
   for (const key of spec.required) {
-    if (!attrs[key]) {
+    if (!Object.hasOwn(attrs, key) || attrs[key] === "") {
       errors.push(`@${name} requires ${key}`);
     }
   }
@@ -53,19 +53,19 @@ export function getBlockAttrErrors(name, attrs) {
 }
 
 function getSemanticAttrError(name, attrs) {
-  if (name === "task" && attrs.status && !TASK_STATUSES.has(attrs.status)) {
+  if (name === "task" && typeof attrs.status === "string" && attrs.status && !TASK_STATUSES.has(attrs.status)) {
     return "@task status must be one of: todo, doing, done, blocked";
   }
-  if (name === "decision" && attrs.id && !DECISION_ID_PATTERN.test(attrs.id)) {
+  if (name === "decision" && typeof attrs.id === "string" && attrs.id && !DECISION_ID_PATTERN.test(attrs.id)) {
     return "@decision id must be a lowercase slug";
   }
-  if (name === "file" && attrs.path && !isRelativeProjectPath(attrs.path)) {
+  if (name === "file" && typeof attrs.path === "string" && attrs.path && !isRelativeProjectPath(attrs.path)) {
     return "@file path must be a relative project path";
   }
-  if (name === "api" && attrs.name && !API_NAME_PATTERN.test(attrs.name)) {
+  if (name === "api" && typeof attrs.name === "string" && attrs.name && !API_NAME_PATTERN.test(attrs.name)) {
     return "@api name must be an identifier";
   }
-  if (name === "link" && attrs.href && !isSafeHref(attrs.href)) {
+  if (name === "link" && typeof attrs.href === "string" && attrs.href && !isSafeHref(attrs.href)) {
     return "@link href must not use an executable URL scheme";
   }
   return null;

@@ -7,6 +7,9 @@ from .core import LessmarkError, ValidationError, format_lessmark, parse_lessmar
 
 
 def main(argv: list[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(newline="\n")
+
     parser = argparse.ArgumentParser(prog="lessmark")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -46,9 +49,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "format":
             formatted = format_lessmark(source)
             if args.write:
-                path.write_text(formatted, encoding="utf-8")
+                with path.open("w", encoding="utf-8", newline="\n") as file:
+                    file.write(formatted)
             else:
-                print(formatted, end="")
+                sys.stdout.write(formatted)
             return 0
 
     except LessmarkError as error:

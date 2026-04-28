@@ -122,6 +122,21 @@ test("validates semantic attrs on direct AST input", () => {
   ]);
 });
 
+test("validates non-string attrs without treating present values as missing", () => {
+  const errors = validateAst({
+    type: "document",
+    children: [
+      { type: "block", name: "summary", attrs: { mood: 1 }, text: "Bad custom attr." },
+      { type: "block", name: "task", attrs: { status: 1 }, text: "Bad status type." }
+    ]
+  });
+  assert.deepEqual(errors, [
+    { message: 'Attribute "mood" must be a string' },
+    { message: '@summary does not allow attribute "mood"' },
+    { message: 'Attribute "status" must be a string' }
+  ]);
+});
+
 test("validates exact AST shape", () => {
   const errors = validateAst({
     type: "document",

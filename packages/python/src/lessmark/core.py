@@ -299,7 +299,7 @@ def _get_block_attr_errors(name: str, attrs: Mapping[str, object]) -> list[str]:
         if key not in spec["allowed"]:
             errors.append(f'@{name} does not allow attribute "{key}"')
     for key in spec["required"]:
-        if not attrs.get(key):
+        if key not in attrs or attrs.get(key) == "":
             errors.append(f"@{name} requires {key}")
 
     semantic_error = _get_semantic_attr_error(name, attrs)

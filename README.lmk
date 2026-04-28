@@ -1,0 +1,48 @@
+# lessmark
+
+@summary
+A strict, agent-readable markdown alternative. Typed blocks, a stable
+JSON AST, validation and formatting, and no raw HTML or JSX.
+
+@note
+The canonical implementation is the Rust crate. The npm and Python packages
+stay fixture-compatible with it.
+
+@constraint
+Lessmark rejects raw HTML, JSX, execution hooks, custom block syntax,
+and undefined attributes. Unknown blocks fail the parser.
+
+## Install
+
+@example
+npm install lessmark
+
+@example
+pip install lessmark
+
+## CLI
+
+@example
+lessmark parse file.lmk
+
+@example
+lessmark check file.lmk
+
+@example
+lessmark format file.lmk
+
+## API
+
+@api name="parseLessmark"
+JavaScript: import { parseLessmark } from "lessmark"
+
+@api name="parse_lessmark"
+Python: from lessmark import parse_lessmark
+
+@api name="lessmark"
+Rust: cargo run -p lessmark -- parse file.lmk
+
+## License
+
+@note
+MIT.
