@@ -10,10 +10,10 @@ const validDir = join(root, "fixtures", "valid");
 const invalidDir = join(root, "fixtures", "invalid");
 const rootSchema = readFileSync(join(root, "schemas", "ast-v0.schema.json"), "utf8");
 
-for (const name of readdirSync(validDir).filter((file) => file.endsWith(".lmk")).sort()) {
+for (const name of readdirSync(validDir).filter((file) => file.endsWith(".mu")).sort()) {
   const path = join(validDir, name);
   const source = readFileSync(path, "utf8");
-  const expected = JSON.parse(readFileSync(path.replace(/\.lmk$/, ".ast.json"), "utf8"));
+  const expected = JSON.parse(readFileSync(path.replace(/\.mu$/, ".ast.json"), "utf8"));
 
   assert.deepEqual(parseLessmark(source), expected, `js parse ${name}`);
   assert.deepEqual(pythonJson("parse", path), expected, `python parse ${name}`);
@@ -28,7 +28,7 @@ for (const name of readdirSync(validDir).filter((file) => file.endsWith(".lmk"))
   assert.equal(rustText(["to-markdown", path]), exported, `rust to-markdown ${name}`);
 }
 
-for (const name of readdirSync(invalidDir).filter((file) => file.endsWith(".lmk")).sort()) {
+for (const name of readdirSync(invalidDir).filter((file) => file.endsWith(".mu")).sort()) {
   const path = join(invalidDir, name);
   const source = readFileSync(path, "utf8");
   assert.notEqual(validateSource(source).length, 0, `js rejects ${name}`);

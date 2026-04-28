@@ -13,7 +13,7 @@ The docs profile is the publishing layer for Lessmark. It follows the same rule 
 
 ## Page Metadata
 
-```lmk
+```mu
 @page title="Docs Home" output="index.html"
 ```
 
@@ -21,7 +21,7 @@ The docs profile is the publishing layer for Lessmark. It follows the same rule 
 
 ## Common Docs Blocks
 
-```lmk
+```mu
 @paragraph
 Write normal prose with {{strong:explicit}} inline functions.
 
@@ -48,11 +48,11 @@ Use built-in blocks before adding execution surfaces.
 ## CLI
 
 ```sh
-lessmark render --document docs/index.lmk
+lessmark render --document docs/index.mu
 lessmark build docs public
 ```
 
-`render` writes HTML to stdout. `build` recursively converts `.lmk` and `.lessmark` files to `.html`, copies non-Lessmark static assets, and uses `@page output` when present.
+`render` writes HTML to stdout. `build` recursively converts `.mu` and `.lessmark` files to `.html`, copies non-Lessmark static assets, and uses `@page output` when present.
 
 ## What This Intentionally Does Not Add
 

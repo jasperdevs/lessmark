@@ -18,9 +18,9 @@ const html = renderHtml(source, { document: true });
 The package also exposes the `lessmark` command:
 
 ```sh
-lessmark parse file.lmk
-lessmark check file.lmk
-lessmark format file.lmk
-lessmark render --document file.lmk
+lessmark parse file.mu
+lessmark check file.mu
+lessmark format file.mu
+lessmark render --document file.mu
 lessmark build docs public
 ```

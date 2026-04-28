@@ -21,28 +21,28 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class LessmarkPythonTests(unittest.TestCase):
     def test_parses_fixture_ast(self):
-        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
         expected = json.loads((ROOT / "fixtures/valid/project-context.ast.json").read_text(encoding="utf-8"))
         self.assertEqual(parse_lessmark(source), expected)
 
     def test_all_valid_fixtures_have_stable_ast_snapshots(self):
-        for path in sorted((ROOT / "fixtures/valid").glob("*.lmk")):
+        for path in sorted((ROOT / "fixtures/valid").glob("*.mu")):
             source = path.read_text(encoding="utf-8")
             expected = json.loads(path.with_suffix(".ast.json").read_text(encoding="utf-8"))
             self.assertEqual(parse_lessmark(source), expected, path.name)
 
     def test_all_invalid_fixtures_are_rejected_by_the_parser(self):
-        for path in sorted((ROOT / "fixtures/invalid").glob("*.lmk")):
+        for path in sorted((ROOT / "fixtures/invalid").glob("*.mu")):
             with self.subTest(path=path.name):
                 with self.assertRaises(LessmarkError):
                     parse_lessmark(path.read_text(encoding="utf-8"))
 
     def test_format_is_idempotent(self):
-        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
         self.assertEqual(format_lessmark(source), format_lessmark(format_lessmark(source)))
 
     def test_preserves_indented_example_text(self):
-        source = (ROOT / "fixtures/valid/example-code.lmk").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/example-code.mu").read_text(encoding="utf-8")
         expected = json.loads((ROOT / "fixtures/valid/example-code.ast.json").read_text(encoding="utf-8"))
         self.assertEqual(parse_lessmark(source), expected)
         self.assertEqual(format_lessmark(source), source)
@@ -97,7 +97,7 @@ class LessmarkPythonTests(unittest.TestCase):
             parse_lessmark('@image src="javascript:alert(1)" alt="Bad"\n')
 
     def test_can_include_source_positions_without_changing_default_ast(self):
-        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
         plain = parse_lessmark(source)
         positioned = parse_lessmark(source, source_positions=True)
         self.assertNotIn("position", plain["children"][0])
@@ -199,13 +199,13 @@ class LessmarkPythonTests(unittest.TestCase):
             from_markdown("```js\nconst a = 1;\n")
 
     def test_exports_lessmark_to_markdown(self):
-        source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/project-context.mu").read_text(encoding="utf-8")
         markdown = to_markdown(source)
         self.assertTrue(markdown.startswith("# Project Context"))
         self.assertIn("- [ ] Add export settings.", markdown)
 
     def test_exports_docs_blocks_to_markdown(self):
-        source = (ROOT / "fixtures/valid/docs-page.lmk").read_text(encoding="utf-8")
+        source = (ROOT / "fixtures/valid/docs-page.mu").read_text(encoding="utf-8")
         markdown = to_markdown(source)
         self.assertTrue(markdown.startswith("# Docs"))
         self.assertIn("**explicit**", markdown)
@@ -215,7 +215,7 @@ class LessmarkPythonTests(unittest.TestCase):
 
     def test_cli_check_json_prints_agent_readable_errors(self):
         output = StringIO()
-        path = ROOT / "fixtures/invalid/raw-html.lmk"
+        path = ROOT / "fixtures/invalid/raw-html.mu"
         with redirect_stdout(output):
             status = main(["check", str(path), "--json"])
         result = json.loads(output.getvalue())
@@ -235,7 +235,7 @@ class LessmarkPythonTests(unittest.TestCase):
 
     def test_cli_converts_lessmark_to_markdown(self):
         output = StringIO()
-        path = ROOT / "fixtures/valid/project-context.lmk"
+        path = ROOT / "fixtures/valid/project-context.mu"
         with redirect_stdout(output):
             status = main(["to-markdown", str(path)])
         self.assertEqual(status, 0)

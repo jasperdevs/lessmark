@@ -12,7 +12,7 @@ ast_with_positions = parse_lessmark("@summary\nTyped context.\n", source_positio
 ```
 
 ```sh
-lessmark parse file.lmk
-lessmark check file.lmk
-lessmark format file.lmk
+lessmark parse file.mu
+lessmark check file.mu
+lessmark format file.mu
 ```

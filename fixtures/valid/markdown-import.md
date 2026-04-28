@@ -6,7 +6,7 @@ Markdown import fixture.
 - [x] Keep validation strict.
 
 ```shell
-lessmark check file.lmk
+lessmark check file.mu
 ```
 
 [Lessmark](https://lessmark.org)

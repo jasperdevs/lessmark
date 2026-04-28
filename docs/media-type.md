@@ -28,7 +28,7 @@ Additional information:
 
 - Deprecated alias names for this type: none
 - Magic number(s): none
-- File extension(s): `.lmk`, `.lessmark`
+- File extension(s): `.mu`, `.lessmark`
 - Macintosh file type code(s): none
 
 Person and email address to contact for further information: Jasper

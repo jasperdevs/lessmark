@@ -14,7 +14,7 @@
       {
         "id": "lessmark",
         "aliases": ["Lessmark", "lessmark"],
-        "extensions": [".lmk", ".lessmark"],
+        "extensions": [".mu", ".lessmark"],
         "configuration": "./language-configuration.json"
       }
     ],

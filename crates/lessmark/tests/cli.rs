@@ -11,7 +11,7 @@ fn lessmark_bin() -> &'static str {
 
 #[test]
 fn cli_parse_prints_document_ast() {
-    let fixture = repo_root().join("fixtures/valid/project-context.lmk");
+    let fixture = repo_root().join("fixtures/valid/project-context.mu");
     let output = Command::new(lessmark_bin())
         .args(["parse", fixture.to_str().expect("utf8 path")])
         .output()
@@ -29,7 +29,7 @@ fn cli_parse_prints_document_ast() {
 
 #[test]
 fn cli_check_json_reports_parse_errors() {
-    let fixture = repo_root().join("fixtures/invalid/raw-html.lmk");
+    let fixture = repo_root().join("fixtures/invalid/raw-html.mu");
     let output = Command::new(lessmark_bin())
         .args(["check", "--json", fixture.to_str().expect("utf8 path")])
         .output()
@@ -48,7 +48,7 @@ fn cli_check_json_reports_parse_errors() {
 
 #[test]
 fn cli_check_text_matches_public_contract() {
-    let valid = repo_root().join("fixtures/valid/project-context.lmk");
+    let valid = repo_root().join("fixtures/valid/project-context.mu");
     let valid_output = Command::new(lessmark_bin())
         .args(["check", valid.to_str().expect("utf8 path")])
         .output()
@@ -59,7 +59,7 @@ fn cli_check_text_matches_public_contract() {
         format!("{}: ok\n", valid.to_str().expect("utf8 path"))
     );
 
-    let invalid = repo_root().join("fixtures/invalid/raw-html.lmk");
+    let invalid = repo_root().join("fixtures/invalid/raw-html.mu");
     let invalid_output = Command::new(lessmark_bin())
         .args(["check", invalid.to_str().expect("utf8 path")])
         .output()
@@ -77,7 +77,7 @@ fn cli_check_text_matches_public_contract() {
 
 #[test]
 fn cli_format_prints_normalized_source() {
-    let fixture = repo_root().join("fixtures/valid/project-context.lmk");
+    let fixture = repo_root().join("fixtures/valid/project-context.mu");
     let output = Command::new(lessmark_bin())
         .args(["format", fixture.to_str().expect("utf8 path")])
         .output()
@@ -111,7 +111,7 @@ fn cli_converts_markdown_to_lessmark() {
 
 #[test]
 fn cli_converts_lessmark_to_markdown() {
-    let fixture = repo_root().join("fixtures/valid/project-context.lmk");
+    let fixture = repo_root().join("fixtures/valid/project-context.mu");
     let output = Command::new(lessmark_bin())
         .args(["to-markdown", fixture.to_str().expect("utf8 path")])
         .output()

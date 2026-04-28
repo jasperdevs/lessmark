@@ -33,12 +33,12 @@ pip install lessmark
 ## CLI
 
 ```sh
-lessmark parse file.lmk
-lessmark check file.lmk
-lessmark format file.lmk
+lessmark parse file.mu
+lessmark check file.mu
+lessmark format file.mu
 lessmark from-markdown README.md
-lessmark to-markdown file.lmk
-lessmark render --document docs/index.lmk
+lessmark to-markdown file.mu
+lessmark render --document docs/index.mu
 lessmark build docs public
 ```
 
@@ -48,7 +48,7 @@ Lessmark v0 supports agent-context blocks like `summary`, `decision`, `constrain
 
 See [`docs/spec.md`](./docs/spec.md) and [`schemas/ast-v0.schema.json`](./schemas/ast-v0.schema.json) for the source and AST contracts.
 
-Lessmark source files use `.lmk`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/docs-profile.md`](./docs/docs-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), [`docs/markdown-comparison.md`](./docs/markdown-comparison.md), [`docs/article-alignment.md`](./docs/article-alignment.md), [`docs/standardization.md`](./docs/standardization.md), and [`docs/markdown-chaos-timeline.md`](./docs/markdown-chaos-timeline.md).
+Lessmark source files use `.mu`; `.lessmark` is a readable alias. See [`docs/agent-context-profile.md`](./docs/agent-context-profile.md), [`docs/docs-profile.md`](./docs/docs-profile.md), [`docs/file-type-registration.md`](./docs/file-type-registration.md), [`docs/markdown-comparison.md`](./docs/markdown-comparison.md), [`docs/article-alignment.md`](./docs/article-alignment.md), [`docs/standardization.md`](./docs/standardization.md), and [`docs/markdown-chaos-timeline.md`](./docs/markdown-chaos-timeline.md).
 
 <details>
 <summary>API and docs</summary>
@@ -66,9 +66,9 @@ from lessmark import parse_lessmark
 ### Rust
 
 ```sh
-cargo run -p lessmark -- parse file.lmk
-cargo run -p lessmark -- check file.lmk
-cargo run -p lessmark -- format file.lmk
+cargo run -p lessmark -- parse file.mu
+cargo run -p lessmark -- check file.mu
+cargo run -p lessmark -- format file.mu
 ```
 
 ### Checks

@@ -52,7 +52,7 @@ fn from_markdown_command(args: &[String]) -> i32 {
 
 fn to_markdown_command(args: &[String]) -> i32 {
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark to-markdown <file.lmk>");
+        eprintln!("Usage: lessmark to-markdown <file.mu>");
         return 1;
     };
     let source = match read_file(path) {
@@ -73,7 +73,7 @@ fn to_markdown_command(args: &[String]) -> i32 {
 
 fn parse_command(args: &[String]) -> i32 {
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark parse <file.lmk>");
+        eprintln!("Usage: lessmark parse <file.mu>");
         return 1;
     };
     let source = match read_file(path) {
@@ -98,7 +98,7 @@ fn parse_command(args: &[String]) -> i32 {
 fn check_command(args: &[String]) -> i32 {
     let json_output = args.iter().any(|arg| arg == "--json");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark check [--json] <file.lmk>");
+        eprintln!("Usage: lessmark check [--json] <file.mu>");
         return 1;
     };
     let source = match read_file(path) {
@@ -133,7 +133,7 @@ fn check_command(args: &[String]) -> i32 {
 fn format_command(args: &[String]) -> i32 {
     let write = args.iter().any(|arg| arg == "--write" || arg == "-w");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark format [--write] <file.lmk>");
+        eprintln!("Usage: lessmark format [--write] <file.mu>");
         return 1;
     };
     let source = match read_file(path) {

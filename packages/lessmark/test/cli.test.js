@@ -9,9 +9,9 @@ import { promisify } from "node:util";
 
 const exec = promisify(execFile);
 const cli = fileURLToPath(new URL("../bin/lessmark.js", import.meta.url));
-const fixture = fileURLToPath(new URL("../../../fixtures/valid/project-context.lmk", import.meta.url));
+const fixture = fileURLToPath(new URL("../../../fixtures/valid/project-context.mu", import.meta.url));
 const markdownFixture = fileURLToPath(new URL("../../../fixtures/valid/markdown-import.md", import.meta.url));
-const invalidFixture = fileURLToPath(new URL("../../../fixtures/invalid/raw-html.lmk", import.meta.url));
+const invalidFixture = fileURLToPath(new URL("../../../fixtures/invalid/raw-html.mu", import.meta.url));
 
 test("CLI parse prints document AST", async () => {
   const { stdout } = await exec(process.execPath, [cli, "parse", fixture]);
@@ -58,7 +58,7 @@ test("CLI converts Lessmark to Markdown", async () => {
 });
 
 test("CLI renders a Lessmark document to HTML", async () => {
-  const docsFixture = fileURLToPath(new URL("../../../fixtures/valid/docs-page.lmk", import.meta.url));
+  const docsFixture = fileURLToPath(new URL("../../../fixtures/valid/docs-page.mu", import.meta.url));
   const { stdout } = await exec(process.execPath, [cli, "render", "--document", docsFixture]);
   assert.match(stdout, /<!doctype html>/);
   assert.match(stdout, /<table>/);
@@ -71,13 +71,17 @@ test("CLI builds a directory of Lessmark pages", async () => {
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
     await writeFile(join(input, "assets", "diagram.svg"), "<svg></svg>\n", "utf8");
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n# Home\n\n@paragraph\nBuilt page.\n\n@image src="assets/diagram.svg" alt="Diagram"\n', "utf8");
+    await writeFile(join(input, "index.mu"), '@page title="Home" output="index.html"\n\n# Home\n\n@paragraph\nBuilt page.\n\n@image src="assets/diagram.svg" alt="Diagram"\n', "utf8");
+    await writeFile(join(input, "guide.lessmark"), '@page title="Guide" output="guide.html"\n\n# Guide\n\n@paragraph\nAlias page.\n', "utf8");
     await exec(process.execPath, [cli, "build", input, output]);
     const html = await readFile(join(output, "index.html"), "utf8");
+    const guide = await readFile(join(output, "guide.html"), "utf8");
     const asset = await readFile(join(output, "assets", "diagram.svg"), "utf8");
     assert.match(html, /<title>Home<\/title>/);
     assert.match(html, /Built page/);
     assert.match(html, /assets\/diagram.svg/);
+    assert.match(guide, /<title>Guide<\/title>/);
+    assert.match(guide, /Alias page/);
     assert.match(asset, /<svg>/);
   } finally {
     await rm(temp, { recursive: true, force: true });

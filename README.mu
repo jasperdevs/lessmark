@@ -20,7 +20,7 @@ and undefined attributes. Unknown blocks fail the parser.
 v0
 
 @metadata key="file.extension"
-.lmk
+.mu
 
 @metadata key="media.type"
 text/vnd.lessmark
@@ -36,16 +36,16 @@ pip install lessmark
 ## CLI
 
 @example
-lessmark parse file.lmk
+lessmark parse file.mu
 
 @example
-lessmark check file.lmk
+lessmark check file.mu
 
 @example
-lessmark format file.lmk
+lessmark format file.mu
 
 @example
-lessmark render --document docs/index.lmk
+lessmark render --document docs/index.mu
 
 @example
 lessmark build docs public
@@ -90,7 +90,7 @@ JavaScript: import { parseLessmark } from "lessmark"
 Python: from lessmark import parse_lessmark
 
 @api name="lessmark"
-Rust: cargo run -p lessmark -- parse file.lmk
+Rust: cargo run -p lessmark -- parse file.mu
 
 ## License
 

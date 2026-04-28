@@ -1,6 +1,6 @@
 * text=auto eol=lf
 
-*.lmk text eol=lf
+*.mu text eol=lf
 *.lessmark text eol=lf
 
 site/dist/** linguist-generated=true

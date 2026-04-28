@@ -15,7 +15,7 @@ fn parses_all_valid_fixtures_to_stable_ast() {
     let fixtures = repo_root().join("fixtures/valid");
     for entry in fs::read_dir(&fixtures).expect("valid fixtures directory exists") {
         let path = entry.expect("valid fixture entry").path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("lmk") {
+        if path.extension().and_then(|ext| ext.to_str()) != Some("mu") {
             continue;
         }
         let source = fs::read_to_string(&path).expect("fixture is readable");
@@ -35,7 +35,7 @@ fn rejects_all_invalid_fixtures() {
     let fixtures = repo_root().join("fixtures/invalid");
     for entry in fs::read_dir(&fixtures).expect("invalid fixtures directory exists") {
         let path = entry.expect("invalid fixture entry").path();
-        if path.extension().and_then(|ext| ext.to_str()) != Some("lmk") {
+        if path.extension().and_then(|ext| ext.to_str()) != Some("mu") {
             continue;
         }
         let source = fs::read_to_string(&path).expect("fixture is readable");
@@ -88,7 +88,7 @@ fn validates_safe_links() {
 
 #[test]
 fn formatter_is_idempotent() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
         .expect("fixture is readable");
     let once = format_lessmark(&source).expect("format once");
     let twice = format_lessmark(&once).expect("format twice");
@@ -97,14 +97,14 @@ fn formatter_is_idempotent() {
 
 #[test]
 fn formatter_preserves_indented_example_text() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/example-code.lmk"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/example-code.mu"))
         .expect("fixture is readable");
     assert_eq!(format_lessmark(&source).expect("format example"), source);
 }
 
 #[test]
 fn can_include_source_positions_without_changing_default_ast() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
         .expect("fixture is readable");
     let plain = serde_json::to_value(parse_lessmark(&source).expect("valid fixture parses"))
         .expect("document serializes");
@@ -164,7 +164,7 @@ fn rejects_unclosed_markdown_code_fences() {
 
 #[test]
 fn exports_lessmark_to_markdown() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.lmk"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/project-context.mu"))
         .expect("fixture is readable");
     let markdown = to_markdown(&source).expect("exports markdown");
     assert!(markdown.starts_with("# Project Context"));
@@ -173,7 +173,7 @@ fn exports_lessmark_to_markdown() {
 
 #[test]
 fn exports_docs_blocks_to_markdown() {
-    let source = fs::read_to_string(repo_root().join("fixtures/valid/docs-page.lmk"))
+    let source = fs::read_to_string(repo_root().join("fixtures/valid/docs-page.mu"))
         .expect("fixture is readable");
     let markdown = to_markdown(&source).expect("exports markdown");
     assert!(markdown.starts_with("# Docs"));

@@ -78,7 +78,7 @@ async function buildSite(inputDir, outputDir) {
     const source = await readFile(file, "utf8");
     const ast = parseLessmark(source);
     const pageOutput = ast.children.find((node) => node.type === "block" && node.name === "page")?.attrs?.output;
-    const relativeOutput = pageOutput || relative(inputRoot, file).replace(/\.lmk$|\.lessmark$/i, ".html");
+    const relativeOutput = pageOutput || relative(inputRoot, file).replace(/\.mu$|\.lessmark$/i, ".html");
     const outPath = join(outputRoot, relativeOutput);
     await mkdir(dirname(outPath), { recursive: true });
     await writeFile(outPath, renderHtml(ast, { document: true }), "utf8");
@@ -92,7 +92,7 @@ async function copyStaticAssets(dir, inputRoot, outputRoot) {
     if (isInsideOrEqual(path, outputRoot)) continue;
     if (entry.isDirectory()) {
       await copyStaticAssets(path, inputRoot, outputRoot);
-    } else if (entry.isFile() && !/\.(lmk|lessmark)$/i.test(entry.name)) {
+    } else if (entry.isFile() && !/\.(mu|lessmark)$/i.test(entry.name)) {
       const outPath = join(outputRoot, relative(inputRoot, path));
       await mkdir(dirname(outPath), { recursive: true });
       await copyFile(path, outPath);
@@ -108,7 +108,7 @@ async function listLessmarkFiles(dir, skipRoot) {
     if (isInsideOrEqual(path, skipRoot)) continue;
     if (entry.isDirectory()) {
       files.push(...await listLessmarkFiles(path, skipRoot));
-    } else if (entry.isFile() && /\.(lmk|lessmark)$/i.test(entry.name)) {
+    } else if (entry.isFile() && /\.(mu|lessmark)$/i.test(entry.name)) {
       files.push(path);
     }
   }
@@ -122,7 +122,7 @@ function isInsideOrEqual(path, root) {
 
 function requireFile(file) {
   if (!file) {
-    throw new Error(`Usage: lessmark ${command} file.lmk`);
+    throw new Error(`Usage: lessmark ${command} file.mu`);
   }
   return file;
 }
@@ -131,15 +131,15 @@ function printHelp() {
   console.log(`Lessmark CLI
 
 Usage:
-  lessmark parse file.lmk
-  lessmark check file.lmk
-  lessmark check --json file.lmk
-  lessmark format file.lmk
-  lessmark format --write file.lmk
+  lessmark parse file.mu
+  lessmark check file.mu
+  lessmark check --json file.mu
+  lessmark format file.mu
+  lessmark format --write file.mu
   lessmark from-markdown README.md
-  lessmark to-markdown file.lmk
-  lessmark render file.lmk
-  lessmark render --document file.lmk
+  lessmark to-markdown file.mu
+  lessmark render file.mu
+  lessmark render --document file.mu
   lessmark build docs out`);
 }
 

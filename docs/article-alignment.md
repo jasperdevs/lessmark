@@ -20,7 +20,7 @@ Source: <https://bgslabs.org/blog/why-are-we-using-markdown/>
 
 - Arbitrary hooks/macros: these can recreate the plugin/security problem. They should only be added later as a constrained build API.
 - Full Markdown compatibility: Lessmark is a strict alternative, not a CommonMark superset.
-- GitHub native rendering: GitHub does not render `.lmk` as repository home content today.
+- GitHub native rendering: GitHub does not render `.mu` as repository home content today.
 
 ## Practical Grade Against the Article
 

@@ -4,9 +4,9 @@ This profile defines the strongest current Lessmark use case: compact project co
 
 ## Recommended Files
 
-- `AGENTS.lmk`: durable agent instructions for a repository.
-- `PROJECT_CONTEXT.lmk`: current project architecture and constraints.
-- `RELEASE_CONTEXT.lmk`: release notes, risks, and publish checklist.
+- `AGENTS.mu`: durable agent instructions for a repository.
+- `PROJECT_CONTEXT.mu`: current project architecture and constraints.
+- `RELEASE_CONTEXT.mu`: release notes, risks, and publish checklist.
 
 ## Recommended Order
 
@@ -32,7 +32,7 @@ This profile defines the strongest current Lessmark use case: compact project co
 
 ## Minimal Template
 
-```lmk
+```mu
 # Project Context
 
 @summary

@@ -4,7 +4,7 @@ Lessmark is a strict line-oriented format for project context. A document is a s
 
 ## File Type
 
-- Canonical extension: `.lmk`
+- Canonical extension: `.mu`
 - Readable alias: `.lessmark`
 - Media type target: `text/vnd.lessmark; charset=utf-8`
 - Encoding: UTF-8 text
@@ -21,7 +21,7 @@ Lessmark is a strict line-oriented format for project context. A document is a s
 
 Headings use one to six `#` markers followed by one space and visible text.
 
-```lmk
+```mu
 # Project Context
 ## Capture Flow
 ```
@@ -32,7 +32,7 @@ Closing heading markers are not supported.
 
 A block starts with `@name`, followed by optional double-quoted attributes. Most block bodies run until the next heading, block header, blank line, or end of file. `@code` and `@example` may contain internal blank lines; a blank run followed by the next heading, block header, or end of file still terminates the block.
 
-```lmk
+```mu
 @task status="todo"
 Add export settings.
 ```
@@ -41,7 +41,7 @@ Attribute values only support `\"` and `\\` escapes. Attribute values cannot con
 
 Inline docs markup uses explicit functions instead of Markdown delimiters:
 
-```lmk
+```mu
 @paragraph
 Use {{strong:strong text}}, {{em:emphasis}}, {{code:inline code}}, and {{link:safe links|https://example.com}}.
 ```
@@ -142,7 +142,7 @@ Unsupported Markdown features should degrade to `@note` text or require manual c
 The npm CLI includes a safe static renderer:
 
 ```sh
-lessmark render --document docs/index.lmk
+lessmark render --document docs/index.mu
 lessmark build docs public
 ```
 
