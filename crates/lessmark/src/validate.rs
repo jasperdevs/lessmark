@@ -118,7 +118,7 @@ fn validate_block(node: &serde_json::Map<String, Value>, errors: &mut Vec<Valida
         return;
     };
     validate_text_safety(text, errors, &format!("@{}", name));
-    if !matches!(name, "code" | "example") {
+    if !is_literal_block(name) {
         validate_inline_text(text, errors, &format!("@{}", name));
     }
     validate_block_body(
@@ -128,6 +128,10 @@ fn validate_block(node: &serde_json::Map<String, Value>, errors: &mut Vec<Valida
         errors,
     );
     validate_attrs(name, node.get("attrs"), errors);
+}
+
+fn is_literal_block(name: &str) -> bool {
+    matches!(name, "code" | "example" | "math" | "diagram")
 }
 
 fn validate_block_body(

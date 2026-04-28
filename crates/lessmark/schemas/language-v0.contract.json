@@ -21,6 +21,8 @@
     "list",
     "table",
     "image",
+    "math",
+    "diagram",
     "separator",
     "toc",
     "footnote",
@@ -37,7 +39,9 @@
     "taskStatus": ["todo", "doing", "done", "blocked"],
     "riskLevel": ["low", "medium", "high", "critical"],
     "listKind": ["unordered", "ordered"],
-    "calloutKind": ["note", "tip", "warning", "caution"]
+    "calloutKind": ["note", "tip", "warning", "caution"],
+    "mathNotation": ["tex", "asciimath"],
+    "diagramKind": ["mermaid", "graphviz", "plantuml"]
   },
   "syntaxPolicy": {
     "aliases": true,

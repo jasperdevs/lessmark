@@ -1,5 +1,6 @@
 use crate::grammar::{
-    BlockAttrSpec, BLOCK_ATTR_SPECS, CALLOUT_KINDS, LIST_KINDS, RISK_LEVELS, TASK_STATUSES,
+    BlockAttrSpec, BLOCK_ATTR_SPECS, CALLOUT_KINDS, DIAGRAM_KINDS, LIST_KINDS, MATH_NOTATIONS,
+    RISK_LEVELS, TASK_STATUSES,
 };
 use regex::Regex;
 use serde_json::Value;
@@ -269,6 +270,20 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
         if let Some(src) = attrs.get("src") {
             if !is_safe_resource(src) {
                 return Some("@image src must be a safe relative, http, or https URL".to_string());
+            }
+        }
+    }
+    if name == "math" {
+        if let Some(notation) = attrs.get("notation") {
+            if !MATH_NOTATIONS.contains(&notation.as_str()) {
+                return Some("@math notation must be one of: tex, asciimath".to_string());
+            }
+        }
+    }
+    if name == "diagram" {
+        if let Some(kind) = attrs.get("kind") {
+            if !DIAGRAM_KINDS.contains(&kind.as_str()) {
+                return Some("@diagram kind must be one of: mermaid, graphviz, plantuml".to_string());
             }
         }
     }

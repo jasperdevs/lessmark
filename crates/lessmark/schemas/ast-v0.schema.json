@@ -38,6 +38,8 @@
           { "$ref": "#/$defs/listBlock" },
           { "$ref": "#/$defs/tableBlock" },
           { "$ref": "#/$defs/imageBlock" },
+          { "$ref": "#/$defs/mathBlock" },
+          { "$ref": "#/$defs/diagramBlock" },
           { "$ref": "#/$defs/separatorBlock" },
           { "$ref": "#/$defs/pageBlock" },
           { "$ref": "#/$defs/tocBlock" },
@@ -470,6 +472,54 @@
           }
         },
         "text": { "const": "" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "mathBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "math" },
+        "attrs": {
+          "type": "object",
+          "required": ["notation"],
+          "additionalProperties": false,
+          "properties": {
+            "notation": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "enum": ["tex", "asciimath"] }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
+        "position": { "$ref": "#/$defs/position" }
+      }
+    },
+    "diagramBlock": {
+      "type": "object",
+      "required": ["type", "name", "attrs", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "block" },
+        "name": { "const": "diagram" },
+        "attrs": {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "allOf": [
+                { "$ref": "#/$defs/attributeValue" },
+                { "enum": ["mermaid", "graphviz", "plantuml"] }
+              ]
+            }
+          }
+        },
+        "text": { "$ref": "#/$defs/safeText" },
         "position": { "$ref": "#/$defs/position" }
       }
     },

@@ -63,6 +63,10 @@ function renderNode(node, ast, context) {
       return renderTable(node);
     case "image":
       return renderImage(node);
+    case "math":
+      return `<figure class="lessmark-math" data-notation="${escapeAttr(node.attrs.notation)}"><pre><code class="language-math-${escapeAttr(node.attrs.notation)}">${escapeHtml(node.text)}</code></pre></figure>`;
+    case "diagram":
+      return `<figure class="lessmark-diagram" data-kind="${escapeAttr(node.attrs.kind)}"><pre><code class="language-${escapeAttr(node.attrs.kind)}">${escapeHtml(node.text)}</code></pre></figure>`;
     case "separator":
       return `<hr class="lessmark-separator">`;
     case "toc":

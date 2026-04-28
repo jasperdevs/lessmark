@@ -17,7 +17,7 @@ The docs profile is the publishing layer for Lessmark. It follows the same rule 
 ## Authoring Convenience Rule
 
 @paragraph
-Conveniences are not a second language. They are typing helpers that must compile into the canonical AST and formatter output. The accepted block conveniences are @p, @ul, @ol, and one-token attributes such as @task todo, @decision storage-backend, @risk high, @file src/app.ts, @api parseLessmark, @code ts, @callout warning, @definition API, @table Name\|Value, @metadata project.stage, @link https://example.com, @reference slug, @footnote note, and @depends-on slug.
+Conveniences are not a second language. They are typing helpers that must compile into the canonical AST and formatter output. The accepted block conveniences are @p, @ul, @ol, and one-token attributes such as @task todo, @decision storage-backend, @risk high, @file src/app.ts, @api parseLessmark, @code ts, @callout warning, @math tex, @diagram mermaid, @definition API, @table Name\|Value, @metadata project.stage, @link https://example.com, @reference slug, @footnote note, and @depends-on slug.
 
 @paragraph
 The accepted prose shortcuts are `code`, *emphasis*, **bold**, ~~deleted~~, ==marked==, [label](https://example.com), [label](#local-slug), and [^footnote-id]. @code and @example bodies stay literal. Anything outside that list is invalid or plain text.
@@ -61,6 +61,13 @@ Write normal prose with {{strong:explicit}} inline functions, {{mark:highlights}
   @nav label="GitHub" href="https://github.com/jasperdevs/lessmark" slot="footer"
 
   @image src="assets/diagram.svg" alt="Build pipeline" caption="Static output"
+
+  @math notation="tex"
+E = mc^2
+
+  @diagram kind="mermaid"
+graph TD
+  A[Source] --> B[AST]
 
   @separator
 

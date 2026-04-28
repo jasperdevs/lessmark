@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::LazyLock;
 
-pub const CORE_BLOCK_NAMES: [&str; 27] = [
+pub const CORE_BLOCK_NAMES: [&str; 29] = [
     "summary",
     "page",
     "nav",
@@ -19,6 +19,8 @@ pub const CORE_BLOCK_NAMES: [&str; 27] = [
     "list",
     "table",
     "image",
+    "math",
+    "diagram",
     "separator",
     "toc",
     "footnote",
@@ -35,6 +37,8 @@ pub const TASK_STATUSES: [&str; 4] = ["todo", "doing", "done", "blocked"];
 pub const RISK_LEVELS: [&str; 4] = ["low", "medium", "high", "critical"];
 pub const LIST_KINDS: [&str; 2] = ["unordered", "ordered"];
 pub const CALLOUT_KINDS: [&str; 4] = ["note", "tip", "warning", "caution"];
+pub const MATH_NOTATIONS: [&str; 2] = ["tex", "asciimath"];
+pub const DIAGRAM_KINDS: [&str; 3] = ["mermaid", "graphviz", "plantuml"];
 
 #[derive(Debug, Clone)]
 pub struct BlockAttrSpec {
@@ -66,6 +70,8 @@ pub static BLOCK_ATTR_SPECS: LazyLock<BTreeMap<&'static str, BlockAttrSpec>> =
         specs.insert("list", spec(&["kind"], &["kind"]));
         specs.insert("table", spec(&["columns"], &["columns"]));
         specs.insert("image", spec(&["src", "alt", "caption"], &["src", "alt"]));
+        specs.insert("math", spec(&["notation"], &["notation"]));
+        specs.insert("diagram", spec(&["kind"], &["kind"]));
         specs.insert("separator", spec(&[], &[]));
         specs.insert("toc", spec(&[], &[]));
         specs.insert("footnote", spec(&["id"], &["id"]));

@@ -55,6 +55,8 @@ fn info_command(args: &[String]) -> i32 {
             "list",
             "table",
             "image",
+            "math",
+            "diagram",
             "separator",
             "toc",
             "footnote",
@@ -71,7 +73,9 @@ fn info_command(args: &[String]) -> i32 {
             "taskStatus": ["todo", "doing", "done", "blocked"],
             "riskLevel": ["low", "medium", "high", "critical"],
             "listKind": ["unordered", "ordered"],
-            "calloutKind": ["note", "tip", "warning", "caution"]
+            "calloutKind": ["note", "tip", "warning", "caution"],
+            "mathNotation": ["tex", "asciimath"],
+            "diagramKind": ["mermaid", "graphviz", "plantuml"]
         },
         "cli": {
             "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],

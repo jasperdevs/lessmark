@@ -1,4 +1,4 @@
-import { CALLOUT_KINDS, CORE_BLOCK_NAMES, LIST_KINDS, RISK_LEVELS, TASK_STATUSES } from "./grammar.js";
+import { CALLOUT_KINDS, CORE_BLOCK_NAMES, DIAGRAM_KINDS, LIST_KINDS, MATH_NOTATIONS, RISK_LEVELS, TASK_STATUSES } from "./grammar.js";
 
 export const INLINE_FUNCTIONS = [
   "strong",
@@ -27,7 +27,9 @@ export function getCapabilities() {
       taskStatus: [...TASK_STATUSES],
       riskLevel: [...RISK_LEVELS],
       listKind: [...LIST_KINDS],
-      calloutKind: [...CALLOUT_KINDS]
+      calloutKind: [...CALLOUT_KINDS],
+      mathNotation: [...MATH_NOTATIONS],
+      diagramKind: [...DIAGRAM_KINDS]
     },
     cli: {
       commands: ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "render", "build", "info"],

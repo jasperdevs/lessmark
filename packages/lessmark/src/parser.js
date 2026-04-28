@@ -11,12 +11,14 @@ const SHORTHAND_ATTRS = {
   api: "name",
   callout: "kind",
   code: "lang",
+  diagram: "kind",
   decision: "id",
   definition: "term",
   "depends-on": "target",
   file: "path",
   footnote: "id",
   link: "href",
+  math: "notation",
   metadata: "key",
   reference: "target",
   risk: "level",
@@ -118,7 +120,7 @@ function parseBlock(lines, startIndex, sourcePositions) {
 
   while (index < lines.length) {
     const line = lines[index];
-    if (body.length === 0 && line.trim() === "" && name !== "code" && name !== "example") {
+    if (body.length === 0 && line.trim() === "" && !isLiteralBlock(name)) {
       index += 1;
       continue;
     }
@@ -137,7 +139,7 @@ function parseBlock(lines, startIndex, sourcePositions) {
     type: "block",
     name,
     attrs,
-    text: name === "code" || name === "example" ? text : canonicalizeInlineSyntax(text, startIndex + 1)
+    text: isLiteralBlock(name) ? text : canonicalizeInlineSyntax(text, startIndex + 1)
   };
   validateBlockBody(node, startIndex + 1);
   if (sourcePositions) {
@@ -171,13 +173,17 @@ function isBlockTerminator(lines, index, name) {
   const line = lines[index];
   if (line.startsWith("#") || line.startsWith("@")) return true;
   if (line.trim() !== "") return false;
-  if (name !== "code" && name !== "example") return true;
+  if (!isLiteralBlock(name)) return true;
 
   let next = index + 1;
   while (next < lines.length && lines[next].trim() === "") {
     next += 1;
   }
   return next >= lines.length || lines[next].startsWith("#") || lines[next].startsWith("@");
+}
+
+function isLiteralBlock(name) {
+  return name === "code" || name === "example" || name === "math" || name === "diagram";
 }
 
 function position(startLine, startColumn, endLine, endColumn) {

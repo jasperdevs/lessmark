@@ -80,6 +80,13 @@ Parser API.
 @code ts
 const ok = true;
 
+@math tex
+E = mc^2
+
+@diagram mermaid
+graph TD
+  A --> B
+
 @callout warning
 Watch this.
 
@@ -110,6 +117,8 @@ Footnote body.
         self.assertIn('@file path="src/app.ts"', formatted)
         self.assertIn('@api name="parseLessmark"', formatted)
         self.assertIn('@code lang="ts"\nconst ok = true;', formatted)
+        self.assertIn('@math notation="tex"\nE = mc^2', formatted)
+        self.assertIn('@diagram kind="mermaid"\ngraph TD\n  A --> B', formatted)
         self.assertIn('@callout kind="warning"\nWatch this.', formatted)
         self.assertIn('@definition term="API"\nApplication programming interface.', formatted)
         self.assertIn('@table columns="Name|Value"\nStage|alpha', formatted)
@@ -206,6 +215,10 @@ RFC-0042
             parse_lessmark("@toc\nBody.\n")
         with self.assertRaisesRegex(LessmarkError, "must not have a body"):
             parse_lessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n')
+        with self.assertRaisesRegex(LessmarkError, "tex, asciimath"):
+            parse_lessmark('@math notation="mathml"\nE = mc^2\n')
+        with self.assertRaisesRegex(LessmarkError, "mermaid, graphviz, plantuml"):
+            parse_lessmark('@diagram kind="unknown"\ngraph TD\n')
         with self.assertRaisesRegex(LessmarkError, "must not have a body"):
             parse_lessmark("@separator\nBody.\n")
         with self.assertRaisesRegex(LessmarkError, "does not allow attribute"):
@@ -380,6 +393,18 @@ RFC-0042
         self.assertIn('@list kind="unordered"\n- Parent\n  - Child\n- Sibling', unordered)
         ordered = from_markdown("1. First\n   1. Child\n2. Second\n")
         self.assertIn('@list kind="ordered"\n- First\n  - Child\n- Second', ordered)
+
+    def test_imports_and_exports_math_and_diagram_blocks(self):
+        lessmark = from_markdown("$$\nE = mc^2\n$$\n\n```mermaid\ngraph TD\n  A --> B\n```\n")
+        self.assertIn('@math notation="tex"\nE = mc^2', lessmark)
+        self.assertIn('@diagram kind="mermaid"\ngraph TD\n  A --> B', lessmark)
+        self.assertEqual(validate_source(lessmark), [])
+        self.assertEqual(to_markdown('@math notation="tex"\nE = mc^2\n'), "$$\nE = mc^2\n$$\n")
+        self.assertEqual(to_markdown('@diagram kind="mermaid"\ngraph TD\n  A --> B\n'), "```mermaid\ngraph TD\n  A --> B\n```\n")
+
+    def test_keeps_math_and_diagram_bodies_literal(self):
+        self.assertEqual(format_lessmark('@math notation="tex"\n**not bold**\n'), '@math notation="tex"\n**not bold**\n')
+        self.assertEqual(format_lessmark('@diagram kind="mermaid"\nA[**literal**] --> B\n'), '@diagram kind="mermaid"\nA[**literal**] --> B\n')
 
     def test_rejects_unclosed_markdown_code_fences(self):
         with self.assertRaisesRegex(ValueError, "Unclosed fenced code block"):

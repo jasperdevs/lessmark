@@ -119,6 +119,13 @@ Parser API.
 @code ts
 const ok = true;
 
+@math tex
+E = mc^2
+
+@diagram mermaid
+graph TD
+  A --> B
+
 @callout warning
 Watch this.
 
@@ -149,6 +156,8 @@ Footnote body.
   assert.match(formatted, /@file path="src\/app\.ts"/);
   assert.match(formatted, /@api name="parseLessmark"/);
   assert.match(formatted, /@code lang="ts"\nconst ok = true;/);
+  assert.match(formatted, /@math notation="tex"\nE = mc\^2/);
+  assert.match(formatted, /@diagram kind="mermaid"\ngraph TD\n  A --> B/);
   assert.match(formatted, /@callout kind="warning"\nWatch this\./);
   assert.match(formatted, /@definition term="API"\nApplication programming interface\./);
   assert.match(formatted, /@table columns="Name\|Value"\nStage\|alpha/);
@@ -242,6 +251,8 @@ test("rejects invalid docs attrs", () => {
   assert.throws(() => parseLessmark('@page output="index.html"\nBody.\n'), /must not have a body/);
   assert.throws(() => parseLessmark("@toc\nBody.\n"), /must not have a body/);
   assert.throws(() => parseLessmark('@image src="assets/diagram.svg" alt="Diagram"\nBody.\n'), /must not have a body/);
+  assert.throws(() => parseLessmark('@math notation="mathml"\nE = mc^2\n'), /tex, asciimath/);
+  assert.throws(() => parseLessmark('@diagram kind="unknown"\ngraph TD\n'), /mermaid, graphviz, plantuml/);
   assert.throws(() => parseLessmark("@separator\nBody.\n"), /must not have a body/);
   assert.throws(() => parseLessmark('@separator style="thin"\n'), /does not allow attribute/);
   assert.throws(() => parseLessmark('@reference target="../secret"\nBad target.\n'), /lowercase slug/);
@@ -431,6 +442,30 @@ test("imports common GFM blocks into typed Lessmark blocks", () => {
   assert.match(lessmark, /@table columns="Feature\|Status"\nImages\|done\nTables \\\\?\| escaped\|done/);
   assert.match(lessmark, /@separator/);
   assert.equal(validateSource(lessmark).length, 0);
+});
+
+test("imports and exports math and diagram blocks", () => {
+  const lessmark = fromMarkdown(`$$
+E = mc^2
+$$
+
+\`\`\`mermaid
+graph TD
+  A --> B
+\`\`\`
+`);
+  assert.match(lessmark, /@math notation="tex"\nE = mc\^2/);
+  assert.match(lessmark, /@diagram kind="mermaid"\ngraph TD\n  A --> B/);
+  assert.equal(validateSource(lessmark).length, 0);
+  assert.match(toMarkdown('@math notation="tex"\nE = mc^2\n'), /^\$\$\nE = mc\^2\n\$\$\n$/);
+  assert.match(toMarkdown('@diagram kind="mermaid"\ngraph TD\n  A --> B\n'), /^```mermaid\ngraph TD\n  A --> B\n```\n$/);
+  assert.match(renderHtml('@math notation="tex"\nE = mc^2\n'), /class="lessmark-math"/);
+  assert.match(renderHtml('@diagram kind="mermaid"\ngraph TD\n'), /class="lessmark-diagram"/);
+});
+
+test("keeps math and diagram bodies literal", () => {
+  assert.equal(formatLessmark('@math notation="tex"\n**not bold**\n'), '@math notation="tex"\n**not bold**\n');
+  assert.equal(formatLessmark('@diagram kind="mermaid"\nA[**literal**] --> B\n'), '@diagram kind="mermaid"\nA[**literal**] --> B\n');
 });
 
 test("imports normal Markdown lists into typed Lessmark lists", () => {

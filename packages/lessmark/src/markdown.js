@@ -30,6 +30,22 @@ export function fromMarkdown(markdown) {
       continue;
     }
 
+    if (readMathFenceLine(line)) {
+      const body = [];
+      index += 1;
+      while (index < lines.length && !readMathFenceLine(lines[index])) {
+        body.push(lines[index]);
+        index += 1;
+      }
+      if (index >= lines.length) {
+        throw new Error("Unclosed math block");
+      }
+      index += 1;
+      children.push({ type: "block", name: "math", attrs: { notation: "tex" }, text: body.join("\n") });
+      firstParagraph = false;
+      continue;
+    }
+
     const fence = readFenceLine(line);
     if (fence) {
       const body = [];
@@ -42,12 +58,8 @@ export function fromMarkdown(markdown) {
         throw new Error("Unclosed fenced code block");
       }
       index += 1;
-      children.push({
-        type: "block",
-        name: "code",
-        attrs: fence.lang ? { lang: fence.lang } : {},
-        text: body.map(escapeBlockLine).join("\n")
-      });
+      const fenced = fencedCodeNode(fence.lang, body);
+      children.push(fenced);
       firstParagraph = false;
       continue;
     }
@@ -145,6 +157,8 @@ export function toMarkdown(lessmark) {
     if (node.name === "risk") return `> Risk (${node.attrs.level}): ${node.text}`;
     if (node.name === "depends-on") return `> Depends on \`${node.attrs.target}\`: ${node.text}`;
     if (node.name === "code") return `\`\`\`${node.attrs.lang ?? ""}\n${node.text}\n\`\`\``;
+    if (node.name === "math") return mathToMarkdown(node.attrs.notation, node.text);
+    if (node.name === "diagram") return `\`\`\`${node.attrs.kind}\n${node.text}\n\`\`\``;
     if (node.name === "example") return `Example:\n\n${node.text}`;
     if (node.name === "separator") return "---";
     if (node.name === "page" || node.name === "toc") return "";
@@ -172,6 +186,25 @@ function collectFootnoteIds(ast) {
   return new Set(ast.children
     .filter((node) => node.type === "block" && node.name === "footnote")
     .map((node) => node.attrs.id));
+}
+
+function fencedCodeNode(lang, body) {
+  const text = body.map(escapeBlockLine).join("\n");
+  if (lang === "math" || lang === "tex" || lang === "latex") {
+    return { type: "block", name: "math", attrs: { notation: "tex" }, text };
+  }
+  if (lang === "asciimath") {
+    return { type: "block", name: "math", attrs: { notation: "asciimath" }, text };
+  }
+  if (["mermaid", "graphviz", "plantuml"].includes(lang)) {
+    return { type: "block", name: "diagram", attrs: { kind: lang }, text };
+  }
+  return { type: "block", name: "code", attrs: lang ? { lang } : {}, text };
+}
+
+function mathToMarkdown(notation, text) {
+  if (notation === "tex") return `$$\n${text}\n$$`;
+  return `\`\`\`${notation}\n${text}\n\`\`\``;
 }
 
 function inlineToMarkdown(text) {
@@ -393,6 +426,7 @@ function escapeLessmarkTableCell(cell) {
 function isMarkdownBlockStart(lines, index) {
   return /^(#{1,6})\s+/.test(lines[index]) ||
     readFenceLine(lines[index]) !== null ||
+    readMathFenceLine(lines[index]) ||
     isMarkdownSeparator(lines[index]) ||
     /^\s*[-*]\s+\[[ xX]\]\s+/.test(lines[index]) ||
     readMarkdownListItem(lines[index]) !== null ||
@@ -421,6 +455,10 @@ function readFenceLine(line) {
     length: marker.length,
     lang: /^[A-Za-z0-9_.+-]+$/.test(info.split(/\s+/, 1)[0] ?? "") ? info.split(/\s+/, 1)[0] : ""
   };
+}
+
+function readMathFenceLine(line) {
+  return line.trim() === "$$";
 }
 
 function isClosingFence(line, fence) {

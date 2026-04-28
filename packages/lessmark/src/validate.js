@@ -62,7 +62,7 @@ export function validateAst(ast) {
       continue;
     }
     validateTextSafety(node.text, errors, `@${node.name}`);
-    if (node.name !== "code" && node.name !== "example") {
+    if (!isLiteralBlock(node.name)) {
       validateInlineText(node.text, errors, `@${node.name}`);
     }
     validateBlockBody(node, errors);
@@ -74,6 +74,10 @@ export function validateAst(ast) {
   }
 
   return errors;
+}
+
+function isLiteralBlock(name) {
+  return name === "code" || name === "example" || name === "math" || name === "diagram";
 }
 
 function validateBlockBody(node, errors) {

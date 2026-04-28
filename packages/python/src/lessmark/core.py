@@ -68,6 +68,8 @@ CORE_BLOCKS = {
     "list",
     "table",
     "image",
+    "math",
+    "diagram",
     "separator",
     "toc",
     "footnote",
@@ -98,6 +100,8 @@ CORE_BLOCK_NAMES = [
     "list",
     "table",
     "image",
+    "math",
+    "diagram",
     "separator",
     "toc",
     "footnote",
@@ -128,6 +132,8 @@ TASK_STATUSES = {"todo", "doing", "done", "blocked"}
 RISK_LEVELS = {"low", "medium", "high", "critical"}
 LIST_KINDS = {"unordered", "ordered"}
 CALLOUT_KINDS = {"note", "tip", "warning", "caution"}
+MATH_NOTATIONS = {"tex", "asciimath"}
+DIAGRAM_KINDS = {"mermaid", "graphviz", "plantuml"}
 HTML_TAG_PATTERN = re.compile(r"</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>")
 API_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
 CODE_LANG_PATTERN = re.compile(r"^[A-Za-z0-9_.+-]+$")
@@ -153,6 +159,8 @@ BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "list": {"allowed": {"kind"}, "required": {"kind"}},
     "table": {"allowed": {"columns"}, "required": {"columns"}},
     "image": {"allowed": {"src", "alt", "caption"}, "required": {"src", "alt"}},
+    "math": {"allowed": {"notation"}, "required": {"notation"}},
+    "diagram": {"allowed": {"kind"}, "required": {"kind"}},
     "separator": {"allowed": set(), "required": set()},
     "toc": {"allowed": set(), "required": set()},
     "footnote": {"allowed": {"id"}, "required": {"id"}},
@@ -175,12 +183,14 @@ SHORTHAND_ATTRS = {
     "api": "name",
     "callout": "kind",
     "code": "lang",
+    "diagram": "kind",
     "decision": "id",
     "definition": "term",
     "depends-on": "target",
     "file": "path",
     "footnote": "id",
     "link": "href",
+    "math": "notation",
     "metadata": "key",
     "reference": "target",
     "risk": "level",
@@ -265,7 +275,7 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
 
     while index < len(lines):
         line = lines[index]
-        if len(body) == 0 and line.strip() == "" and name not in {"code", "example"}:
+        if len(body) == 0 and line.strip() == "" and not _is_literal_block(name):
             index += 1
             continue
         if _is_block_terminator(lines, index, name):
@@ -281,7 +291,7 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
         "type": "block",
         "name": name,
         "attrs": attrs,
-        "text": text if name in {"code", "example"} else _canonicalize_inline_syntax(text),
+        "text": text if _is_literal_block(name) else _canonicalize_inline_syntax(text),
     }
     _validate_block_body(node, start_index + 1)
     if source_positions:
@@ -310,13 +320,17 @@ def _is_block_terminator(lines: list[str], index: int, name: str) -> bool:
         return True
     if line.strip() != "":
         return False
-    if name not in {"code", "example"}:
+    if not _is_literal_block(name):
         return True
 
     next_index = index + 1
     while next_index < len(lines) and lines[next_index].strip() == "":
         next_index += 1
     return next_index >= len(lines) or lines[next_index].startswith(("#", "@"))
+
+
+def _is_literal_block(name: str) -> bool:
+    return name in {"code", "example", "math", "diagram"}
 
 
 def _position(start_line: int, start_column: int, end_line: int, end_column: int) -> PositionRange:
@@ -424,7 +438,7 @@ def validate_ast(ast: object) -> list[ValidationError]:
             errors.append({"message": f"@{name} text must be a string"})
             continue
         _validate_text_safety(node.get("text", ""), errors, f"@{name}")
-        if name not in {"code", "example"}:
+        if not _is_literal_block(str(name)):
             _validate_inline_text(node.get("text", ""), errors, f"@{name}")
         _validate_block_body_ast(node, errors)
 
@@ -588,6 +602,10 @@ def _get_semantic_attr_error(name: str, attrs: Mapping[str, object]) -> str | No
         return "@table columns must be pipe-separated non-empty labels"
     if name == "image" and isinstance(attrs.get("src"), str) and not _is_safe_resource(attrs["src"]):
         return "@image src must be a safe relative, http, or https URL"
+    if name == "math" and isinstance(attrs.get("notation"), str) and attrs["notation"] not in MATH_NOTATIONS:
+        return "@math notation must be one of: tex, asciimath"
+    if name == "diagram" and isinstance(attrs.get("kind"), str) and attrs["kind"] not in DIAGRAM_KINDS:
+        return "@diagram kind must be one of: mermaid, graphviz, plantuml"
     if name == "nav" and isinstance(attrs.get("label"), str) and not DEFINITION_TERM_PATTERN.match(attrs["label"]):
         return "@nav label must be plain single-line text"
     if name == "nav" and isinstance(attrs.get("href"), str) and not _is_safe_href(attrs["href"]):
@@ -731,6 +749,8 @@ def get_capabilities() -> dict[str, object]:
             "riskLevel": ["low", "medium", "high", "critical"],
             "listKind": ["unordered", "ordered"],
             "calloutKind": ["note", "tip", "warning", "caution"],
+            "mathNotation": ["tex", "asciimath"],
+            "diagramKind": ["mermaid", "graphviz", "plantuml"],
         },
         "cli": {
             "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
@@ -1041,6 +1061,19 @@ def from_markdown(markdown: str) -> str:
             index += 1
             continue
 
+        if _is_math_fence_line(line):
+            body: list[str] = []
+            index += 1
+            while index < len(lines) and not _is_math_fence_line(lines[index]):
+                body.append(lines[index])
+                index += 1
+            if index >= len(lines):
+                raise ValueError("Unclosed math block")
+            index += 1
+            children.append({"type": "block", "name": "math", "attrs": {"notation": "tex"}, "text": "\n".join(body)})
+            first_paragraph = False
+            continue
+
         fence = _read_fence_line(line)
         if fence is not None:
             body: list[str] = []
@@ -1051,8 +1084,7 @@ def from_markdown(markdown: str) -> str:
             if index >= len(lines):
                 raise ValueError("Unclosed fenced code block")
             index += 1
-            attrs = {"lang": fence["lang"]} if fence["lang"] else {}
-            children.append({"type": "block", "name": "code", "attrs": attrs, "text": "\n".join(_escape_block_line(item) for item in body)})
+            children.append(_fenced_code_node(str(fence["lang"]), body))
             first_paragraph = False
             continue
 
@@ -1172,6 +1204,10 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
             chunks.append(f"> Depends on `{attrs.get('target')}`: {text}")
         elif name == "code":
             chunks.append(f"```{attrs.get('lang', '')}\n{text}\n```")
+        elif name == "math":
+            chunks.append(_math_to_markdown(str(attrs.get("notation", "")), text))
+        elif name == "diagram":
+            chunks.append(f"```{attrs.get('kind', '')}\n{text}\n```")
         elif name == "example":
             chunks.append(f"Example:\n\n{text}")
         elif name == "separator":
@@ -1205,6 +1241,24 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
         else:
             chunks.append(text)
     return "\n\n".join(chunk for chunk in chunks if chunk) + "\n"
+
+
+def _fenced_code_node(lang: str, body: list[str]) -> BlockNode:
+    text = "\n".join(_escape_block_line(item) for item in body)
+    if lang in {"math", "tex", "latex"}:
+        return {"type": "block", "name": "math", "attrs": {"notation": "tex"}, "text": text}
+    if lang == "asciimath":
+        return {"type": "block", "name": "math", "attrs": {"notation": "asciimath"}, "text": text}
+    if lang in DIAGRAM_KINDS:
+        return {"type": "block", "name": "diagram", "attrs": {"kind": lang}, "text": text}
+    attrs = {"lang": lang} if lang else {}
+    return {"type": "block", "name": "code", "attrs": attrs, "text": text}
+
+
+def _math_to_markdown(notation: str, text: str) -> str:
+    if notation == "tex":
+        return f"$$\n{text}\n$$"
+    return f"```{notation}\n{text}\n```"
 
 
 def _inline_to_markdown(text: str) -> str:
@@ -1421,6 +1475,7 @@ def _is_markdown_block_start(lines: list[str], index: int) -> bool:
     return (
         re.match(r"^(#{1,6})\s+", lines[index]) is not None
         or _read_fence_line(lines[index]) is not None
+        or _is_math_fence_line(lines[index])
         or _is_markdown_separator(lines[index])
         or re.match(r"^\s*[-*]\s+\[[ xX]\]\s+", lines[index]) is not None
         or _read_markdown_list_item(lines[index]) is not None
@@ -1449,6 +1504,10 @@ def _read_fence_line(line: str) -> dict[str, object] | None:
     first_word = info.split(None, 1)[0] if info else ""
     lang = first_word if CODE_LANG_PATTERN.match(first_word) else ""
     return {"char": marker[0], "length": len(marker), "lang": lang}
+
+
+def _is_math_fence_line(line: str) -> bool:
+    return line.strip() == "$$"
 
 
 def _is_closing_fence(line: str, fence: Mapping[str, object]) -> bool:

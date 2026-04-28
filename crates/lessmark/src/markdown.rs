@@ -58,11 +58,34 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             continue;
         }
 
+        if is_math_fence_line(line) {
+            let mut body = Vec::new();
+            index += 1;
+            while index < lines.len() && !is_math_fence_line(lines[index]) {
+                body.push(lines[index]);
+                index += 1;
+            }
+            if index >= lines.len() {
+                return Err(LessmarkError::new("Unclosed math block", lines.len(), 1));
+            }
+            index += 1;
+            let mut attrs = BTreeMap::new();
+            attrs.insert("notation".to_string(), "tex".to_string());
+            children.push(Node::Block {
+                name: "math".to_string(),
+                attrs,
+                text: body.join("\n"),
+                position: None,
+            });
+            first_paragraph = false;
+            continue;
+        }
+
         if let Some(fence) = read_fence_line(line) {
             let mut body = Vec::new();
             index += 1;
             while index < lines.len() && !is_closing_fence(lines[index], &fence) {
-                body.push(escape_block_line(lines[index]));
+                body.push(lines[index]);
                 index += 1;
             }
             if index >= lines.len() {
@@ -74,16 +97,7 @@ pub fn from_markdown(markdown: &str) -> Result<String, LessmarkError> {
             }
             index += 1;
 
-            let mut attrs = BTreeMap::new();
-            if !fence.lang.is_empty() {
-                attrs.insert("lang".to_string(), fence.lang);
-            }
-            children.push(Node::Block {
-                name: "code".to_string(),
-                attrs,
-                text: body.join("\n"),
-                position: None,
-            });
+            children.push(fenced_code_node(&fence.lang, &body));
             first_paragraph = false;
             continue;
         }
@@ -222,6 +236,62 @@ fn collect_footnote_ids(document: &Document) -> BTreeSet<String> {
         .collect()
 }
 
+fn fenced_code_node(lang: &str, body: &[&str]) -> Node {
+    let text = body
+        .iter()
+        .map(|line| escape_block_line(line))
+        .collect::<Vec<_>>()
+        .join("\n");
+    if matches!(lang, "math" | "tex" | "latex") {
+        let mut attrs = BTreeMap::new();
+        attrs.insert("notation".to_string(), "tex".to_string());
+        return Node::Block {
+            name: "math".to_string(),
+            attrs,
+            text,
+            position: None,
+        };
+    }
+    if lang == "asciimath" {
+        let mut attrs = BTreeMap::new();
+        attrs.insert("notation".to_string(), "asciimath".to_string());
+        return Node::Block {
+            name: "math".to_string(),
+            attrs,
+            text,
+            position: None,
+        };
+    }
+    if matches!(lang, "mermaid" | "graphviz" | "plantuml") {
+        let mut attrs = BTreeMap::new();
+        attrs.insert("kind".to_string(), lang.to_string());
+        return Node::Block {
+            name: "diagram".to_string(),
+            attrs,
+            text,
+            position: None,
+        };
+    }
+    let mut attrs = BTreeMap::new();
+    if !lang.is_empty() {
+        attrs.insert("lang".to_string(), lang.to_string());
+    }
+    Node::Block {
+        name: "code".to_string(),
+        attrs,
+        text,
+        position: None,
+    }
+}
+
+fn math_to_markdown(notation: &str, text: &str) -> String {
+    if notation == "tex" {
+        format!("$$\n{}\n$$", text)
+    } else {
+        format!("```{}\n{}\n```", notation, text)
+    }
+}
+
 fn validate_inline_local_targets(document: &Document) -> Result<(), LessmarkError> {
     let ref_re = Regex::new(r"\{\{ref:[^{}|]*\|([^{}]*)\}\}").expect("inline ref regex compiles");
     let footnote_re =
@@ -339,6 +409,15 @@ fn markdown_node(node: &Node, footnote_ids: &BTreeSet<String>) -> Option<String>
             "code" => Some(format!(
                 "```{}\n{}\n```",
                 attrs.get("lang").map(String::as_str).unwrap_or(""),
+                text
+            )),
+            "math" => Some(math_to_markdown(
+                attrs.get("notation").map(String::as_str).unwrap_or(""),
+                text,
+            )),
+            "diagram" => Some(format!(
+                "```{}\n{}\n```",
+                attrs.get("kind").map(String::as_str).unwrap_or(""),
                 text
             )),
             "example" => Some(format!("Example:\n\n{}", text)),
@@ -747,6 +826,7 @@ fn escape_lessmark_table_cell(cell: &str) -> String {
 fn is_markdown_block_start(lines: &[&str], index: usize) -> bool {
     read_heading(lines[index]).is_some()
         || read_fence_line(lines[index]).is_some()
+        || is_math_fence_line(lines[index])
         || is_markdown_separator(lines[index])
         || read_task(lines[index]).is_some()
         || read_markdown_list_item(lines[index]).is_some()
@@ -780,6 +860,10 @@ fn is_markdown_separator(line: &str) -> bool {
         count += 1;
     }
     count >= 3
+}
+
+fn is_math_fence_line(line: &str) -> bool {
+    line.trim() == "$$"
 }
 
 fn non_empty_or_image(value: &str) -> String {

@@ -55,7 +55,7 @@ Inline docs markup uses explicit functions instead of Markdown delimiters:
 Use {{strong:strong text}}, {{em:emphasis}}, {{code:inline code}}, {{mark:highlighted text}}, {{del:removed text}}, {{ref:local references|stable-ast}}, {{footnote:strict-syntax}}, and {{link:safe links|https://example.com}}.
 
 @paragraph
-Inline ref and footnote targets must be lowercase slugs. Renderers and Markdown exporters must reject invalid targets instead of normalizing them. Rendered and Markdown-exported prose supports nested explicit inline functions, such as {{strong:Bold {{em:inside}}}}. @code and @example bodies remain literal text.
+Inline ref and footnote targets must be lowercase slugs. Renderers and Markdown exporters must reject invalid targets instead of normalizing them. Rendered and Markdown-exported prose supports nested explicit inline functions, such as {{strong:Bold {{em:inside}}}}. @code, @example, @math, and @diagram bodies remain literal text.
 
 ## Authoring Conveniences
 
@@ -73,6 +73,8 @@ Lessmark has one canonical spelling for every structure, but parsers accept a sm
 `@api parseLessmark`|`@api name="parseLessmark"`
 `@code ts`|`@code lang="ts"`
 `@callout warning`|`@callout kind="warning"`
+`@math tex`|`@math notation="tex"`
+`@diagram mermaid`|`@diagram kind="mermaid"`
 `@definition API`|`@definition term="API"`
 `@table Name\|Value`|`@table columns="Name\|Value"`
 `@metadata project.stage`|`@metadata key="project.stage"`
@@ -85,7 +87,7 @@ Lessmark has one canonical spelling for every structure, but parsers accept a sm
 Prose bodies also accept these human shortcuts and canonicalize them before validation and rendering: `code`, *emphasis*, **bold**, ~~deleted~~, ==marked==, [label](https://example.com), [label](#local-slug), and [^footnote-id].
 
 @paragraph
-The convenience layer is intentionally small. It only maps to existing block names, existing attributes, and existing inline functions. It never adds raw HTML, implicit global references, custom blocks, style directives, hooks, or alternate AST shapes. @code and @example bodies stay literal and are not canonicalized.
+The convenience layer is intentionally small. It only maps to existing block names, existing attributes, and existing inline functions. It never adds raw HTML, implicit global references, custom blocks, style directives, hooks, or alternate AST shapes. @code, @example, @math, and @diagram bodies stay literal and are not canonicalized.
 
 ## Grammar
 
@@ -142,6 +144,8 @@ Lessmark is not a Markdown dialect. Markdown import/export is intentionally loss
 - headings
 - paragraphs
 - fenced code blocks, including internal blank lines
+- fenced math blocks, including $$ blocks and math, tex, latex, or asciimath code fences
+- fenced mermaid, graphviz, and plantuml diagrams
 - task list items
 - standalone safe links
 - standalone safe images
@@ -174,6 +178,8 @@ callout|kind required, title optional|Explicit note, tip, warning, or caution.
 list|kind required|Ordered or unordered list. Each item starts with - . Nested items use two spaces per level.
 table|columns required|Pipe-separated table columns and rows. Body cells may escape a literal pipe as \|.
 image|src required, alt required, caption optional|Safe image or figure.
+math|notation required|Literal math expression. notation is tex or asciimath.
+diagram|kind required|Literal diagram source. kind is mermaid, graphviz, or plantuml.
 separator|none|Bodyless horizontal separator for docs and rendered pages.
 toc|none|Rendered table of contents from local headings.
 footnote|id required|Named footnote content referenced by inline text.
@@ -199,6 +205,8 @@ depends-on|target required|Relationship to a decision or other slugged context.
 - nav.href: http, https, mailto, or safe relative project path.
 - nav.slot: primary or footer.
 - image.src: safe relative path or http/https URL.
+- math.notation: tex or asciimath.
+- diagram.kind: mermaid, graphviz, or plantuml.
 - footnote.id: lowercase slug.
 - definition.term: plain single-line text.
 - reference.target: lowercase slug that resolves to a local heading anchor, @decision id, or @footnote id.

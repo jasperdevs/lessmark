@@ -227,7 +227,7 @@ function assertProfileContract(contract) {
     },
     docs: {
       requiredBlocks: [],
-      recommendedBlocks: ["page", "nav", "paragraph", "image", "separator", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
+      recommendedBlocks: ["page", "nav", "paragraph", "image", "math", "diagram", "separator", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
       disallowedFeatures: ["rawHtml", "hooks", "customComponents", "styleDirectives", "layoutDirectives", "privateFlavors"]
     }
   };

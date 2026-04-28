@@ -16,6 +16,8 @@ export const CORE_BLOCK_NAMES = [
   "list",
   "table",
   "image",
+  "math",
+  "diagram",
   "separator",
   "toc",
   "footnote",
@@ -34,6 +36,8 @@ export const TASK_STATUSES = new Set(["todo", "doing", "done", "blocked"]);
 export const RISK_LEVELS = new Set(["low", "medium", "high", "critical"]);
 export const LIST_KINDS = new Set(["unordered", "ordered"]);
 export const CALLOUT_KINDS = new Set(["note", "tip", "warning", "caution"]);
+export const MATH_NOTATIONS = new Set(["tex", "asciimath"]);
+export const DIAGRAM_KINDS = new Set(["mermaid", "graphviz", "plantuml"]);
 
 export const BLOCK_ATTRS = {
   summary: { allowed: new Set(), required: new Set() },
@@ -53,6 +57,8 @@ export const BLOCK_ATTRS = {
   list: { allowed: new Set(["kind"]), required: new Set(["kind"]) },
   table: { allowed: new Set(["columns"]), required: new Set(["columns"]) },
   image: { allowed: new Set(["src", "alt", "caption"]), required: new Set(["src", "alt"]) },
+  math: { allowed: new Set(["notation"]), required: new Set(["notation"]) },
+  diagram: { allowed: new Set(["kind"]), required: new Set(["kind"]) },
   separator: { allowed: new Set(), required: new Set() },
   toc: { allowed: new Set(), required: new Set() },
   footnote: { allowed: new Set(["id"]), required: new Set(["id"]) },

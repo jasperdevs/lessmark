@@ -1,4 +1,4 @@
-import { BLOCK_ATTRS, CALLOUT_KINDS, LIST_KINDS, RISK_LEVELS, TASK_STATUSES } from "./grammar.js";
+import { BLOCK_ATTRS, CALLOUT_KINDS, DIAGRAM_KINDS, LIST_KINDS, MATH_NOTATIONS, RISK_LEVELS, TASK_STATUSES } from "./grammar.js";
 
 export const HTML_TAG_PATTERN = /<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/;
 export const API_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
@@ -113,6 +113,12 @@ function getSemanticAttrError(name, attrs) {
   }
   if (name === "image" && typeof attrs.src === "string" && attrs.src && !isSafeResource(attrs.src)) {
     return "@image src must be a safe relative, http, or https URL";
+  }
+  if (name === "math" && typeof attrs.notation === "string" && attrs.notation && !MATH_NOTATIONS.has(attrs.notation)) {
+    return "@math notation must be one of: tex, asciimath";
+  }
+  if (name === "diagram" && typeof attrs.kind === "string" && attrs.kind && !DIAGRAM_KINDS.has(attrs.kind)) {
+    return "@diagram kind must be one of: mermaid, graphviz, plantuml";
   }
   if (name === "nav" && typeof attrs.label === "string" && attrs.label && !DEFINITION_TERM_PATTERN.test(attrs.label)) {
     return "@nav label must be plain single-line text";

@@ -127,7 +127,7 @@ fn parse_block(
     let mut end_column = header.len() + 1;
     while index < lines.len() {
         let line = lines[index];
-        if body.is_empty() && line.trim().is_empty() && name != "code" && name != "example" {
+        if body.is_empty() && line.trim().is_empty() && !is_literal_block(name) {
             index += 1;
             continue;
         }
@@ -142,7 +142,7 @@ fn parse_block(
     }
 
     let text = body.join("\n");
-    let text = if name == "code" || name == "example" {
+    let text = if is_literal_block(name) {
         text
     } else {
         canonicalize_inline_syntax(&text)?
@@ -167,7 +167,7 @@ fn is_block_terminator(lines: &[&str], index: usize, name: &str) -> bool {
     if !line.trim().is_empty() {
         return false;
     }
-    if name != "code" && name != "example" {
+    if !is_literal_block(name) {
         return true;
     }
 
@@ -176,6 +176,10 @@ fn is_block_terminator(lines: &[&str], index: usize, name: &str) -> bool {
         next += 1;
     }
     next >= lines.len() || lines[next].starts_with('#') || lines[next].starts_with('@')
+}
+
+fn is_literal_block(name: &str) -> bool {
+    matches!(name, "code" | "example" | "math" | "diagram")
 }
 
 fn position(
@@ -266,12 +270,14 @@ fn shorthand_attr(name: &str) -> Option<&'static str> {
         "api" => Some("name"),
         "callout" => Some("kind"),
         "code" => Some("lang"),
+        "diagram" => Some("kind"),
         "decision" => Some("id"),
         "definition" => Some("term"),
         "depends-on" => Some("target"),
         "file" => Some("path"),
         "footnote" => Some("id"),
         "link" => Some("href"),
+        "math" => Some("notation"),
         "metadata" => Some("key"),
         "reference" => Some("target"),
         "risk" => Some("level"),

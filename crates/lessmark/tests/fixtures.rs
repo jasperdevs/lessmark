@@ -88,6 +88,11 @@ fn rejects_invalid_docs_attrs() {
             "@image src=\"assets/diagram.svg\" alt=\"Diagram\"\nBody.\n",
             "must not have a body",
         ),
+        ("@math notation=\"mathml\"\nE = mc^2\n", "tex, asciimath"),
+        (
+            "@diagram kind=\"unknown\"\ngraph TD\n",
+            "mermaid, graphviz, plantuml",
+        ),
         ("@separator\nBody.\n", "must not have a body"),
         ("@separator style=\"thin\"\n", "does not allow attribute"),
         (
@@ -210,6 +215,13 @@ Parser API.
 @code ts
 const ok = true;
 
+@math tex
+E = mc^2
+
+@diagram mermaid
+graph TD
+  A --> B
+
 @callout warning
 Watch this.
 
@@ -240,6 +252,8 @@ Footnote body.
     assert!(formatted.contains("@file path=\"src/app.ts\""));
     assert!(formatted.contains("@api name=\"parseLessmark\""));
     assert!(formatted.contains("@code lang=\"ts\"\nconst ok = true;"));
+    assert!(formatted.contains("@math notation=\"tex\"\nE = mc^2"));
+    assert!(formatted.contains("@diagram kind=\"mermaid\"\ngraph TD\n  A --> B"));
     assert!(formatted.contains("@callout kind=\"warning\"\nWatch this."));
     assert!(formatted.contains("@definition term=\"API\"\nApplication programming interface."));
     assert!(formatted.contains("@table columns=\"Name|Value\"\nStage|alpha"));
@@ -410,6 +424,37 @@ fn imports_normal_markdown_lists() {
     assert!(unordered.contains("@list kind=\"unordered\"\n- Parent\n  - Child\n- Sibling"));
     let ordered = from_markdown("1. First\n   1. Child\n2. Second\n").expect("imports ordered");
     assert!(ordered.contains("@list kind=\"ordered\"\n- First\n  - Child\n- Second"));
+}
+
+#[test]
+fn imports_and_exports_math_and_diagram_blocks() {
+    let lessmark = from_markdown("$$\nE = mc^2\n$$\n\n```mermaid\ngraph TD\n  A --> B\n```\n")
+        .expect("imports math and diagram");
+    assert!(lessmark.contains("@math notation=\"tex\"\nE = mc^2"));
+    assert!(lessmark.contains("@diagram kind=\"mermaid\"\ngraph TD\n  A --> B"));
+    assert!(validate_source(&lessmark).is_empty());
+    assert_eq!(
+        to_markdown("@math notation=\"tex\"\nE = mc^2\n").expect("exports math"),
+        "$$\nE = mc^2\n$$\n"
+    );
+    assert_eq!(
+        to_markdown("@diagram kind=\"mermaid\"\ngraph TD\n  A --> B\n")
+            .expect("exports diagram"),
+        "```mermaid\ngraph TD\n  A --> B\n```\n"
+    );
+}
+
+#[test]
+fn keeps_math_and_diagram_bodies_literal() {
+    assert_eq!(
+        format_lessmark("@math notation=\"tex\"\n**not bold**\n").expect("formats math"),
+        "@math notation=\"tex\"\n**not bold**\n"
+    );
+    assert_eq!(
+        format_lessmark("@diagram kind=\"mermaid\"\nA[**literal**] --> B\n")
+            .expect("formats diagram"),
+        "@diagram kind=\"mermaid\"\nA[**literal**] --> B\n"
+    );
 }
 
 #[test]
