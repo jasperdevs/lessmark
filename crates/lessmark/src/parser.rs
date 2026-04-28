@@ -40,7 +40,7 @@ fn parse_source(source: &str, source_positions: bool) -> Result<Document, Lessma
             continue;
         }
         return Err(LessmarkError::new(
-            "Loose text is not allowed outside a typed block",
+            "Loose text is not allowed outside a typed block; start a new block such as @p",
             index + 1,
             1,
         ));
@@ -550,6 +550,7 @@ fn read_quoted(
                 match next {
                     b'"' => value.push('"'),
                     b'\\' => value.push('\\'),
+                    b'|' => value.push_str("\\|"),
                     other => {
                         return Err(LessmarkError::new(
                             format!("Unsupported escape \\{}", *other as char),

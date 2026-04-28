@@ -172,6 +172,15 @@ RFC-0042
         with self.assertRaisesRegex(ValueError, "Mixed Markdown list markers"):
             from_markdown("1. One\n2) Two\n")
 
+    def test_supports_escaped_pipes_in_table_columns(self):
+        source = '@table columns="Name\\|Alias|Status"\nLessmark\\|mu|done\n'
+        self.assertEqual(validate_source(source), [])
+        self.assertIn("| Name\\|Alias | Status |", to_markdown(source))
+
+    def test_loose_text_error_explains_new_blocks(self):
+        with self.assertRaisesRegex(LessmarkError, "start a new block such as @p"):
+            parse_lessmark("@p\nyo\n\nnah\n")
+
     def test_imports_safe_relative_standalone_markdown_links(self):
         self.assertEqual(from_markdown("[Guide](docs/guide.html)\n"), '@link href="docs/guide.html"\nGuide\n')
 

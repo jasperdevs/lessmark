@@ -64,7 +64,7 @@ export function parseLessmark(source, options = {}) {
       continue;
     }
 
-    throw new LessmarkError("Loose text is not allowed outside a typed block", index + 1, 1);
+    throw new LessmarkError("Loose text is not allowed outside a typed block; start a new block such as @p", index + 1, 1);
   }
 
   const [anchorError] = getLocalAnchorErrors(children);
@@ -251,6 +251,7 @@ function readQuoted(input, quoteIndex, lineNumber, startColumn) {
         throw new LessmarkError("Unterminated escape sequence", lineNumber, startColumn + index);
       }
       if (next === '"' || next === "\\") value += next;
+      else if (next === "|") value += "\\|";
       else throw new LessmarkError(`Unsupported escape \\${next}`, lineNumber, startColumn + index);
       index += 2;
       continue;

@@ -1,7 +1,7 @@
 {
   "name": "lessmark-workspace",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Workspace for Lessmark, a strict agent-readable document format.",
   "license": "MIT",
   "workspaces": [

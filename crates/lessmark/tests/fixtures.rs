@@ -289,6 +289,21 @@ fn supports_strict_nested_lists() {
 }
 
 #[test]
+fn supports_escaped_pipes_in_table_columns() {
+    let source = "@table columns=\"Name\\|Alias|Status\"\nLessmark\\|mu|done\n";
+    assert!(validate_source(source).is_empty());
+    assert!(to_markdown(source)
+        .expect("exports table")
+        .contains("| Name\\|Alias | Status |"));
+}
+
+#[test]
+fn loose_text_error_explains_new_blocks() {
+    let error = parse_lessmark("@p\nyo\n\nnah\n").expect_err("loose text rejects");
+    assert!(error.message.contains("start a new block such as @p"));
+}
+
+#[test]
 fn rejects_legacy_markdown_block_syntax_inside_lessmark_prose() {
     for source in [
         "@paragraph\n[docs]: https://example.com\n",

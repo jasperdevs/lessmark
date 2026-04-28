@@ -236,7 +236,7 @@ def parse_lessmark(source: str, source_positions: bool = False) -> DocumentNode:
             index = next_index
             continue
 
-        raise LessmarkError("Loose text is not allowed outside a typed block", index + 1, 1)
+        raise LessmarkError("Loose text is not allowed outside a typed block; start a new block such as @p", index + 1, 1)
 
     anchor_errors = _get_local_anchor_errors(children)
     if anchor_errors:
@@ -394,6 +394,8 @@ def _read_quoted(input_text: str, quote_index: int, line_number: int, start_colu
             next_char = input_text[index + 1]
             if next_char in {'"', "\\"}:
                 value += next_char
+            elif next_char == "|":
+                value += "\\|"
             else:
                 raise LessmarkError(f"Unsupported escape \\{next_char}", line_number, start_column + index)
             index += 2
@@ -763,7 +765,7 @@ def error_code_for_message(message: str) -> str:
 def get_capabilities() -> dict[str, object]:
     return {
         "language": "lessmark",
-        "version": "0.1.1",
+        "version": "0.1.2",
         "astVersion": "v0",
         "extensions": [".mu", ".lessmark"],
         "mediaType": "text/vnd.lessmark; charset=utf-8",
@@ -830,7 +832,7 @@ def _is_safe_resource(src: str) -> bool:
 
 
 def _is_valid_table_columns(columns: str) -> bool:
-    labels = [column.strip() for column in columns.split("|")]
+    labels = _split_table_row(columns)
     return len(labels) >= 1 and all(labels)
 
 

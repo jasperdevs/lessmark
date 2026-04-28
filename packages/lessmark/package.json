@@ -1,6 +1,6 @@
 {
   "name": "lessmark",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Strict agent-readable document format parser, validator, formatter, and CLI.",
   "type": "module",
   "main": "src/index.js",

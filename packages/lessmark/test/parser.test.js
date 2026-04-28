@@ -212,6 +212,17 @@ test("supports strict nested lists", () => {
   assert.match(toMarkdown('@list kind="ordered"\n- Parent\n  - Child\n- Sibling\n'), /1\. Parent\n  1\. Child\n2\. Sibling/);
 });
 
+test("supports escaped pipes in table columns", () => {
+  const source = '@table columns="Name\\|Alias|Status"\nLessmark\\|mu|done\n';
+  assert.equal(validateSource(source).length, 0);
+  assert.match(toMarkdown(source), /\| Name\\\|Alias \| Status \|/);
+  assert.match(renderHtml(source), /<th>Name\|Alias<\/th>/);
+});
+
+test("loose text error explains new blocks", () => {
+  assert.throws(() => parseLessmark("@p\nyo\n\nnah\n"), /start a new block such as @p/);
+});
+
 test("rejects empty headings", async () => {
   const source = await read("fixtures/invalid/empty-heading.mu");
   assert.throws(() => parseLessmark(source), /Invalid heading syntax/);
@@ -219,7 +230,7 @@ test("rejects empty headings", async () => {
 
 test("rejects loose text outside typed blocks", async () => {
   const source = await read("fixtures/invalid/loose-text.mu");
-  assert.throws(() => parseLessmark(source), /Loose text is not allowed/);
+  assert.throws(() => parseLessmark(source), /start a new block such as @p/);
 });
 
 test("rejects raw HTML-like text during parsing", async () => {

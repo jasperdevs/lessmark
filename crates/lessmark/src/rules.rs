@@ -386,7 +386,7 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
 }
 
 fn is_valid_table_columns(columns: &str) -> bool {
-    let labels = columns.split('|').map(str::trim).collect::<Vec<_>>();
+    let labels = split_table_row(columns);
     !labels.is_empty() && labels.iter().all(|column| !column.is_empty())
 }
 

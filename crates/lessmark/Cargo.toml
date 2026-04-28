@@ -1,6 +1,6 @@
 [package]
 name = "lessmark"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "Canonical parser, validator, formatter, JSON AST, and CLI for Lessmark"

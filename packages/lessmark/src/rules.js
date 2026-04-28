@@ -290,7 +290,7 @@ function findInlineFunctionEnd(source, start) {
 }
 
 function isValidTableColumns(columns) {
-  const labels = columns.split("|").map((column) => column.trim());
+  const labels = splitTableRow(columns);
   return labels.length >= 1 && labels.every(Boolean);
 }
 

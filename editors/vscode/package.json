@@ -2,7 +2,7 @@
   "name": "lessmark-vscode",
   "displayName": "Lessmark",
   "description": "Syntax highlighting for Lessmark agent context files.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "jasperdevs",
   "license": "MIT",
   "repository": {

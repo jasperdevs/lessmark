@@ -440,7 +440,7 @@
             "columns": {
               "allOf": [
                 { "$ref": "#/$defs/attributeValue" },
-                { "pattern": "^[^|\\s][^|]*(\\|[^|\\s][^|]*)*$" }
+                { "pattern": "^(?=.*\\S)[^\\r\\n\\t<>]+$" }
               ]
             }
           }
