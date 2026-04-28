@@ -1,9 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { GithubIcon } from "@/components/Icons";
 
-const navItem = "text-fg-muted hover:text-fg transition-colors";
-const navItemActive = "text-fg";
+const navBase = "nav-link text-fg hover:text-fg transition-colors";
+
+const navColors = {
+  docs: "var(--nav-red)",
+  examples: "var(--nav-yellow)",
+  playground: "var(--nav-green)",
+  github: "var(--nav-blue)",
+} as const;
+
+function navStyle(key: keyof typeof navColors): CSSProperties {
+  return { ["--nav-color" as string]: navColors[key] };
+}
 
 export function SiteHeader() {
   const { pathname } = useLocation();
@@ -41,38 +51,42 @@ export function SiteHeader() {
         <Link
           to="/"
           aria-label="lessmark home"
-          className={`inline-flex items-center gap-2 text-[14px] font-medium transition-all duration-300 ease-out ${
+          className={`inline-flex items-center gap-2 text-[15px] font-bold transition-all duration-300 ease-out ${
             showLogo
               ? "opacity-100 translate-x-0"
               : "opacity-0 -translate-x-2 pointer-events-none absolute"
           }`}
         >
-          <img src="/lessmarklogowhitebackground.svg" alt="" className="size-5" />
+          <img src="/lessmarklogowhitebackground.svg" alt="" className="size-6" />
           <span>lessmark</span>
         </Link>
-        <nav className="flex items-center gap-5 text-[14px]">
+        <nav className="flex items-center gap-6 text-[14px]">
           <NavLink
             to="/docs"
-            className={({ isActive }) => `${navItem} ${isActive ? navItemActive : ""}`}
+            style={navStyle("docs")}
+            className={({ isActive }) => `${navBase} ${isActive ? "is-active" : ""}`}
           >
             docs
           </NavLink>
           <NavLink
             to="/examples"
-            className={({ isActive }) => `${navItem} ${isActive ? navItemActive : ""}`}
+            style={navStyle("examples")}
+            className={({ isActive }) => `${navBase} ${isActive ? "is-active" : ""}`}
           >
             examples
           </NavLink>
           <NavLink
             to="/playground"
-            className={({ isActive }) => `${navItem} ${isActive ? navItemActive : ""}`}
+            style={navStyle("playground")}
+            className={({ isActive }) => `${navBase} ${isActive ? "is-active" : ""}`}
           >
             playground
           </NavLink>
           <a
             href="https://github.com/jasperdevs/lessmark"
             rel="noopener"
-            className={`${navItem} inline-flex items-center gap-1.5`}
+            style={navStyle("github")}
+            className={`${navBase} inline-flex items-center gap-1.5`}
           >
             <GithubIcon className="size-4" />
             github

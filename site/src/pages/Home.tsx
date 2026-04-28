@@ -96,39 +96,30 @@ export function Home() {
     <main className="mx-auto max-w-[880px] px-6 pb-16">
       <section
         data-hero
-        className="pt-16 pb-14 grid justify-items-center gap-5 text-center"
+        className="pt-20 pb-16 grid justify-items-center gap-8 text-center"
       >
-        <div className="flex items-center gap-2.5">
-          <img
-            src="/lessmarklogowhitebackground.svg"
-            alt=""
-            className="size-7"
-          />
-          <span className="font-mono text-[16px] tracking-[-0.005em] text-fg">
-            lessmark
-          </span>
-        </div>
-        <h1 className="font-mono font-semibold text-[clamp(30px,4.4vw,44px)] leading-[1.15] tracking-[-0.01em] max-w-[24ch] text-fg">
+        <img
+          src="/lessmarklogowhitebackground.svg"
+          alt=""
+          className="size-[160px] md:size-[200px]"
+        />
+        <h1 className="font-sans font-extrabold text-[clamp(40px,6.4vw,72px)] leading-[1.05] tracking-[-0.025em] max-w-[20ch] text-fg">
           <HeroTitle text={heroTitle} />
         </h1>
-        <p className="font-mono text-[15px] leading-[1.6] text-fg-muted max-w-[56ch]">
-          A strict, typed alternative to Markdown. One grammar, one tree, one
-          CLI — across JavaScript, Python, and Rust.
-        </p>
-        <div className="mt-1 flex flex-wrap items-center justify-center gap-4 text-[14px] font-mono">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-[15px]">
           <Link
             to="/docs/getting-started"
-            className="inline-flex items-center gap-1.5 text-fg hover:underline underline-offset-4"
+            className="inline-flex items-center gap-2 rounded-full bg-fg text-bg px-6 py-3 font-semibold hover:opacity-90 transition-opacity"
           >
-            getting started
-            <ArrowRightIcon className="size-3.5" />
+            Get started
+            <ArrowRightIcon className="size-4" />
           </Link>
           <Link
             to="/playground"
-            className="inline-flex items-center gap-1.5 text-fg-muted hover:text-fg transition-colors"
+            className="inline-flex items-center gap-2 rounded-full border border-fg text-fg px-6 py-3 font-semibold hover:bg-fg hover:text-bg transition-colors"
           >
-            playground
-            <ArrowRightIcon className="size-3.5" />
+            Playground
+            <ArrowRightIcon className="size-4" />
           </Link>
         </div>
       </section>
@@ -254,13 +245,13 @@ function FeatureCard({
 }
 
 function HeroTitle({ text }: { text: string }) {
-  const target = "{and humans}";
+  const target = "(and humans)";
   const idx = text.indexOf(target);
   if (idx < 0) return <>{text}</>;
   return (
     <>
       {text.slice(0, idx)}
-      <span style={{ color: "#FFA500" }}>{target}</span>
+      <span className="hero-accent">{target}</span>
       {text.slice(idx + target.length)}
     </>
   );

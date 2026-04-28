@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { highlightLessmark } from "@/lib/highlight";
 import { completionsFor, docForToken, type LessmarkCompletion } from "@/lib/lessmark-language";
 
@@ -31,14 +32,21 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
   const preRef = useRef<HTMLPreElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const highlighted = useMemo(() => highlightLessmark(value), [value]);
   const lineCount = useMemo(() => value.split("\n").length, [value]);
   const [popup, setPopup] = useState<Popup | null>(null);
   const [hover, setHover] = useState<Hover | null>(null);
+  const portalTarget = typeof document === "undefined" ? null : document.body;
 
   useEffect(() => {
     if (autoFocus) taRef.current?.focus();
   }, [autoFocus]);
+
+  useEffect(() => {
+    if (!popup) return;
+    itemRefs.current[popup.active]?.scrollIntoView({ block: "nearest" });
+  }, [popup]);
 
   const syncScroll = () => {
     const ta = taRef.current, pre = preRef.current, gutter = gutterRef.current;
@@ -58,7 +66,8 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
       setPopup(null);
       return;
     }
-    const caret = caretPosition(source, ta.selectionStart, ta.scrollLeft, ta.scrollTop);
+    const rect = wrap.getBoundingClientRect();
+    const caret = caretPosition(source, ta.selectionStart, ta.scrollLeft, ta.scrollTop, rect);
     setPopup({ ...result, ...caret, active: 0 });
   };
 
@@ -117,15 +126,52 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
     const column = Math.max(0, Math.floor(x / CHAR_WIDTH));
     const line = value.split("\n")[lineIndex] ?? "";
     const text = docForToken(line, column);
-    setHover(text ? { text, x: e.clientX - rect.left + 12, y: e.clientY - rect.top + 12 } : null);
+    setHover(text ? { text, x: clamp(e.clientX + 12, 8, window.innerWidth - 360), y: clamp(e.clientY + 12, 8, window.innerHeight - 120) } : null);
   };
+
+  const overlays = portalTarget && (
+    <>
+      {popup && (
+        <div
+          className="lessmark-completion"
+          style={{ left: popup.x, top: popup.y + LINE_HEIGHT }}
+          role="listbox"
+        >
+          {popup.items.map((item, index) => (
+            <button
+              key={item.label}
+              type="button"
+              ref={(node) => {
+                itemRefs.current[index] = node;
+              }}
+              className={index === popup.active ? "active" : ""}
+              role="option"
+              aria-selected={index === popup.active}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                applyCompletion(item, popup.from);
+              }}
+            >
+              <span>{item.label}</span>
+              <small>{item.detail}</small>
+            </button>
+          ))}
+        </div>
+      )}
+      {hover && (
+        <div className="lessmark-hover" style={{ left: hover.x, top: hover.y }}>
+          {hover.text}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className={`relative grid grid-cols-[40px_1fr] min-h-0 ${className}`}>
       <div
         ref={gutterRef}
         aria-hidden
-        className="overflow-hidden border-r border-code-line py-3 text-right pr-2 text-code-faint font-mono text-[12px] leading-[1.6] select-none"
+        className="overflow-hidden border-r border-code-line py-3 text-right pr-2 text-code-faint font-[var(--font-code)] text-[12px] leading-[1.6] select-none"
       >
         {Array.from({ length: lineCount }, (_, i) => (
           <div key={i}>{i + 1}</div>
@@ -135,7 +181,7 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
         <pre
           ref={preRef}
           aria-hidden
-          className="absolute inset-0 m-0 p-3 overflow-auto whitespace-pre font-mono text-[13px] leading-[1.6] text-code-fg pointer-events-none"
+          className="absolute inset-0 m-0 p-3 overflow-auto whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6] text-code-fg pointer-events-none"
           dangerouslySetInnerHTML={{ __html: highlighted + "\n" }}
         />
         <textarea
@@ -149,51 +195,31 @@ export function LessmarkEditor({ value, onChange, className = "", autoFocus }: P
             requestAnimationFrame(updateCompletion);
           }}
           onKeyDown={onKeyDown}
-          onKeyUp={() => {
+          onKeyUp={(e) => {
+            if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === "Tab" || e.key === "Escape") return;
             requestAnimationFrame(updateCompletion);
           }}
           onScroll={syncScroll}
           spellCheck={false}
-          className="absolute inset-0 m-0 p-3 w-full h-full resize-none bg-transparent border-0 outline-none whitespace-pre font-mono text-[13px] leading-[1.6] text-transparent caret-code-fg selection:bg-code-line"
+          className="absolute inset-0 m-0 p-3 w-full h-full resize-none bg-transparent border-0 outline-none whitespace-pre font-[var(--font-code)] text-[13px] leading-[1.6] text-transparent caret-code-fg selection:bg-code-line"
         />
-        {popup && (
-          <div
-            className="lessmark-completion"
-            style={{ left: popup.x, top: popup.y + LINE_HEIGHT }}
-          >
-            {popup.items.slice(0, 8).map((item, index) => (
-              <button
-                key={item.label}
-                type="button"
-                className={index === popup.active ? "active" : ""}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  applyCompletion(item, popup.from);
-                }}
-              >
-                <span>{item.label}</span>
-                <small>{item.detail}</small>
-              </button>
-            ))}
-          </div>
-        )}
-        {hover && (
-          <div className="lessmark-hover" style={{ left: hover.x, top: hover.y }}>
-            {hover.text}
-          </div>
-        )}
       </div>
+      {overlays ? createPortal(overlays, portalTarget) : null}
     </div>
   );
 }
 
-function caretPosition(value: string, cursor: number, scrollLeft: number, scrollTop: number) {
+function caretPosition(value: string, cursor: number, scrollLeft: number, scrollTop: number, rect: DOMRect) {
   const before = value.slice(0, cursor);
   const lines = before.split("\n");
   const line = lines.length - 1;
   const column = lines[lines.length - 1].length;
   return {
-    x: 12 + column * CHAR_WIDTH - scrollLeft,
-    y: 12 + line * LINE_HEIGHT - scrollTop,
+    x: clamp(rect.left + 12 + column * CHAR_WIDTH - scrollLeft, 8, window.innerWidth - 380),
+    y: clamp(rect.top + 12 + line * LINE_HEIGHT - scrollTop, 8, window.innerHeight - 260),
   };
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }

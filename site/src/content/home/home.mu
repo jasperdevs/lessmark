@@ -1,4 +1,4 @@
-# The markdown alternative that agents {and humans} love.
+# The markdown alternative that agents (and humans) love.
 
 ## What is lessmark?
 

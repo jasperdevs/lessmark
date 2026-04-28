@@ -12,12 +12,23 @@ function esc(s: string) {
 export function highlightLessmark(src: string): string {
   const lines = src.split("\n");
   const out: string[] = [];
+  let codeLang: string | null = null;
 
   for (const raw of lines) {
+    if (codeLang && (raw.startsWith("@") || raw.startsWith("#"))) {
+      codeLang = null;
+    }
+
     if (raw === "") {
       out.push("");
       continue;
     }
+
+    if (codeLang) {
+      out.push(highlightCodeLine(raw, codeLang));
+      continue;
+    }
+
     if (/^#{1,6}\s/.test(raw)) {
       const m = /^(#{1,6})(\s)(.*)$/.exec(raw)!;
       out.push(
@@ -31,6 +42,9 @@ export function highlightLessmark(src: string): string {
         const rest = m[2];
         const attrs = highlightAttrs(rest);
         out.push(`<span class="tok-key">@${esc(m[1])}</span>${attrs}`);
+        if (m[1] === "code") {
+          codeLang = readAttr(rest, "lang") ?? "";
+        }
         continue;
       }
     }
@@ -71,6 +85,11 @@ function highlightAttrs(rest: string): string {
     i += 1;
   }
   return parts.join("");
+}
+
+function readAttr(rest: string, name: string): string | null {
+  const match = new RegExp(`\\b${name}="((?:\\\\["\\\\]|[^"])*)"`).exec(rest);
+  return match ? match[1].toLowerCase() : null;
 }
 
 function highlightBodyLine(raw: string): string {
@@ -158,3 +177,90 @@ function renderInlineToken(token: string): string {
   if (token.startsWith("==")) return `<span class="tok-mark">${esc(token)}</span>`;
   return `<span class="tok-text">${esc(token)}</span>`;
 }
+
+function highlightCodeLine(raw: string, lang: string): string {
+  if (/^(js|jsx|ts|tsx|javascript|typescript)$/.test(lang)) {
+    return tokenizeCode(raw, readScriptToken);
+  }
+  if (/^(json|jsonc)$/.test(lang)) {
+    return tokenizeCode(raw, readJsonToken);
+  }
+  if (/^(sh|shell|bash|zsh|powershell|ps1)$/.test(lang)) {
+    return tokenizeCode(raw, readShellToken);
+  }
+  return esc(raw);
+}
+
+function tokenizeCode(raw: string, readToken: (source: string, index: number) => [string, string] | null): string {
+  let index = 0;
+  let out = "";
+  while (index < raw.length) {
+    const token = readToken(raw, index);
+    if (token) {
+      out += `<span class="tok-${token[0]}">${esc(token[1])}</span>`;
+      index += token[1].length;
+      continue;
+    }
+    out += esc(raw[index]);
+    index += 1;
+  }
+  return out;
+}
+
+function readScriptToken(source: string, index: number): [string, string] | null {
+  const string = readStringToken(source, index, ["'", '"', "`"]);
+  if (string) return ["string", string];
+  if (source.startsWith("//", index)) return ["comment", source.slice(index)];
+  const word = /^[A-Za-z_$][A-Za-z0-9_$]*/.exec(source.slice(index))?.[0];
+  if (word && SCRIPT_KEYWORDS.has(word)) return ["key", word];
+  const number = /^(?:0x[0-9a-fA-F]+|\d+(?:\.\d+)?)/.exec(source.slice(index))?.[0];
+  if (number) return ["number", number];
+  return null;
+}
+
+function readJsonToken(source: string, index: number): [string, string] | null {
+  const string = readStringToken(source, index, ['"']);
+  if (string) return ["string", string];
+  const keyword = /^(?:true|false|null)\b/.exec(source.slice(index))?.[0];
+  if (keyword) return ["key", keyword];
+  const number = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/i.exec(source.slice(index))?.[0];
+  if (number) return ["number", number];
+  return null;
+}
+
+function readShellToken(source: string, index: number): [string, string] | null {
+  const string = readStringToken(source, index, ["'", '"']);
+  if (string) return ["string", string];
+  if (source[index] === "#") return ["comment", source.slice(index)];
+  const flag = /^--?[A-Za-z0-9][A-Za-z0-9-]*/.exec(source.slice(index))?.[0];
+  if (flag) return ["key", flag];
+  return null;
+}
+
+function readStringToken(source: string, index: number, quotes: string[]): string | null {
+  const quote = source[index];
+  if (!quotes.includes(quote)) return null;
+  let cursor = index + 1;
+  let escaping = false;
+  while (cursor < source.length) {
+    const char = source[cursor];
+    cursor += 1;
+    if (escaping) {
+      escaping = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+    if (char === quote) break;
+  }
+  return source.slice(index, cursor);
+}
+
+const SCRIPT_KEYWORDS = new Set([
+  "async", "await", "break", "case", "catch", "class", "const", "continue", "default", "do",
+  "else", "export", "extends", "finally", "for", "from", "function", "if", "import", "in",
+  "instanceof", "let", "new", "of", "return", "static", "switch", "throw", "try", "typeof",
+  "var", "void", "while", "yield", "true", "false", "null", "undefined",
+]);

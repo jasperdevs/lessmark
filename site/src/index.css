@@ -16,17 +16,37 @@
 
   --radius: 12px;
 
-  --font-sans: "Lucida Console", "Lucida Sans Typewriter", "Courier New", monospace;
-  --font-mono: "Lucida Console", "Lucida Sans Typewriter", "Courier New", monospace;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-code: "Cascadia Code", "Cascadia Mono", "JetBrains Mono", Consolas, "SF Mono", "Liberation Mono", monospace;
+
+  /* nav underline palette */
+  --nav-red: #E34234;
+  --nav-yellow: #FFCE1B;
+  --nav-green: #00B55A;
+  --nav-blue: #002395;
 
   /* dark playground tokens */
   --code-bg: #0E0E10;
   --code-fg: #E7E5E4;
   --code-faint: #6B6B6B;
   --code-line: #2A2A2D;
-  --code-key: #FFEFB0;
-  --code-string: #A6E3A1;
-  --code-comment: #6B6B6B;
+  --code-key: #569CD6;
+  --code-string: #CE9178;
+  --code-comment: #6A9955;
+  --code-inline: #4EC9B0;
+  --code-inline-muted: #DCDCAA;
+  --code-emphasis: #C586C0;
+  --code-deleted: #808080;
+  --code-number: #B5CEA8;
+
+  --editor-popover-bg: var(--surface);
+  --editor-popover-fg: var(--fg);
+  --editor-popover-muted: var(--fg-muted);
+  --editor-popover-border: var(--border);
+  --editor-popover-active-bg: var(--fg);
+  --editor-popover-active-fg: var(--bg);
+  --editor-popover-shadow: 0 10px 30px rgba(17, 17, 17, 0.14);
 
   /* themed callout / typed-block surfaces */
   --tip-bg: #EFF6FF;        --tip-border: #BFDBFE;
@@ -61,6 +81,14 @@
   --doing-fg: #E4B97A;
   --blocked-fg: #F4B4B4;
   --mark-bg: #5A4A18;
+
+  --editor-popover-bg: var(--surface-alt);
+  --editor-popover-fg: var(--fg);
+  --editor-popover-muted: var(--fg-faint);
+  --editor-popover-border: var(--border);
+  --editor-popover-active-bg: var(--fg);
+  --editor-popover-active-fg: var(--bg);
+  --editor-popover-shadow: 0 14px 36px rgba(0, 0, 0, 0.46);
 }
 
 @theme inline {
@@ -84,6 +112,7 @@
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-code: var(--font-code);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -94,11 +123,22 @@ html, body { margin: 0; padding: 0; }
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-mono);
-  font-size: 15px;
+  font-family: var(--font-sans);
+  font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Inverted selection — same in light and dark, no blue tint anywhere. */
+::selection {
+  background: var(--fg);
+  color: var(--bg);
+}
+::-moz-selection {
+  background: var(--fg);
+  color: var(--bg);
 }
 
 button:not(:disabled), [role="button"]:not(:disabled), a[href] {
@@ -106,6 +146,50 @@ button:not(:disabled), [role="button"]:not(:disabled), a[href] {
 }
 button:disabled { cursor: not-allowed; }
 textarea { cursor: text; }
+
+/* Hero accent: yellow underline beneath the playful "(and humans)" span. */
+.hero-accent {
+  position: relative;
+  color: var(--accent);
+  font-style: italic;
+  font-weight: 700;
+}
+.hero-accent::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: -0.06em;
+  height: 0.18em;
+  background: var(--nav-yellow);
+  border-radius: 2px;
+  z-index: -1;
+}
+
+/* Color-block underlines on navbar items. */
+.nav-link {
+  position: relative;
+  padding-bottom: 4px;
+  font-weight: 500;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--nav-color, transparent);
+  transition: transform 200ms ease, opacity 200ms ease;
+  transform-origin: left;
+  transform: scaleX(0.55);
+  opacity: 0.55;
+}
+.nav-link:hover::after,
+.nav-link.is-active::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
 
 /* Soft fade behind the sticky header. Safe-area aware so iOS notches
    keep the page background covered under the status bar. */
@@ -132,34 +216,35 @@ textarea { cursor: text; }
 .tok-attr     { color: var(--code-fg); }
 .tok-punct    { color: var(--code-faint); }
 .tok-brace    { color: var(--code-faint); }
-.tok-inline   { color: #8BD5FF; }
+.tok-inline   { color: var(--code-inline); }
 .tok-string   { color: var(--code-string); }
 .tok-text     { color: var(--code-fg); }
-.tok-code     { color: #F5C2E7; }
-.tok-link     { color: #8BD5FF; }
-.tok-emph     { color: #DDB6F2; }
-.tok-del      { color: #A6ADC8; text-decoration: line-through; }
-.tok-mark     { color: #111111; background: var(--code-key); border-radius: 2px; }
-.tok-number   { color: #FAB387; }
+.tok-code     { color: var(--code-inline-muted); }
+.tok-link     { color: var(--code-inline); }
+.tok-emph     { color: var(--code-emphasis); }
+.tok-del      { color: var(--code-deleted); text-decoration: line-through; }
+.tok-mark     { color: #111111; background: var(--code-inline-muted); border-radius: 2px; }
+.tok-number   { color: var(--code-number); }
 .tok-comment  { color: var(--code-comment); font-style: italic; }
 
 .lessmark-completion,
 .lessmark-hover {
-  position: absolute;
-  z-index: 20;
+  position: fixed;
+  z-index: 2147483647;
   max-width: min(420px, calc(100% - 24px));
-  border: 1px solid var(--code-line);
-  background: #17171A;
-  color: var(--code-fg);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-  font-family: var(--font-mono);
+  border: 1px solid var(--editor-popover-border);
+  background: var(--editor-popover-bg);
+  color: var(--editor-popover-fg);
+  box-shadow: var(--editor-popover-shadow);
+  font-family: var(--font-code);
 }
 
 .lessmark-completion {
   width: min(360px, calc(100% - 24px));
-  max-height: 240px;
+  max-height: 260px;
   overflow: auto;
   padding: 4px;
+  border-radius: 3px;
 }
 
 .lessmark-completion button {
@@ -167,10 +252,10 @@ textarea { cursor: text; }
   grid-template-columns: 96px 1fr;
   gap: 10px;
   width: 100%;
-  min-height: 32px;
-  padding: 5px 7px;
+  min-height: 28px;
+  padding: 4px 7px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 2px;
   background: transparent;
   color: inherit;
   text-align: left;
@@ -179,25 +264,30 @@ textarea { cursor: text; }
 
 .lessmark-completion button.active,
 .lessmark-completion button:hover {
-  background: var(--code-line);
+  background: var(--editor-popover-active-bg);
+  color: var(--editor-popover-active-fg);
 }
 
 .lessmark-completion span {
-  color: var(--code-key);
+  color: currentColor;
   white-space: nowrap;
 }
 
 .lessmark-completion small {
   overflow: hidden;
-  color: var(--code-faint);
+  color: var(--editor-popover-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
 }
+.lessmark-completion button.active small,
+.lessmark-completion button:hover small {
+  color: color-mix(in oklab, var(--editor-popover-active-fg) 72%, transparent);
+}
 
 .lessmark-hover {
   padding: 8px 10px;
-  border-radius: 6px;
+  border-radius: 3px;
   font-size: 12px;
   line-height: 1.45;
   pointer-events: none;
@@ -211,9 +301,9 @@ textarea { cursor: text; }
 
 .lessmark-output {
   color: var(--fg);
-  font-family: var(--font-mono);
-  font-size: 15px;
-  line-height: 1.75;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.7;
 }
 
 /* :where() lowers the descendant resets to zero specificity so the
@@ -222,10 +312,10 @@ textarea { cursor: text; }
 .lessmark-output :where(p, ul, ol, blockquote, figure, table) { margin: 0; }
 .lessmark-output > * + * { margin-top: 1em; }
 
-.lessmark-output pre .tok-key     { color: #8BD5FF; }
-.lessmark-output pre .tok-string  { color: #A6E3A1; }
-.lessmark-output pre .tok-number  { color: #FAB387; }
-.lessmark-output pre .tok-comment { color: var(--code-faint); font-style: italic; }
+.lessmark-output pre .tok-key     { color: var(--code-key); }
+.lessmark-output pre .tok-string  { color: var(--code-string); }
+.lessmark-output pre .tok-number  { color: var(--code-number); }
+.lessmark-output pre .tok-comment { color: var(--code-comment); font-style: italic; }
 
 .lessmark-output h1,
 .lessmark-output h2,
@@ -233,20 +323,22 @@ textarea { cursor: text; }
 .lessmark-output h4,
 .lessmark-output h5,
 .lessmark-output h6 {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--fg);
   margin-top: 1.6em;
   margin-bottom: 0.4em;
-  line-height: 1.25;
+  line-height: 1.2;
 }
-.lessmark-output h1 { font-size: 30px; }
-.lessmark-output h2 { font-size: 22px; }
-.lessmark-output h3 { font-size: 18px; }
-.lessmark-output h4 { font-size: 16px; }
+.lessmark-output h1 { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; }
+.lessmark-output h2 { font-size: 24px; }
+.lessmark-output h3 { font-size: 19px; }
+.lessmark-output h4 { font-size: 17px; }
 .lessmark-output h5 { font-size: 15px; }
 .lessmark-output h6 { font-size: 14px; color: var(--fg-muted); }
+.lessmark-output em, .lessmark-output i { font-style: italic; }
+.lessmark-output strong, .lessmark-output b { font-weight: 700; }
 .lessmark-output h1::before,
 .lessmark-output h2::before,
 .lessmark-output h3::before,
@@ -269,14 +361,15 @@ textarea { cursor: text; }
 .lessmark-output a:hover { text-decoration-color: var(--fg); }
 
 .lessmark-output code {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
+  font-family: var(--font-code);
+  font-size: 0.88em;
   background: var(--surface-alt);
   padding: 0.1em 0.35em;
   border-radius: 4px;
+  border: 1px solid var(--border-soft);
 }
 .lessmark-output kbd {
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
   font-size: 0.85em;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -292,13 +385,14 @@ textarea { cursor: text; }
   padding: 16px 18px;
   border-radius: 10px;
   overflow-x: auto;
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
   font-size: 13px;
   line-height: 1.6;
 }
-.lessmark-output pre code { background: transparent; padding: 0; border-radius: 0; font-size: inherit; }
+.lessmark-output pre code { background: transparent; padding: 0; border: 0; border-radius: 0; font-size: inherit; }
+/* Inverted selection inside dark code surfaces. */
 .lessmark-output pre ::selection,
-.lessmark-output pre::selection { background: rgba(255, 255, 255, 0.18); color: inherit; }
+.lessmark-output pre::selection { background: var(--code-fg); color: var(--code-bg); }
 
 .lessmark-output blockquote {
   padding: 0.4em 0 0.4em 1em;
@@ -364,7 +458,7 @@ textarea { cursor: text; }
 .lessmark-output .lessmark-task[data-status="done"] { color: var(--fg-muted); text-decoration: line-through; text-decoration-color: var(--fg-faint); }
 .lessmark-output .lessmark-task[data-status="blocked"] { color: var(--blocked-fg); }
 .lessmark-output .lessmark-task[data-status="doing"]   { color: var(--doing-fg); }
-.lessmark-output .lessmark-task                        { font-family: var(--font-mono); font-size: 14px; }
+.lessmark-output .lessmark-task                        { font-family: var(--font-sans); font-size: 14px; }
 
 .lessmark-output .lessmark-file,
 .lessmark-output .lessmark-api,
@@ -391,7 +485,7 @@ textarea { cursor: text; }
 .lessmark-output .lessmark-footnote::before {
   content: "[" attr(id) "]";
   color: var(--fg-faint);
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
   font-size: 12px;
   flex-shrink: 0;
 }
