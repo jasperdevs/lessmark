@@ -52,11 +52,15 @@ text {{code:{{name:value}}}}.
 - kbd, for keyboard keys.
 - mark, for highlights.
 - del, for strikethrough.
-- sup, for superscript.
-- sub, for subscript.
+- sup, for explicit superscript.
+- sub, for explicit subscript.
 - link, with a label and a safe href.
 - ref, with a label and an in-document target.
 - footnote, with a footnote id.
+
+{{code:sup}} and {{code:sub}} intentionally use only the explicit
+{{code:{{name:value}}}} form. Lessmark does not add Markdown-style
+punctuation shortcuts for them.
 
 @code lang="lessmark"
   Press {{kbd:Ctrl+S}} to save. The {{mark:highlight}} survives diffs.
@@ -73,8 +77,8 @@ paragraph text, {{code:{{strong:bold}}}}, {{code:{{em:emphasis}}}},
 {{code:{{code:code}}}}, {{code:{{del:strikethrough}}}},
 {{code:{{mark:highlight}}}}, {{code:{{link:Docs|https://example.com}}}},
 {{code:{{footnote:knuth-1974}}}}, {{code:@task status="todo"}}, and
-{{code:@decision id="storage-backend"}}. For a full list of authoring
-shortcuts, see the Hacks page.
+{{code:@decision id="storage-backend"}}. For a full list, see the
+Authoring shortcuts page.
 
 @code lang="lessmark"
   Use **bold**, *emphasis*, `code`, ~~strikethrough~~, ==highlight==,

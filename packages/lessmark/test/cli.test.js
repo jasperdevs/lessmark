@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -201,6 +201,38 @@ test("CLI build copies only explicit public assets", async () => {
     await assert.rejects(readFile(join(output, ".env"), "utf8"));
     await assert.rejects(readFile(join(output, ".git", "config"), "utf8"));
     await assert.rejects(readFile(join(output, "node_modules", "pkg", "index.js"), "utf8"));
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("CLI build refuses symlinked output destinations", async (t) => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-build-symlink-output-"));
+  try {
+    const input = join(temp, "src");
+    const output = join(temp, "out");
+    const outside = join(temp, "outside.html");
+    await mkdir(input, { recursive: true });
+    await mkdir(output, { recursive: true });
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\nHome.\n', "utf8");
+    await writeFile(outside, "outside\n", "utf8");
+    try {
+      await symlink(outside, join(output, "index.html"));
+    } catch (error) {
+      if (["EPERM", "EACCES", "ENOSYS"].includes(error?.code)) {
+        t.skip(`filesystem does not allow symlink creation: ${error.code}`);
+        return;
+      }
+      throw error;
+    }
+    await assert.rejects(
+      exec(process.execPath, [cli, "build", input, output]),
+      (error) => {
+        assert.match(error.stderr, /Refusing to overwrite symlinked output path/);
+        return true;
+      }
+    );
+    assert.equal(await readFile(outside, "utf8"), "outside\n");
   } finally {
     await rm(temp, { recursive: true, force: true });
   }

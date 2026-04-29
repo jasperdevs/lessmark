@@ -2,7 +2,7 @@
   "name": "lessmark-workspace",
   "private": true,
   "version": "0.1.5",
-  "description": "Readable markup with typed blocks and a stable JSON AST.",
+  "description": "The markdown alternative that agents (and humans) love.",
   "license": "MIT",
   "workspaces": [
     "packages/lessmark"
@@ -14,7 +14,7 @@
     "test:python": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONPATH='packages/python/src'; python -m unittest discover packages/python/tests\"",
     "test:rust": "cargo test --workspace",
     "test:docs": "node scripts/check-docs.mjs",
-    "test:editors": "node --check editors/vscode/extension.js",
+    "test:editors": "node --check editors/vscode/extension.js && node scripts/check-editors.mjs",
     "test:conformance": "node scripts/conformance.mjs",
     "test:fuzz": "node scripts/fuzz.mjs",
     "test:stress": "node scripts/stress.mjs",

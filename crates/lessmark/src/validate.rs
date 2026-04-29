@@ -9,6 +9,8 @@ use crate::rules::{
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
+const MAX_INLINE_DEPTH: usize = 128;
+
 pub fn validate_source(source: &str) -> Vec<ValidationError> {
     match parse_lessmark(source) {
         Ok(document) => validate_document(&document),
@@ -274,6 +276,13 @@ fn collect_inline_local_targets(children: &[Value]) -> Vec<String> {
 }
 
 fn inline_targets_from_text(text: &str) -> Vec<String> {
+    inline_targets_from_text_at_depth(text, 0)
+}
+
+fn inline_targets_from_text_at_depth(text: &str, depth: usize) -> Vec<String> {
+    if depth > MAX_INLINE_DEPTH {
+        return Vec::new();
+    }
     let mut targets = Vec::new();
     let mut index = 0;
     while index < text.len() {
@@ -293,19 +302,22 @@ fn inline_targets_from_text(text: &str) -> Vec<String> {
                     "ref" => {
                         if let Some(delimiter) = value.find('|') {
                             targets.push(value[delimiter + 1..].trim().to_string());
-                            targets.extend(inline_targets_from_text(&value[..delimiter]));
+                            targets.extend(inline_targets_from_text_at_depth(
+                                &value[..delimiter],
+                                depth + 1,
+                            ));
                         }
                     }
                     "footnote" => targets.push(value.trim().to_string()),
                     "strong" | "em" | "del" | "mark" => {
-                        targets.extend(inline_targets_from_text(value));
+                        targets.extend(inline_targets_from_text_at_depth(value, depth + 1));
                     }
                     "link" => {
                         let label = value
                             .split_once('|')
                             .map(|(label, _)| label)
                             .unwrap_or(value);
-                        targets.extend(inline_targets_from_text(label));
+                        targets.extend(inline_targets_from_text_at_depth(label, depth + 1));
                     }
                     _ => {}
                 }
@@ -394,6 +406,22 @@ fn validate_text_safety(
 }
 
 fn validate_inline_text(text: &str, errors: &mut Vec<ValidationError>, location: &str) {
+    validate_inline_text_at_depth(text, errors, location, 0);
+}
+
+fn validate_inline_text_at_depth(
+    text: &str,
+    errors: &mut Vec<ValidationError>,
+    location: &str,
+    depth: usize,
+) {
+    if depth > MAX_INLINE_DEPTH {
+        errors.push(ValidationError::message(format!(
+            "{} inline nesting too deep",
+            location
+        )));
+        return;
+    }
     let mut index = 0;
     while index < text.len() {
         let Some(relative_start) = text[index..].find("{{") else {
@@ -407,7 +435,7 @@ fn validate_inline_text(text: &str, errors: &mut Vec<ValidationError>, location:
             )));
             return;
         };
-        validate_inline_function(&text[start + 2..end], errors, location);
+        validate_inline_function(&text[start + 2..end], errors, location, depth + 1);
         index = end + 2;
     }
 }
@@ -435,7 +463,12 @@ fn find_inline_function_end(source: &str, start: usize) -> Option<usize> {
     None
 }
 
-fn validate_inline_function(source: &str, errors: &mut Vec<ValidationError>, location: &str) {
+fn validate_inline_function(
+    source: &str,
+    errors: &mut Vec<ValidationError>,
+    location: &str,
+    depth: usize,
+) {
     let Some(separator) = source.find(':') else {
         errors.push(ValidationError::message(format!(
             "{} inline functions must use {{{{name:value}}}}",
@@ -453,11 +486,13 @@ fn validate_inline_function(source: &str, errors: &mut Vec<ValidationError>, loc
     let name = source[..separator].trim();
     let value = &source[separator + 1..];
     match name {
-        "strong" | "em" | "del" | "mark" => validate_inline_text(value, errors, location),
+        "strong" | "em" | "del" | "mark" => {
+            validate_inline_text_at_depth(value, errors, location, depth)
+        }
         "code" | "kbd" | "sup" | "sub" => {}
         "ref" => {
             let (label, target) = split_once(value, "|");
-            validate_inline_text(label, errors, location);
+            validate_inline_text_at_depth(label, errors, location, depth);
             if !is_local_slug(target) {
                 errors.push(ValidationError::message(
                     "Inline ref target must be a lowercase slug",
@@ -473,7 +508,7 @@ fn validate_inline_function(source: &str, errors: &mut Vec<ValidationError>, loc
         }
         "link" => {
             let (label, href) = split_once(value, "|");
-            validate_inline_text(label, errors, location);
+            validate_inline_text_at_depth(label, errors, location, depth);
             if !is_safe_href(href) {
                 errors.push(ValidationError::message(
                     "Inline link href must not use an executable URL scheme",

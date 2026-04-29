@@ -1,7 +1,7 @@
 {
   "name": "lessmark",
   "version": "0.1.5",
-  "description": "Readable markup with typed blocks and a stable JSON AST.",
+  "description": "The markdown alternative that agents (and humans) love.",
   "type": "module",
   "main": "src/index.js",
   "exports": {

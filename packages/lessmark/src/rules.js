@@ -1,18 +1,32 @@
 import { BLOCK_ATTRS, CALLOUT_KINDS, DIAGRAM_KINDS, LIST_KINDS, MATH_NOTATIONS, RISK_LEVELS, TASK_STATUSES } from "./grammar.js";
 
 export const HTML_TAG_PATTERN = /<!--|<!doctype\b|<!\[CDATA\[|<\?|<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>/i;
-export const RAW_EXPRESSION_PATTERN = /(?:\$\{[^}\n]*\}|\{[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)?\})/;
 export const API_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 export const CODE_LANG_PATTERN = /^[A-Za-z0-9_.+-]+$/;
 export const CONTROL_WHITESPACE_PATTERN = /[\r\n\t]/;
 export const MARKDOWN_REFERENCE_DEFINITION_PATTERN = /^\s{0,3}\[[^\]\n]+\]:\s+\S/;
 export const MARKDOWN_THEMATIC_BREAK_PATTERN = /^(?:(?: {0,3})(?:[-*_]\s*){3,}|(?: {0,3})=+\s*)$/;
 export const MARKDOWN_BLOCKQUOTE_PATTERN = /^\s{0,3}>\s?/;
+export const MARKDOWN_LIST_MARKER_PATTERN = /^\s{0,3}(?:[-+*]\s+|\d+[.)]\s+)/;
 export const DECISION_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const METADATA_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 export const DEFINITION_TERM_PATTERN = /^(?=.*\S)[^\r\n\t<>]+$/;
 export const NAV_SLOTS = new Set(["primary", "footer"]);
+export const MAX_INLINE_DEPTH = 128;
 export const MAX_LIST_DEPTH = 128;
+
+export function containsRawExpression(text) {
+  const source = String(text);
+  for (let index = 0; index < source.length; index += 1) {
+    const current = source[index];
+    const previous = source[index - 1] || "";
+    const next = source[index + 1] || "";
+    if (current === "$" && next === "{") return true;
+    if (current === "{" && previous !== "{" && next !== "{") return true;
+    if (current === "}" && previous !== "}" && next !== "}") return true;
+  }
+  return false;
+}
 
 export function isRelativeProjectPath(path) {
   return (
@@ -97,6 +111,9 @@ export function getLegacyMarkdownLineError(line) {
   }
   if (MARKDOWN_BLOCKQUOTE_PATTERN.test(line)) {
     return "Markdown blockquote markers are not supported in Lessmark source; use @quote or @callout";
+  }
+  if (MARKDOWN_LIST_MARKER_PATTERN.test(line)) {
+    return "Markdown list markers are not supported in Lessmark prose; use @list";
   }
   return null;
 }
@@ -244,7 +261,8 @@ function collectInlineLocalTargets(children) {
   return targets;
 }
 
-function inlineTargetsFromText(text) {
+function inlineTargetsFromText(text, depth = 0) {
+  if (depth > MAX_INLINE_DEPTH) return [];
   const source = String(text);
   const targets = [];
   let index = 0;
@@ -261,11 +279,11 @@ function inlineTargetsFromText(text) {
       if (name === "ref") {
         const delimiter = value.indexOf("|");
         if (delimiter !== -1) targets.push(value.slice(delimiter + 1).trim());
-        targets.push(...inlineTargetsFromText(value.slice(0, Math.max(0, delimiter))));
+        targets.push(...inlineTargetsFromText(value.slice(0, Math.max(0, delimiter)), depth + 1));
       } else if (name === "footnote") {
         targets.push(value.trim());
       } else if (["strong", "em", "del", "mark", "link"].includes(name)) {
-        targets.push(...inlineTargetsFromText(name === "link" ? value.split("|", 1)[0] : value));
+        targets.push(...inlineTargetsFromText(name === "link" ? value.split("|", 1)[0] : value, depth + 1));
       }
     }
     index = end + 2;

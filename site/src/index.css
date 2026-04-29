@@ -617,6 +617,16 @@ img, svg { max-width: 100%; }
   text-align: left;
   color: var(--fg-muted);
 }
+.lessmark-output figure.lessmark-diagram[data-mermaid-error] {
+  border-color: var(--caution-border);
+  background: var(--caution-bg);
+}
+.lessmark-output .lessmark-diagram-error {
+  margin-top: 12px;
+  color: var(--destructive);
+  font-size: 0.9em;
+  text-align: left;
+}
 
 /* typed-block surfaces */
 .lessmark-output .lessmark-constraint,

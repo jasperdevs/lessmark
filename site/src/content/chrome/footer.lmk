@@ -9,9 +9,9 @@ lessmark
 
 @nav label="vscode" href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode"
 
-@nav label="@jasperdevs" href="https://x.com/jasperdevs"
+@nav label="npm" href="https://www.npmjs.com/package/lessmark"
 
-@nav label="contact" href="mailto:jasper.mceligott@gmail.com"
+@nav label="issues" href="https://github.com/jasperdevs/lessmark/issues"
 
 @metadata key="dark-label"
 dark mode
@@ -21,4 +21,3 @@ light mode
 
 @metadata key="source-button"
 this site was built with lessmark →
-

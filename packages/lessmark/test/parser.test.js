@@ -198,7 +198,12 @@ test("rejects legacy Markdown block syntax inside Lessmark prose", () => {
     "@paragraph\n---\n",
     "@paragraph\n===\n",
     "@paragraph\n-*- \n",
-    "@paragraph\n> quoted text\n"
+    "@paragraph\n> quoted text\n",
+    "- item\n",
+    "* item\n",
+    "+ item\n",
+    "1. item\n",
+    "1) item\n"
   ]) {
     const errors = validateSource(source);
     assert.equal(errors[0].code, "markdown_legacy_syntax");
@@ -279,6 +284,9 @@ test("rejects raw comments, doctypes, and expression-like prose", () => {
     "@paragraph\n<!-- hidden -->\n",
     "@paragraph\n<!doctype html>\n",
     "@paragraph\n{component}\n",
+    "@paragraph\n{a+b}\n",
+    "@paragraph\n{foo()}\n",
+    "@paragraph\n{...props}\n",
     "@paragraph\n${value}\n",
     '@link href="{target}"\nBad href.\n'
   ]) {
@@ -290,6 +298,8 @@ test("rejects raw comments, doctypes, and expression-like prose", () => {
 
 test("caps deeply nested inline rendering and markdown export", () => {
   const nested = `${"{{strong:".repeat(140)}x${"}}".repeat(140)}`;
+  const errors = validateSource(`@paragraph\n${nested}\n`);
+  assert.equal(errors[0].code, "inline_nesting_too_deep");
   assert.throws(() => renderInline(nested), /Inline nesting too deep/);
   assert.throws(() => toMarkdown(`@paragraph\n${nested}\n`), /Inline nesting too deep/);
 });

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, extname, join, relative, sep } from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { getCapabilities, parseLessmark, validateSource } from "../packages/lessmark/src/index.js";
 
@@ -31,6 +33,7 @@ for (const contentDir of [docsDir, siteContentDir]) {
 }
 
 checkReadmeCliExamples();
+checkReadmeCliBehavior();
 checkStaleDocsText();
 
 console.log("docs ok");
@@ -80,6 +83,39 @@ function checkReadmeCliExamples() {
     const command = example.split(/\s+/)[1];
     assert.ok(knownCommands.has(command), `README.md documents unknown Lessmark CLI command: ${example}`);
   }
+}
+
+function checkReadmeCliBehavior() {
+  const temp = mkdtempSync(join(tmpdir(), "lessmark-docs-cli-"));
+  try {
+    const cli = join(root, "packages", "lessmark", "bin", "lessmark.js");
+    const source = join(temp, "file.lmk");
+    const markdown = join(temp, "README.md");
+    const input = join(temp, "input");
+    const output = join(temp, "public");
+    writeFileSync(source, "# Notes\n\nPlain prose.\n", "utf8");
+    writeFileSync(markdown, "# Notes\n\nPlain prose.\n", "utf8");
+    writeFileSync(join(temp, "input.lmk"), '@page title="Home" output="index.html"\n\nHome.\n', "utf8");
+    assertCliOk([cli, "parse", source], /"type": "document"/);
+    assertCliOk([cli, "check", source], /ok/);
+    assertCliOk([cli, "check", "--json", source], /\[\]/);
+    assertCliOk([cli, "format", source], /# Notes/);
+    assertCliOk([cli, "from-markdown", markdown], /# Notes/);
+    assertCliOk([cli, "to-markdown", source], /# Notes/);
+    assertCliOk([cli, "info", "--json"], /"language": "lessmark"/);
+    mkdirSync(input, { recursive: true });
+    writeFileSync(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\nHome.\n', "utf8");
+    assertCliOk([cli, "build", "--strict", input, output], /.*/);
+    assert.ok(existsSync(join(output, "index.html")), "build --strict should write index.html");
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
+function assertCliOk(args, stdoutPattern) {
+  const result = spawnSync(process.execPath, args, { cwd: root, encoding: "utf8" });
+  assert.equal(result.status, 0, `${args.slice(1).join(" ")} failed: ${result.stderr}`);
+  assert.match(result.stdout, stdoutPattern, `${args.slice(1).join(" ")} stdout mismatch`);
 }
 
 function checkStaleDocsText() {

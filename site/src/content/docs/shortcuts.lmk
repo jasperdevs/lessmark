@@ -1,9 +1,9 @@
-# Hacks
+# Authoring shortcuts
 
 @summary
-Every authoring shortcut in lessmark. The parser canonicalizes shortcuts
-on the way in, so agents always see the same tree. You can type the
-short form and run {{code:lessmark format}} to normalize it on disk.
+Every supported shortcut in lessmark. The parser canonicalizes shortcuts
+on the way in, so tools always see the same tree. You can type the short
+form and run {{code:lessmark format}} to normalize it on disk.
 
 ## Canonical blocks
 

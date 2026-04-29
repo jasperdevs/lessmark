@@ -1,5 +1,5 @@
 import { CORE_BLOCKS } from "./grammar.js";
-import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, RAW_EXPRESSION_PATTERN, getBlockAttrErrors, getBlockBodyErrors, getLegacyMarkdownLineError, getLocalAnchorErrors, isSafeHref } from "./rules.js";
+import { CONTROL_WHITESPACE_PATTERN, DECISION_ID_PATTERN, HTML_TAG_PATTERN, containsRawExpression, getBlockAttrErrors, getBlockBodyErrors, getLegacyMarkdownLineError, getLocalAnchorErrors, isSafeHref } from "./rules.js";
 
 const BLOCK_ALIASES = {
 };
@@ -172,7 +172,7 @@ function parseBlock(lines, startIndex, sourcePositions) {
     }
     const textLine = isLiteralBlock(name) ? line : decodeLeadingBlockEscape(line);
     assertSafeText(textLine, `@${name}`, index + 1, 1, { allowExpressions: isLiteralBlock(name) });
-    if (!isLiteralBlock(name)) {
+    if (!isLiteralBlock(name) && name !== "list") {
       const legacyError = getLegacyMarkdownLineError(textLine);
       if (legacyError) throw new LessmarkError(legacyError, index + 1, 1);
     }
@@ -340,7 +340,7 @@ function assertSafeText(text, location, lineNumber, column, options = {}) {
   if (HTML_TAG_PATTERN.test(text)) {
     throw new LessmarkError(`${location} contains raw HTML/JSX-like syntax`, lineNumber, column);
   }
-  if (options.allowExpressions !== true && RAW_EXPRESSION_PATTERN.test(text)) {
+  if (options.allowExpressions !== true && containsRawExpression(text)) {
     throw new LessmarkError(`${location} contains raw expression-like syntax`, lineNumber, column);
   }
 }

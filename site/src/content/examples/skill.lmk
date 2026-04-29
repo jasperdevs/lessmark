@@ -9,7 +9,7 @@ PNG plus a JSON sidecar.
 capture-window
 
 @metadata key="skill.owner"
-capture-team
+docs-team
 
 @metadata key="skill.version"
 1.2.0
@@ -80,4 +80,3 @@ metadata object.
 
 @depends-on target="storage-backend"
 Implements the PNG-plus-sidecar storage decided above.
-

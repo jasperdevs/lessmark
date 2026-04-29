@@ -129,8 +129,8 @@ cargo add lessmark
 Parse a string into the AST.
 
 @api name="parse_lessmark_with_positions"
-{{code:parse_lessmark_with_positions(source) -> Result of (Document, Vec of PositionRange) plus LessmarkError}}.
-Parse and return per-node source positions.
+{{code:parse_lessmark_with_positions(source: &str) -> Result<Document, LessmarkError>}}.
+Parse and attach one-based source positions directly to AST nodes.
 
 @api name="validate_document"
 {{code:validate_document(doc: &Document) -> Vec of ValidationError}}.
@@ -141,19 +141,19 @@ Run cross-cut checks on a parsed document.
 and validate in one call.
 
 @api name="format_lessmark"
-{{code:format_lessmark(source: &str) -> Result<String, LessmarkError>}}.
+{{code:format_lessmark(source: &str) -> Result of String or LessmarkError}}.
 Canonical formatter.
 
 @api name="format_document"
-{{code:format_document(doc: &Document) -> String}}. Re-emit a tree as
-source.
+{{code:format_document(doc: &Document) -> Result of String or ValidationError list}}.
+Validate and re-emit a tree as source.
 
 @api name="from_markdown"
-{{code:from_markdown(markdown: &str) -> String}}. CommonMark to
-lessmark.
+{{code:from_markdown(markdown: &str) -> Result of String or LessmarkError}}.
+CommonMark to lessmark.
 
 @api name="to_markdown"
-{{code:to_markdown(source: &str) -> Result<String, LessmarkError>}}.
+{{code:to_markdown(source: &str) -> Result of String or LessmarkError}}.
 Lessmark to CommonMark.
 
 ## CLI

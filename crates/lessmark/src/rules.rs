@@ -17,16 +17,6 @@ fn html_tag_pattern() -> &'static Regex {
     })
 }
 
-fn raw_expression_pattern() -> &'static Regex {
-    static PATTERN: OnceLock<Regex> = OnceLock::new();
-    PATTERN.get_or_init(|| {
-        Regex::new(
-            r#"(?:\$\{[^}\n]*\}|\{[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)?\})"#,
-        )
-        .unwrap()
-    })
-}
-
 fn markdown_reference_definition_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     PATTERN.get_or_init(|| Regex::new(r"^\s{0,3}\[[^\]\n]+\]:\s+\S").unwrap())
@@ -40,6 +30,11 @@ fn markdown_thematic_break_pattern() -> &'static Regex {
 fn markdown_blockquote_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     PATTERN.get_or_init(|| Regex::new(r"^\s{0,3}>\s?").unwrap())
+}
+
+fn markdown_list_marker_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r"^\s{0,3}(?:[-+*]\s+|\d+[.)]\s+)").unwrap())
 }
 
 fn api_name_pattern() -> &'static Regex {
@@ -82,7 +77,21 @@ pub fn contains_html_like_tag(text: &str) -> bool {
 }
 
 pub fn contains_raw_expression(text: &str) -> bool {
-    raw_expression_pattern().is_match(text)
+    let bytes = text.as_bytes();
+    for (index, current) in bytes.iter().enumerate() {
+        let previous = index.checked_sub(1).and_then(|idx| bytes.get(idx)).copied();
+        let next = bytes.get(index + 1).copied();
+        if *current == b'$' && next == Some(b'{') {
+            return true;
+        }
+        if *current == b'{' && previous != Some(b'{') && next != Some(b'{') {
+            return true;
+        }
+        if *current == b'}' && previous != Some(b'}') && next != Some(b'}') {
+            return true;
+        }
+    }
+    false
 }
 
 pub fn contains_control_whitespace(text: &str) -> bool {
@@ -104,6 +113,9 @@ pub fn get_legacy_markdown_line_error(line: &str) -> Option<&'static str> {
         return Some(
             "Markdown blockquote markers are not supported in Lessmark source; use @quote or @callout",
         );
+    }
+    if markdown_list_marker_pattern().is_match(line) {
+        return Some("Markdown list markers are not supported in Lessmark prose; use @list");
     }
     None
 }

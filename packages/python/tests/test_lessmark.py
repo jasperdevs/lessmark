@@ -155,6 +155,11 @@ RFC-0042
             "@paragraph\n===\n",
             "@paragraph\n-*- \n",
             "@paragraph\n> quoted text\n",
+            "- item\n",
+            "* item\n",
+            "+ item\n",
+            "1. item\n",
+            "1) item\n",
         ]:
             with self.subTest(source=source):
                 errors = validate_source(source)
@@ -248,6 +253,9 @@ def f(): pass
             "@paragraph\n<!-- hidden -->\n",
             "@paragraph\n<!doctype html>\n",
             "@paragraph\n{component}\n",
+            "@paragraph\n{a+b}\n",
+            "@paragraph\n{foo()}\n",
+            "@paragraph\n{...props}\n",
             "@paragraph\n${value}\n",
             '@link href="{target}"\nBad href.\n',
         ]:
@@ -259,6 +267,11 @@ def f(): pass
             parse_lessmark("@code js\nconst options = {enabled: true};\n")["children"][0]["text"],
             "const options = {enabled: true};",
         )
+
+    def test_caps_deeply_nested_inline_validation(self):
+        nested = "{{strong:" * 140 + "x" + "}}" * 140
+        errors = validate_source(f"@paragraph\n{nested}\n")
+        self.assertEqual(errors[0]["code"], "inline_nesting_too_deep")
 
     def test_rejects_unknown_attributes(self):
         with self.assertRaisesRegex(LessmarkError, "does not allow attribute"):

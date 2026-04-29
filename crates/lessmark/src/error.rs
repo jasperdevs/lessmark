@@ -77,9 +77,13 @@ pub fn error_code_for_message(message: &str) -> &'static str {
     if message.contains("raw expression-like") {
         return "raw_expression";
     }
+    if message.contains("inline nesting too deep") {
+        return "inline_nesting_too_deep";
+    }
     if message.contains("Markdown reference definitions")
         || message.contains("Markdown thematic breaks")
         || message.contains("Markdown blockquote markers")
+        || message.contains("Markdown list markers")
     {
         return "markdown_legacy_syntax";
     }

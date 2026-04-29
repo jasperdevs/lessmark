@@ -1,8 +1,7 @@
 import { highlightCode } from "./highlight.js";
 import { parseLessmark } from "./parser.js";
-import { DECISION_ID_PATTERN, MAX_LIST_DEPTH, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
+import { DECISION_ID_PATTERN, MAX_INLINE_DEPTH, MAX_LIST_DEPTH, isSafeHref, isSafeResource, splitTableRow } from "./rules.js";
 
-const MAX_INLINE_DEPTH = 128;
 const VOID_BLOCKS = new Set(["metadata", "page", "nav"]);
 
 export function renderHtml(lessmark, options = {}) {

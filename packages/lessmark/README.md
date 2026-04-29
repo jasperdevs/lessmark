@@ -2,6 +2,13 @@
 
 The markdown alternative that agents (and humans) love.
 
+Use this package when a JavaScript app or CLI needs to parse, validate,
+format, render, or convert Lessmark documents.
+
+```sh
+npm install lessmark
+```
+
 ```js
 import { parseLessmark, validateSource, formatLessmark, renderHtml } from "lessmark";
 

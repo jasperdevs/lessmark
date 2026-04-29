@@ -10,6 +10,7 @@ const BLOCK_DOCS = new Map([
   ["decision", "Decision block. Required: id=\"lowercase-slug\". The id becomes a local reference target."],
   ["constraint", "Constraint body. Use for rules the document must preserve."],
   ["task", "Task block. Required: status=\"todo|doing|done|blocked\"."],
+  ["file", "File block. Required: path. Body describes or annotates that file."],
   ["risk", "Risk block. Required: level=\"low|medium|high|critical\"."],
   ["depends-on", "Dependency block. Required: target=\"decision-id\"."],
   ["code", "Literal code block. Optional: lang=\"js\". Inline syntax is not parsed inside the body."],

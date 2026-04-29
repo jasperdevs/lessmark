@@ -140,6 +140,9 @@ fn rejects_raw_comments_doctypes_and_expression_like_prose() {
         "@paragraph\n<!-- hidden -->\n",
         "@paragraph\n<!doctype html>\n",
         "@paragraph\n{component}\n",
+        "@paragraph\n{a+b}\n",
+        "@paragraph\n{foo()}\n",
+        "@paragraph\n{...props}\n",
         "@paragraph\n${value}\n",
         "@link href=\"{target}\"\nBad href.\n",
     ] {
@@ -158,6 +161,13 @@ fn rejects_raw_comments_doctypes_and_expression_like_prose() {
         value["children"][0]["text"],
         "const options = {enabled: true};"
     );
+}
+
+#[test]
+fn caps_deeply_nested_inline_validation() {
+    let nested = format!("{}x{}", "{{strong:".repeat(140), "}}".repeat(140));
+    let errors = validate_source(&format!("@paragraph\n{}\n", nested));
+    assert_eq!(errors[0].code, "inline_nesting_too_deep");
 }
 
 #[test]
@@ -376,6 +386,11 @@ fn rejects_legacy_markdown_block_syntax_inside_lessmark_prose() {
         "@paragraph\n===\n",
         "@paragraph\n-*- \n",
         "@paragraph\n> quoted text\n",
+        "- item\n",
+        "* item\n",
+        "+ item\n",
+        "1. item\n",
+        "1) item\n",
     ] {
         let errors = validate_source(source);
         assert_eq!(errors[0].code, "markdown_legacy_syntax");

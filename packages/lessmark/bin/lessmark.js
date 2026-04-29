@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { copyFile, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { copyFile, lstat, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import {
   LessmarkError,
@@ -125,6 +125,8 @@ try {
 async function buildSite(inputDir, outputDir, options = {}) {
   const inputRoot = resolve(inputDir);
   const outputRoot = resolve(outputDir);
+  await mkdir(outputRoot, { recursive: true });
+  const safeOutputRoot = await realpath(outputRoot);
   const files = await listLessmarkFiles(inputRoot, outputRoot);
   const pages = [];
   for (const file of files) {
@@ -142,10 +144,11 @@ async function buildSite(inputDir, outputDir, options = {}) {
       throw error;
     }
   }
-  await copyStaticAssets(inputRoot, inputRoot, outputRoot);
+  await copyStaticAssets(inputRoot, inputRoot, outputRoot, safeOutputRoot);
   for (const page of pages) {
     const outPath = join(outputRoot, page.relativeOutput);
     await mkdir(dirname(outPath), { recursive: true });
+    await assertSafeOutputPath(safeOutputRoot, outPath);
     await writeFile(outPath, renderHtml(page.ast, { document: true }), "utf8");
   }
 }
@@ -263,19 +266,34 @@ function outputCollisionKey(path) {
   return normalizeRelativePath(path).toLowerCase();
 }
 
-async function copyStaticAssets(dir, inputRoot, outputRoot) {
+async function copyStaticAssets(dir, inputRoot, outputRoot, safeOutputRoot) {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (isInsideOrEqual(path, outputRoot)) continue;
     if (entry.isDirectory()) {
       if (shouldSkipStaticDirectory(entry.name)) continue;
-      await copyStaticAssets(path, inputRoot, outputRoot);
+      await copyStaticAssets(path, inputRoot, outputRoot, safeOutputRoot);
     } else if (entry.isFile() && isCopyableStaticAsset(path, inputRoot)) {
       const outPath = join(outputRoot, relative(inputRoot, path));
       await mkdir(dirname(outPath), { recursive: true });
+      await assertSafeOutputPath(safeOutputRoot, outPath);
       await copyFile(path, outPath);
     }
+  }
+}
+
+async function assertSafeOutputPath(outputRoot, outPath) {
+  const parent = await realpath(dirname(outPath));
+  if (!isInsideOrEqual(parent, outputRoot)) {
+    throw new Error(`Refusing to write through symlinked output path: ${outPath}`);
+  }
+  const existing = await lstat(outPath).catch((error) => {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  });
+  if (existing?.isSymbolicLink()) {
+    throw new Error(`Refusing to overwrite symlinked output path: ${outPath}`);
   }
 }
 

@@ -60,6 +60,12 @@ export function useMermaid(ref: RefObject<HTMLElement | null>, key: unknown) {
           fig.innerHTML = svg;
           fig.setAttribute("data-mermaid-rendered", "true");
         } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          const summary = message.split("\n").find(Boolean) ?? "Invalid Mermaid diagram";
+          const error = document.createElement("figcaption");
+          error.className = "lessmark-diagram-error";
+          error.textContent = `Mermaid error: ${summary}`;
+          fig.appendChild(error);
           fig.setAttribute("data-mermaid-error", "true");
           // eslint-disable-next-line no-console
           console.warn("mermaid render failed", err);

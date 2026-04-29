@@ -9,6 +9,8 @@ use crate::rules::{
 use regex::Regex;
 use std::collections::{BTreeMap, BTreeSet};
 
+const MAX_INLINE_DEPTH: usize = 128;
+
 pub fn parse_lessmark(source: &str) -> Result<Document, LessmarkError> {
     parse_source(source, false)
 }
@@ -199,7 +201,7 @@ fn parse_block(
             1,
             is_literal_block(name),
         )?;
-        if !is_literal_block(name) {
+        if !is_literal_block(name) && name != "list" {
             if let Some(error) = get_legacy_markdown_line_error(&text_line) {
                 return Err(LessmarkError::new(error, index + 1, 1));
             }
@@ -749,6 +751,13 @@ fn collect_inline_local_targets(children: &[Node]) -> Vec<String> {
 }
 
 fn inline_targets_from_text(text: &str) -> Vec<String> {
+    inline_targets_from_text_at_depth(text, 0)
+}
+
+fn inline_targets_from_text_at_depth(text: &str, depth: usize) -> Vec<String> {
+    if depth > MAX_INLINE_DEPTH {
+        return Vec::new();
+    }
     let mut targets = Vec::new();
     let mut index = 0;
     while index < text.len() {
@@ -769,19 +778,22 @@ fn inline_targets_from_text(text: &str) -> Vec<String> {
                     "ref" => {
                         if let Some(delimiter) = value.find('|') {
                             targets.push(value[delimiter + 1..].trim().to_string());
-                            targets.extend(inline_targets_from_text(&value[..delimiter]));
+                            targets.extend(inline_targets_from_text_at_depth(
+                                &value[..delimiter],
+                                depth + 1,
+                            ));
                         }
                     }
                     "footnote" => targets.push(value.trim().to_string()),
                     "strong" | "em" | "del" | "mark" => {
-                        targets.extend(inline_targets_from_text(value));
+                        targets.extend(inline_targets_from_text_at_depth(value, depth + 1));
                     }
                     "link" => {
                         let label = value
                             .split_once('|')
                             .map(|(label, _)| label)
                             .unwrap_or(value);
-                        targets.extend(inline_targets_from_text(label));
+                        targets.extend(inline_targets_from_text_at_depth(label, depth + 1));
                     }
                     _ => {}
                 }

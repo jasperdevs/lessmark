@@ -124,6 +124,7 @@ INLINE_FUNCTIONS = [
     "link",
 ]
 MAX_INLINE_MARKDOWN_PASSES = 128
+MAX_INLINE_DEPTH = 128
 MAX_LIST_DEPTH = 128
 
 TASK_STATUSES = {"todo", "doing", "done", "blocked"}
@@ -133,13 +134,13 @@ CALLOUT_KINDS = {"note", "tip", "warning", "caution"}
 MATH_NOTATIONS = {"tex", "asciimath"}
 DIAGRAM_KINDS = {"mermaid", "graphviz", "plantuml"}
 HTML_TAG_PATTERN = re.compile(r"<!--|<!doctype\b|<!\[CDATA\[|<\?|</?[A-Za-z][A-Za-z0-9:-]*(?:\s[^>]*)?>", re.I)
-RAW_EXPRESSION_PATTERN = re.compile(r"(?:\$\{[^}\n]*\}|\{[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)?\})")
 API_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.-]*$")
 CODE_LANG_PATTERN = re.compile(r"^[A-Za-z0-9_.+-]+$")
 CONTROL_WHITESPACE_PATTERN = re.compile(r"[\r\n\t]")
 MARKDOWN_REFERENCE_DEFINITION_PATTERN = re.compile(r"^\s{0,3}\[[^\]\n]+\]:\s+\S")
 MARKDOWN_THEMATIC_BREAK_PATTERN = re.compile(r"^(?:(?: {0,3})(?:[-*_]\s*){3,}|(?: {0,3})=+\s*)$")
 MARKDOWN_BLOCKQUOTE_PATTERN = re.compile(r"^\s{0,3}>\s?")
+MARKDOWN_LIST_MARKER_PATTERN = re.compile(r"^\s{0,3}(?:[-+*]\s+|\d+[.)]\s+)")
 DECISION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 METADATA_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 DEFINITION_TERM_PATTERN = re.compile(r"^(?=.*\S)[^\r\n\t<>]+$")
@@ -320,7 +321,7 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
             break
         text_line = line if _is_literal_block(name) else _decode_leading_block_escape(line)
         _assert_safe_text(text_line, f"@{name}", index + 1, 1, allow_expressions=_is_literal_block(name))
-        if not _is_literal_block(name):
+        if not _is_literal_block(name) and name != "list":
             legacy_error = _legacy_markdown_line_error(text_line)
             if legacy_error is not None:
                 raise LessmarkError(legacy_error, index + 1, 1)
@@ -521,7 +522,7 @@ def _validate_text_safety(
 ) -> None:
     if HTML_TAG_PATTERN.search(text):
         errors.append({"message": f"{location} contains raw HTML/JSX-like syntax"})
-    if not allow_expressions and RAW_EXPRESSION_PATTERN.search(text):
+    if not allow_expressions and _contains_raw_expression(text):
         errors.append({"message": f"{location} contains raw expression-like syntax"})
 
 
@@ -532,10 +533,20 @@ def _legacy_markdown_line_error(line: str) -> str | None:
         return "Markdown thematic breaks and setext underlines are not supported; use @separator or # headings"
     if MARKDOWN_BLOCKQUOTE_PATTERN.search(line):
         return "Markdown blockquote markers are not supported in Lessmark source; use @quote or @callout"
+    if MARKDOWN_LIST_MARKER_PATTERN.search(line):
+        return "Markdown list markers are not supported in Lessmark prose; use @list"
     return None
 
 
-def _validate_inline_text(text: str, errors: list[ValidationError], location: str) -> None:
+def _validate_inline_text(
+    text: str,
+    errors: list[ValidationError],
+    location: str,
+    depth: int = 0,
+) -> None:
+    if depth > MAX_INLINE_DEPTH:
+        errors.append({"message": f"{location} inline nesting too deep"})
+        return
     source = str(text)
     index = 0
     while index < len(source):
@@ -546,11 +557,11 @@ def _validate_inline_text(text: str, errors: list[ValidationError], location: st
         if end == -1:
             errors.append({"message": f"{location} has an unclosed inline function"})
             return
-        _validate_inline_function(source[start + 2 : end], errors, location)
+        _validate_inline_function(source[start + 2 : end], errors, location, depth + 1)
         index = end + 2
 
 
-def _validate_inline_function(source: str, errors: list[ValidationError], location: str) -> None:
+def _validate_inline_function(source: str, errors: list[ValidationError], location: str, depth: int) -> None:
     separator = source.find(":")
     if separator <= 0:
         errors.append({"message": f"{location} inline functions must use {{{{name:value}}}}"})
@@ -558,13 +569,13 @@ def _validate_inline_function(source: str, errors: list[ValidationError], locati
     name = source[:separator].strip()
     value = source[separator + 1 :]
     if name in {"strong", "em", "del", "mark"}:
-        _validate_inline_text(value, errors, location)
+        _validate_inline_text(value, errors, location, depth)
         return
     if name in {"code", "kbd", "sup", "sub"}:
         return
     if name == "ref":
         label, target = _split_once(value, "|")
-        _validate_inline_text(label, errors, location)
+        _validate_inline_text(label, errors, location, depth)
         if not DECISION_ID_PATTERN.match(target):
             errors.append({"message": "Inline ref target must be a lowercase slug"})
         return
@@ -574,7 +585,7 @@ def _validate_inline_function(source: str, errors: list[ValidationError], locati
         return
     if name == "link":
         label, href = _split_once(value, "|")
-        _validate_inline_text(label, errors, location)
+        _validate_inline_text(label, errors, location, depth)
         if not _is_safe_href(href):
             errors.append({"message": "Inline link href must not use an executable URL scheme"})
         return
@@ -615,8 +626,22 @@ def _assert_safe_text(
 ) -> None:
     if HTML_TAG_PATTERN.search(text):
         raise LessmarkError(f"{location} contains raw HTML/JSX-like syntax", line_number, column)
-    if not allow_expressions and RAW_EXPRESSION_PATTERN.search(text):
+    if not allow_expressions and _contains_raw_expression(text):
         raise LessmarkError(f"{location} contains raw expression-like syntax", line_number, column)
+
+
+def _contains_raw_expression(text: str) -> bool:
+    source = str(text)
+    for index, current in enumerate(source):
+        previous = source[index - 1] if index > 0 else ""
+        next_char = source[index + 1] if index + 1 < len(source) else ""
+        if current == "$" and next_char == "{":
+            return True
+        if current == "{" and previous != "{" and next_char != "{":
+            return True
+        if current == "}" and previous != "}" and next_char != "}":
+            return True
+    return False
 
 
 def _assert_safe_attr_value(key: str, value: str, line_number: int, column: int) -> None:
@@ -781,10 +806,13 @@ def error_code_for_message(message: str) -> str:
         return "raw_html"
     if "raw expression-like" in message:
         return "raw_expression"
+    if "inline nesting too deep" in message:
+        return "inline_nesting_too_deep"
     if (
         "Markdown reference definitions" in message
         or "Markdown thematic breaks" in message
         or "Markdown blockquote markers" in message
+        or "Markdown list markers" in message
     ):
         return "markdown_legacy_syntax"
     if "Loose text" in message:
@@ -1077,7 +1105,9 @@ def _collect_inline_local_targets(children: list[object]) -> list[str]:
     return targets
 
 
-def _inline_targets_from_text(text: str) -> list[str]:
+def _inline_targets_from_text(text: str, depth: int = 0) -> list[str]:
+    if depth > MAX_INLINE_DEPTH:
+        return []
     targets: list[str] = []
     index = 0
     while index < len(text):
@@ -1096,12 +1126,12 @@ def _inline_targets_from_text(text: str) -> list[str]:
                 delimiter = value.find("|")
                 if delimiter != -1:
                     targets.append(value[delimiter + 1 :].strip())
-                    targets.extend(_inline_targets_from_text(value[:delimiter]))
+                    targets.extend(_inline_targets_from_text(value[:delimiter], depth + 1))
             elif name == "footnote":
                 targets.append(value.strip())
             elif name in {"strong", "em", "del", "mark", "link"}:
                 label = value.split("|", 1)[0] if name == "link" else value
-                targets.extend(_inline_targets_from_text(label))
+                targets.extend(_inline_targets_from_text(label, depth + 1))
         index = end + 2
     return targets
 

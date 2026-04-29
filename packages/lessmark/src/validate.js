@@ -3,7 +3,8 @@ import {
   CONTROL_WHITESPACE_PATTERN,
   DECISION_ID_PATTERN,
   HTML_TAG_PATTERN,
-  RAW_EXPRESSION_PATTERN,
+  MAX_INLINE_DEPTH,
+  containsRawExpression,
   getBlockAttrErrors,
   getBlockBodyErrors,
   getLocalAnchorErrors,
@@ -89,12 +90,16 @@ function validateTextSafety(text, errors, location, options = {}) {
   if (HTML_TAG_PATTERN.test(text)) {
     errors.push(validationError(`${location} contains raw HTML/JSX-like syntax`));
   }
-  if (options.allowExpressions !== true && RAW_EXPRESSION_PATTERN.test(text)) {
+  if (options.allowExpressions !== true && containsRawExpression(text)) {
     errors.push(validationError(`${location} contains raw expression-like syntax`));
   }
 }
 
-function validateInlineText(text, errors, location) {
+function validateInlineText(text, errors, location, depth = 0) {
+  if (depth > MAX_INLINE_DEPTH) {
+    errors.push(validationError(`${location} inline nesting too deep`));
+    return;
+  }
   const source = String(text);
   let index = 0;
   while (index < source.length) {
@@ -105,7 +110,7 @@ function validateInlineText(text, errors, location) {
       errors.push(validationError(`${location} has an unclosed inline function`));
       return;
     }
-    validateInlineFunction(source.slice(start + 2, end), errors, location);
+    validateInlineFunction(source.slice(start + 2, end), errors, location, depth + 1);
     index = end + 2;
   }
 }
@@ -130,7 +135,7 @@ function findInlineFunctionEnd(source, start) {
   return -1;
 }
 
-function validateInlineFunction(source, errors, location) {
+function validateInlineFunction(source, errors, location, depth) {
   const separator = source.indexOf(":");
   if (separator <= 0) {
     errors.push(validationError(`${location} inline functions must use {{name:value}}`));
@@ -139,13 +144,13 @@ function validateInlineFunction(source, errors, location) {
   const name = source.slice(0, separator).trim();
   const value = source.slice(separator + 1);
   if (["strong", "em", "del", "mark"].includes(name)) {
-    validateInlineText(value, errors, location);
+    validateInlineText(value, errors, location, depth);
     return;
   }
   if (["code", "kbd", "sup", "sub"].includes(name)) return;
   if (name === "ref") {
     const [label, target] = splitOnce(value, "|");
-    validateInlineText(label, errors, location);
+    validateInlineText(label, errors, location, depth);
     if (!DECISION_ID_PATTERN.test(target)) errors.push(validationError("Inline ref target must be a lowercase slug"));
     return;
   }
@@ -155,7 +160,7 @@ function validateInlineFunction(source, errors, location) {
   }
   if (name === "link") {
     const [label, href] = splitOnce(value, "|");
-    validateInlineText(label, errors, location);
+    validateInlineText(label, errors, location, depth);
     if (!isSafeHref(href)) errors.push(validationError("Inline link href must not use an executable URL scheme"));
     return;
   }
@@ -251,7 +256,8 @@ export function errorCodeForMessage(message) {
   if (/Duplicate attribute/.test(message)) return "duplicate_attribute";
   if (/raw HTML\/JSX-like/.test(message)) return "raw_html";
   if (/raw expression-like/.test(message)) return "raw_expression";
-  if (/Markdown reference definitions|Markdown thematic breaks|Markdown blockquote markers/.test(message)) return "markdown_legacy_syntax";
+  if (/inline nesting too deep/.test(message)) return "inline_nesting_too_deep";
+  if (/Markdown reference definitions|Markdown thematic breaks|Markdown blockquote markers|Markdown list markers/.test(message)) return "markdown_legacy_syntax";
   if (/Loose text/.test(message)) return "loose_text";
   if (/Invalid heading/.test(message)) return "invalid_heading";
   if (/Closing heading markers/.test(message)) return "closing_heading_marker";
