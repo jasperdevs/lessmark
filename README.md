@@ -19,6 +19,25 @@
 
 Lessmark is readable markup with typed blocks, canonical formatting, safe rendering, and a stable JSON AST across JavaScript, Python, and Rust.
 
+## Why use Lessmark instead of Markdown?
+
+Markdown is good when a human is the only reader. Lessmark is for documents that humans edit and tools need to trust.
+
+In Markdown, the same-looking document can parse differently across engines, raw HTML can change the output, and malformed structure often gets accepted silently. That is fine for notes and comments, but painful for agent context files, docs pipelines, renderers, and import/export tools that need one predictable tree.
+
+Lessmark keeps the readable parts and removes the guesswork:
+
+| Markdown | Lessmark |
+| --- | --- |
+| Many equivalent spellings for the same idea | One canonical format |
+| Parser-dependent edge cases | Shared grammar and conformance tests |
+| Raw HTML and renderer-specific behavior | Safe rendering with no raw HTML |
+| Loose structure that tools have to infer | Typed blocks with explicit attributes |
+| Formatting is mostly cosmetic | Formatting produces stable source |
+| AST shape depends on the parser | Stable JSON AST across JavaScript, Python, and Rust |
+
+Use Markdown for casual prose. Use Lessmark when the file is part of a build, a parser, a validator, a site, or an agent workflow.
+
 ## Install
 
 ```sh
