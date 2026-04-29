@@ -29,7 +29,7 @@ body:
   - type: textarea
     id: existing_surface
     attributes:
-      label: Why current v0 cannot cover it
+      label: Why the current format cannot cover it
       description: Name the existing blocks or profile rules you tried first.
     validations:
       required: true
