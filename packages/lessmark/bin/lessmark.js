@@ -49,51 +49,34 @@ if (!command || command === "help" || command === "--help" || command === "-h") 
 try {
   if (command === "parse") {
     const file = requireFile(args[1]);
-    const source = await readFile(file, "utf8");
+    const source = await readInput(file);
     console.log(JSON.stringify(parseLessmark(source), null, 2));
   } else if (command === "check") {
     const json = args.includes("--json");
     const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--json"));
-    const source = await readFile(file, "utf8");
-    const errors = validateSource(source);
-    if (json) {
-      console.log(JSON.stringify({ ok: errors.length === 0, errors }, null, 2));
-      process.exit(errors.length > 0 ? 1 : 0);
-    }
-    if (errors.length > 0) {
-      for (const error of errors) console.error(`error: ${error.message}`);
-      process.exit(1);
-    }
-    console.log(`${file}: ok`);
+    const result = await checkTarget(file);
+    printCheckResult(result, { json });
+    process.exit(result.ok ? 0 : 1);
   } else if (command === "format" || command === "fix") {
     const write = args.includes("--write");
     const check = args.includes("--check");
-    const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--write" && arg !== "--check"));
-    const source = await readFile(file, "utf8");
-    const formatted = formatLessmark(source);
-    if (check) {
-      if (formatted !== source) {
-        console.error(`${file}: needs formatting`);
-        process.exit(1);
-      }
-      console.log(`${file}: formatted`);
-    } else if (write) {
-      await writeFile(file, formatted, "utf8");
-    } else {
-      process.stdout.write(formatted);
-    }
+    const json = args.includes("--json");
+    const file = requireFile(args.find((arg, index) => index > 0 && !["--write", "--check", "--json"].includes(arg)));
+    const result = await formatTarget(file, { write, check, json });
+    printFormatResult(result, { write, check, json });
+    if (check) process.exit(result.ok ? 0 : 1);
   } else if (command === "from-markdown") {
     const file = requireFile(args[1]);
-    const source = await readFile(file, "utf8");
+    const source = await readInput(file);
     process.stdout.write(fromMarkdown(source));
   } else if (command === "to-markdown") {
     const file = requireFile(args[1]);
-    const source = await readFile(file, "utf8");
+    const source = await readInput(file);
     process.stdout.write(toMarkdown(source));
   } else if (command === "render") {
     const document = args.includes("--document");
     const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--document"));
-    const source = await readFile(file, "utf8");
+    const source = await readInput(file);
     process.stdout.write(renderHtml(source, { document }));
   } else if (command === "build") {
     const strict = args.includes("--strict");
@@ -114,12 +97,118 @@ try {
     throw new Error(`Unknown command: ${command}`);
   }
 } catch (error) {
-  if (command === "check" && args.includes("--json")) {
+  if ((command === "check" || command === "format" || command === "fix") && args.includes("--json")) {
     console.log(JSON.stringify({ ok: false, errors: [toJsonError(error)] }, null, 2));
     process.exit(1);
   }
   console.error(`${basename(process.argv[1])}: ${formatError(error)}`);
   process.exit(1);
+}
+
+async function checkTarget(target) {
+  const targetInfo = target === "-" ? null : await stat(target);
+  const entries = await readSourceEntries(target, targetInfo);
+  const files = entries.map((entry) => {
+    const errors = validateSource(entry.source);
+    return { file: entry.file, ok: errors.length === 0, errors };
+  });
+  return { ok: files.every((file) => file.ok), files, directory: Boolean(targetInfo?.isDirectory()) };
+}
+
+function printCheckResult(result, options = {}) {
+  if (options.json) {
+    const payload = !result.directory && result.files.length === 1
+      ? { ok: result.ok, errors: result.files[0].errors }
+      : { ok: result.ok, files: result.files };
+    console.log(JSON.stringify(payload, null, 2));
+    return;
+  }
+  for (const file of result.files) {
+    if (file.ok) {
+      console.log(`${file.file}: ok`);
+    } else {
+      for (const error of file.errors) {
+        const where = Number.isInteger(error.line) ? ` at ${error.line}:${error.column}` : "";
+        console.error(`${file.file}: error: ${error.message}${where}`);
+      }
+    }
+  }
+}
+
+async function formatTarget(target, options = {}) {
+  if (target === "-" && options.write) {
+    throw new Error("Cannot use --write with stdin");
+  }
+  const targetInfo = target === "-" ? null : await stat(target);
+  if (targetInfo?.isDirectory() && !options.check && !options.write) {
+    throw new Error("Directory formatting requires --check or --write");
+  }
+  const entries = await readSourceEntries(target, targetInfo);
+  const files = [];
+  let stdout = "";
+  for (const entry of entries) {
+    const formatted = formatLessmark(entry.source);
+    const changed = formatted !== entry.source;
+    if (options.write && changed) {
+      await writeFile(entry.file, formatted, "utf8");
+    } else if (!options.check && !options.write) {
+      stdout += formatted;
+    }
+    files.push({ file: entry.file, ok: !changed, changed });
+  }
+  return { ok: files.every((file) => file.ok), files, stdout };
+}
+
+function printFormatResult(result, options = {}) {
+  if (options.json) {
+    console.log(JSON.stringify({ ok: result.ok, files: result.files }, null, 2));
+    return;
+  }
+  if (!options.check && !options.write) {
+    process.stdout.write(result.stdout);
+    return;
+  }
+  for (const file of result.files) {
+    if (options.check) {
+      if (file.changed) console.error(`${file.file}: needs formatting`);
+      else console.log(`${file.file}: formatted`);
+    } else if (options.write && file.changed) {
+      console.log(`${file.file}: formatted`);
+    }
+  }
+}
+
+async function readSourceEntries(target, targetInfo = null) {
+  if (target === "-") {
+    return [{ file: "<stdin>", source: await readStdin() }];
+  }
+  const info = targetInfo ?? await stat(target);
+  if (info.isDirectory()) {
+    const files = await listLessmarkFiles(resolve(target));
+    return Promise.all(files.map(async (file) => ({ file, source: await readFile(file, "utf8") })));
+  }
+  if (!info.isFile()) {
+    throw new Error(`${target} is not a file or directory`);
+  }
+  return [{ file: target, source: await readFile(target, "utf8") }];
+}
+
+async function readInput(target) {
+  if (target === "-") return readStdin();
+  return readFile(target, "utf8");
+}
+
+function readStdin() {
+  return new Promise((resolve, reject) => {
+    let source = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      source += chunk;
+    });
+    process.stdin.on("end", () => resolve(source));
+    process.stdin.on("error", reject);
+    process.stdin.resume();
+  });
 }
 
 async function buildSite(inputDir, outputDir, options = {}) {
@@ -329,13 +418,14 @@ function pushNonPublicStaticAssetError(path, inputRoot, file, label, value, erro
   }
 }
 
-async function listLessmarkFiles(dir, skipRoot) {
-  const entries = await readdir(dir, { withFileTypes: true });
+async function listLessmarkFiles(dir, skipRoot = null) {
+  const entries = (await readdir(dir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name));
   const files = [];
   for (const entry of entries) {
     const path = join(dir, entry.name);
-    if (isInsideOrEqual(path, skipRoot)) continue;
+    if (skipRoot && isInsideOrEqual(path, skipRoot)) continue;
     if (entry.isDirectory()) {
+      if (shouldSkipStaticDirectory(entry.name)) continue;
       files.push(...await listLessmarkFiles(path, skipRoot));
     } else if (entry.isFile() && /\.(lmk|lessmark)$/i.test(entry.name)) {
       files.push(path);
@@ -361,16 +451,23 @@ function printHelp() {
 
 Usage:
   lessmark parse file.lmk
+  lessmark parse -
   lessmark check file.lmk
+  lessmark check docs
   lessmark check --json file.lmk
   lessmark format file.lmk
   lessmark format --check file.lmk
+  lessmark format --check --json docs
   lessmark format --write file.lmk
   lessmark fix --write file.lmk
+  lessmark fix --write docs
   lessmark from-markdown README.md
+  lessmark from-markdown -
   lessmark to-markdown file.lmk
+  lessmark to-markdown -
   lessmark render file.lmk
   lessmark render --document file.lmk
+  lessmark render --document -
   lessmark build docs out
   lessmark build --strict input out
   lessmark info --json`);

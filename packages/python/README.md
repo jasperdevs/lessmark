@@ -14,8 +14,18 @@ formatted = format_lessmark("Typed context.\n")
 
 ```sh
 lessmark parse file.lmk
+lessmark parse -
 lessmark check file.lmk
+lessmark check docs
+lessmark check --json file.lmk
 lessmark format file.lmk
+lessmark format --check --json docs
+lessmark fix --write docs
 lessmark from-markdown README.md
+lessmark from-markdown -
 lessmark to-markdown file.lmk
+lessmark to-markdown -
+lessmark info --json
 ```
+
+Use `-` for stdin. `check`, `format --check`, and `fix --write` also accept directories.

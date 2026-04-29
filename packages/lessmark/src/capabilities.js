@@ -33,8 +33,11 @@ export function getCapabilities() {
     },
     cli: {
       commands: ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "render", "build", "info"],
-      jsonCommands: ["check --json", "info --json"],
+      jsonCommands: ["check --json", "format --check --json", "info --json"],
       formatCheck: true,
+      stdin: true,
+      recursiveCheck: true,
+      recursiveFormat: true,
       strictBuild: true
     },
     renderer: {

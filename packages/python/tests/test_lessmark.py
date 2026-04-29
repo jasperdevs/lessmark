@@ -1,4 +1,5 @@
 import json
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -589,6 +590,40 @@ def f(): pass
         self.assertEqual(result["errors"][0]["line"], 2)
         self.assertEqual(result["errors"][0]["column"], 1)
 
+    def test_cli_check_walks_lessmark_files_in_a_directory(self):
+        with tempfile.TemporaryDirectory(prefix="lessmark-check-dir-") as temp:
+            root = Path(temp)
+            valid = root / "valid.lmk"
+            invalid = root / "nested" / "invalid.lessmark"
+            ignored = root / "node_modules" / "ignored.lmk"
+            invalid.parent.mkdir()
+            ignored.parent.mkdir()
+            valid.write_text("# Valid\n\nplain text\n", encoding="utf-8")
+            invalid.write_text("<script></script>\n", encoding="utf-8")
+            ignored.write_text("<script></script>\n", encoding="utf-8")
+
+            output = StringIO()
+            with redirect_stdout(output):
+                status = main(["check", str(root), "--json"])
+            result = json.loads(output.getvalue())
+            self.assertEqual(status, 1)
+            self.assertFalse(result["ok"])
+            self.assertEqual(len(result["files"]), 2)
+            self.assertTrue(any(item["ok"] for item in result["files"]))
+            self.assertTrue(any(not item["ok"] for item in result["files"]))
+
+    def test_cli_check_reads_stdin(self):
+        output = StringIO()
+        old_stdin = sys.stdin
+        try:
+            sys.stdin = StringIO("# From stdin\n")
+            with redirect_stdout(output):
+                status = main(["check", "-"])
+        finally:
+            sys.stdin = old_stdin
+        self.assertEqual(status, 0)
+        self.assertIn("<stdin>: ok", output.getvalue())
+
     def test_cli_converts_markdown_to_lessmark(self):
         output = StringIO()
         path = ROOT / "fixtures/valid/markdown-import.fixture"
@@ -632,12 +667,81 @@ def f(): pass
             self.assertEqual(status, 1)
             self.assertIn("needs formatting", error_output.getvalue())
 
+    def test_cli_format_check_json_reports_directory_formatting(self):
+        with tempfile.TemporaryDirectory(prefix="lessmark-format-json-") as temp:
+            root = Path(temp)
+            formatted = root / "formatted.lmk"
+            unformatted = root / "nested" / "unformatted.lmk"
+            unformatted.parent.mkdir()
+            formatted.write_text("# Ready\n", encoding="utf-8")
+            unformatted.write_text("@task todo\nDo it.\n", encoding="utf-8")
+
+            output = StringIO()
+            with redirect_stdout(output):
+                status = main(["format", str(root), "--check", "--json"])
+            result = json.loads(output.getvalue())
+            self.assertEqual(status, 1)
+            self.assertFalse(result["ok"])
+            self.assertEqual(len(result["files"]), 2)
+            self.assertTrue(any(item["changed"] for item in result["files"]))
+
+    def test_cli_fix_write_formats_a_directory(self):
+        with tempfile.TemporaryDirectory(prefix="lessmark-fix-dir-") as temp:
+            root = Path(temp)
+            target = root / "nested" / "task.lmk"
+            target.parent.mkdir()
+            target.write_text("@task todo\nDo it.\n", encoding="utf-8")
+
+            output = StringIO()
+            with redirect_stdout(output):
+                status = main(["fix", str(root), "--write"])
+            self.assertEqual(status, 0)
+            self.assertIn("formatted", output.getvalue())
+            self.assertEqual(target.read_text(encoding="utf-8"), '@task status="todo"\nDo it.\n')
+
+    def test_cli_parse_format_and_convert_inputs_read_stdin(self):
+        old_stdin = sys.stdin
+        try:
+            output = StringIO()
+            sys.stdin = StringIO("# From stdin\n")
+            with redirect_stdout(output):
+                status = main(["parse", "-"])
+            self.assertEqual(status, 0)
+            self.assertEqual(json.loads(output.getvalue())["children"][0]["text"], "From stdin")
+
+            output = StringIO()
+            sys.stdin = StringIO("@task todo\nDo it.\n")
+            with redirect_stdout(output):
+                status = main(["format", "-"])
+            self.assertEqual(status, 0)
+            self.assertIn('@task status="todo"', output.getvalue())
+
+            output = StringIO()
+            sys.stdin = StringIO("# Imported\n")
+            with redirect_stdout(output):
+                status = main(["from-markdown", "-"])
+            self.assertEqual(status, 0)
+            self.assertIn("# Imported", output.getvalue())
+
+            output = StringIO()
+            sys.stdin = StringIO('@task status="todo"\nDo it.\n')
+            with redirect_stdout(output):
+                status = main(["to-markdown", "-"])
+            self.assertEqual(status, 0)
+            self.assertIn("- [ ] Do it.", output.getvalue())
+        finally:
+            sys.stdin = old_stdin
+
     def test_capabilities_and_cli_info_are_machine_readable(self):
         info = get_capabilities()
         self.assertEqual(info["language"], "lessmark")
         self.assertEqual(info["astVersion"], "v0")
         self.assertFalse(info["syntaxPolicy"]["aliases"])
         self.assertTrue(info["cli"]["formatCheck"])
+        self.assertTrue(info["cli"]["stdin"])
+        self.assertTrue(info["cli"]["recursiveCheck"])
+        self.assertTrue(info["cli"]["recursiveFormat"])
+        self.assertIn("format --check --json", info["cli"]["jsonCommands"])
         self.assertIn("summary", info["blocks"])
 
         output = StringIO()

@@ -12,13 +12,19 @@ and static-site builds are npm CLI features.
 
 @code lang="sh"
 lessmark parse file.lmk
+lessmark parse -
 lessmark check file.lmk
+lessmark check docs
 lessmark check --json file.lmk
 lessmark format file.lmk
 lessmark format --check file.lmk
+lessmark format --check --json docs
 lessmark fix --write file.lmk
+lessmark fix --write docs
 lessmark from-markdown README.md
+lessmark from-markdown -
 lessmark to-markdown file.lmk
+lessmark to-markdown -
 # npm package only:
 lessmark render --document docs/index.lmk
 lessmark build --strict docs public
@@ -38,6 +44,25 @@ lessmark info --json
 - build --strict walks a directory and writes a static site in the npm CLI.
 - build copies only public assets under assets/, public/, or static/.
 - info --json reports the supported blocks, inline functions, and CLI features.
+
+## Stdin and directories
+
+@summary
+Use {{code:-}} when another tool is piping source into Lessmark. Use a
+directory when you want one command to check or format a whole docs tree.
+
+@code lang="sh"
+cat notes.lmk | lessmark check -
+cat README.md | lessmark from-markdown -
+lessmark check docs
+lessmark format --check --json docs
+lessmark fix --write docs
+
+@list kind="unordered"
+- Stdin works for parse, check, format, from-markdown, to-markdown, and npm render.
+- Directory walking works for check, format --check, and fix --write.
+- Directory walking only reads .lmk and .lessmark files.
+- Hidden folders, build output, dist, node_modules, out, and target are skipped.
 
 ## Exit codes
 

@@ -887,8 +887,11 @@ def get_capabilities() -> dict[str, object]:
         },
         "cli": {
             "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
-            "jsonCommands": ["check --json", "info --json"],
+            "jsonCommands": ["check --json", "format --check --json", "info --json"],
             "formatCheck": True,
+            "stdin": True,
+            "recursiveCheck": True,
+            "recursiveFormat": True,
             "strictBuild": False,
         },
         "renderer": {

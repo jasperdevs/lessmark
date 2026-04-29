@@ -1,7 +1,11 @@
-use lessmark::{format_lessmark, from_markdown, parse_lessmark, to_markdown, validate_source};
+use lessmark::{
+    format_lessmark, from_markdown, parse_lessmark, to_markdown, validate_source, ValidationError,
+};
 use serde_json::json;
 use std::env;
 use std::fs;
+use std::io::{self, Read};
+use std::path::{Path, PathBuf};
 use std::process;
 
 fn main() {
@@ -77,8 +81,11 @@ fn info_command(args: &[String]) -> i32 {
         },
         "cli": {
             "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
-            "jsonCommands": ["check --json", "info --json"],
+            "jsonCommands": ["check --json", "format --check --json", "info --json"],
             "formatCheck": true,
+            "stdin": true,
+            "recursiveCheck": true,
+            "recursiveFormat": true,
             "strictBuild": false
         },
         "renderer": {
@@ -157,10 +164,10 @@ fn info_command(args: &[String]) -> i32 {
 
 fn from_markdown_command(args: &[String]) -> i32 {
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark from-markdown <file.md>");
+        eprintln!("Usage: lessmark from-markdown <file.md|->");
         return 1;
     };
-    let source = match read_file(path) {
+    let source = match read_input(path) {
         Ok(source) => source,
         Err(status) => return status,
     };
@@ -178,10 +185,10 @@ fn from_markdown_command(args: &[String]) -> i32 {
 
 fn to_markdown_command(args: &[String]) -> i32 {
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark to-markdown <file.lmk>");
+        eprintln!("Usage: lessmark to-markdown <file.lmk|->");
         return 1;
     };
-    let source = match read_file(path) {
+    let source = match read_input(path) {
         Ok(source) => source,
         Err(status) => return status,
     };
@@ -199,10 +206,10 @@ fn to_markdown_command(args: &[String]) -> i32 {
 
 fn parse_command(args: &[String]) -> i32 {
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark parse <file.lmk>");
+        eprintln!("Usage: lessmark parse <file.lmk|->");
         return 1;
     };
-    let source = match read_file(path) {
+    let source = match read_input(path) {
         Ok(source) => source,
         Err(status) => return status,
     };
@@ -224,32 +231,37 @@ fn parse_command(args: &[String]) -> i32 {
 fn check_command(args: &[String]) -> i32 {
     let json_output = args.iter().any(|arg| arg == "--json");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark check [--json] <file.lmk>");
+        eprintln!("Usage: lessmark check [--json] <file.lmk|dir|->");
         return 1;
     };
-    let source = match read_file(path) {
-        Ok(source) => source,
+    let entries = match source_entries(path) {
+        Ok(entries) => entries,
         Err(status) => return status,
     };
-    let errors = validate_source(&source);
+    let results = entries
+        .iter()
+        .map(|entry| CheckResult {
+            file: entry.label.clone(),
+            errors: validate_source(&entry.source),
+        })
+        .collect::<Vec<_>>();
+    let ok = results.iter().all(CheckResult::ok);
     if json_output {
+        let payload = if path != "-" && Path::new(path).is_dir() {
+            json!({ "ok": ok, "files": results.iter().map(CheckResult::to_json).collect::<Vec<_>>() })
+        } else {
+            json!({ "ok": ok, "errors": results.first().map(|result| &result.errors).cloned().unwrap_or_default() })
+        };
         println!(
             "{}",
-            serde_json::to_string_pretty(&json!({ "ok": errors.is_empty(), "errors": errors }))
-                .expect("check result serializes")
+            serde_json::to_string_pretty(&payload).expect("check result serializes")
         );
-    } else if errors.is_empty() {
-        println!("{}: ok", path);
     } else {
-        for error in &errors {
-            if let (Some(line), Some(column)) = (error.line, error.column) {
-                eprintln!("error: {} at {}:{}", error.message, line, column);
-            } else {
-                eprintln!("error: {}", error.message);
-            }
+        for result in &results {
+            print_check_result(result);
         }
     }
-    if errors.is_empty() {
+    if ok {
         0
     } else {
         1
@@ -259,54 +271,244 @@ fn check_command(args: &[String]) -> i32 {
 fn format_command(args: &[String]) -> i32 {
     let write = args.iter().any(|arg| arg == "--write" || arg == "-w");
     let check = args.iter().any(|arg| arg == "--check");
+    let json_output = args.iter().any(|arg| arg == "--json");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark format [--write|--check] <file.lmk>");
+        eprintln!("Usage: lessmark format [--write|--check] [--json] <file.lmk|dir|->");
         return 1;
     };
-    let source = match read_file(path) {
-        Ok(source) => source,
+    if write && path == "-" {
+        eprintln!("lessmark: Cannot use --write with stdin");
+        return 1;
+    }
+    if path != "-" && Path::new(path).is_dir() && !check && !write {
+        eprintln!("lessmark: Directory formatting requires --check or --write");
+        return 1;
+    }
+    let entries = match source_entries(path) {
+        Ok(entries) => entries,
         Err(status) => return status,
     };
-    match format_lessmark(&source) {
-        Ok(formatted) => {
-            if check {
-                if formatted != source {
-                    eprintln!("{}: needs formatting", path);
-                    return 1;
-                }
-                println!("{}: formatted", path);
-            } else if write {
-                if let Err(error) = fs::write(path, formatted) {
-                    eprintln!("Failed to write {}: {}", path, error);
-                    return 1;
-                }
-            } else {
-                print!("{}", formatted);
+    let mut results = Vec::new();
+    for entry in entries {
+        let formatted = match format_lessmark(&entry.source) {
+            Ok(formatted) => formatted,
+            Err(error) => {
+                eprintln!("lessmark: {}", error);
+                return 1;
             }
-            0
+        };
+        let changed = formatted != entry.source;
+        if write && changed {
+            let Some(path) = entry.path.as_ref() else {
+                eprintln!("lessmark: Cannot use --write with stdin");
+                return 1;
+            };
+            if let Err(error) = fs::write(path, &formatted) {
+                eprintln!("Failed to write {}: {}", path.display(), error);
+                return 1;
+            }
         }
-        Err(error) => {
-            eprintln!("lessmark: {}", error);
-            1
-        }
+        results.push(FormatResult {
+            file: entry.label,
+            changed,
+            formatted,
+        });
     }
+    if check {
+        let ok = results.iter().all(|result| !result.changed);
+        if json_output {
+            let payload = json!({
+                "ok": ok,
+                "files": results.iter().map(FormatResult::to_json).collect::<Vec<_>>()
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&payload).expect("format result serializes")
+            );
+        } else {
+            for result in &results {
+                print_format_result(result);
+            }
+        }
+        return if ok { 0 } else { 1 };
+    }
+    if write {
+        for result in &results {
+            if result.changed {
+                println!("{}: formatted", result.file);
+            }
+        }
+        return 0;
+    }
+    if let Some(result) = results.first() {
+        print!("{}", result.formatted);
+    }
+    0
 }
 
-fn read_file(path: &str) -> Result<String, i32> {
+fn read_input(path: &str) -> Result<String, i32> {
+    if path == "-" {
+        let mut source = String::new();
+        return io::stdin()
+            .read_to_string(&mut source)
+            .map(|_| source)
+            .map_err(|error| {
+                eprintln!("lessmark: Failed to read stdin: {}", error);
+                1
+            });
+    }
     fs::read_to_string(path).map_err(|error| {
         eprintln!("lessmark: Failed to read {}: {}", path, error);
         1
     })
 }
 
+struct SourceEntry {
+    label: String,
+    path: Option<PathBuf>,
+    source: String,
+}
+
+struct CheckResult {
+    file: String,
+    errors: Vec<ValidationError>,
+}
+
+impl CheckResult {
+    fn ok(&self) -> bool {
+        self.errors.is_empty()
+    }
+
+    fn to_json(&self) -> serde_json::Value {
+        json!({ "file": self.file, "ok": self.ok(), "errors": self.errors })
+    }
+}
+
+struct FormatResult {
+    file: String,
+    changed: bool,
+    formatted: String,
+}
+
+impl FormatResult {
+    fn to_json(&self) -> serde_json::Value {
+        json!({ "file": self.file, "ok": !self.changed, "changed": self.changed })
+    }
+}
+
+fn source_entries(path: &str) -> Result<Vec<SourceEntry>, i32> {
+    if path == "-" {
+        let source = read_input(path)?;
+        return Ok(vec![SourceEntry {
+            label: "<stdin>".to_string(),
+            path: None,
+            source,
+        }]);
+    }
+    let path_buf = PathBuf::from(path);
+    if path_buf.is_dir() {
+        let files = match lessmark_files(&path_buf) {
+            Ok(files) => files,
+            Err(status) => return Err(status),
+        };
+        return files
+            .into_iter()
+            .map(|file| {
+                let source = fs::read_to_string(&file).map_err(|error| {
+                    eprintln!("lessmark: Failed to read {}: {}", file.display(), error);
+                    1
+                })?;
+                Ok(SourceEntry {
+                    label: file.display().to_string(),
+                    path: Some(file),
+                    source,
+                })
+            })
+            .collect();
+    }
+    Ok(vec![SourceEntry {
+        label: path.to_string(),
+        path: Some(path_buf),
+        source: read_input(path)?,
+    }])
+}
+
+fn lessmark_files(root: &Path) -> Result<Vec<PathBuf>, i32> {
+    let mut files = Vec::new();
+    collect_lessmark_files(root, &mut files)?;
+    files.sort();
+    Ok(files)
+}
+
+fn collect_lessmark_files(path: &Path, files: &mut Vec<PathBuf>) -> Result<(), i32> {
+    let entries = fs::read_dir(path).map_err(|error| {
+        eprintln!("lessmark: Failed to read {}: {}", path.display(), error);
+        1
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            eprintln!("lessmark: Failed to read directory entry: {}", error);
+            1
+        })?;
+        let path = entry.path();
+        let file_name = entry.file_name();
+        let name = file_name.to_string_lossy();
+        if path.is_dir() {
+            if should_skip_dir(&name) {
+                continue;
+            }
+            collect_lessmark_files(&path, files)?;
+        } else if is_lessmark_file(&path) {
+            files.push(path);
+        }
+    }
+    Ok(())
+}
+
+fn should_skip_dir(name: &str) -> bool {
+    name.starts_with('.') || matches!(name, "build" | "dist" | "node_modules" | "out" | "target")
+}
+
+fn is_lessmark_file(path: &Path) -> bool {
+    matches!(
+        path.extension().and_then(|ext| ext.to_str()).map(str::to_ascii_lowercase),
+        Some(ext) if ext == "lmk" || ext == "lessmark"
+    )
+}
+
+fn print_check_result(result: &CheckResult) {
+    if result.errors.is_empty() {
+        println!("{}: ok", result.file);
+        return;
+    }
+    for error in &result.errors {
+        if let (Some(line), Some(column)) = (error.line, error.column) {
+            eprintln!(
+                "{}: error: {} at {}:{}",
+                result.file, error.message, line, column
+            );
+        } else {
+            eprintln!("{}: error: {}", result.file, error.message);
+        }
+    }
+}
+
+fn print_format_result(result: &FormatResult) {
+    if result.changed {
+        eprintln!("{}: needs formatting", result.file);
+    } else {
+        println!("{}: formatted", result.file);
+    }
+}
+
 fn first_path_arg(args: &[String]) -> Option<&str> {
     args.iter()
-        .find(|arg| !arg.starts_with('-'))
+        .find(|arg| arg.as_str() == "-" || !arg.starts_with('-'))
         .map(String::as_str)
 }
 
 fn print_help() {
     eprintln!(
-        "Usage: lessmark <parse|check|format|fix|from-markdown|to-markdown|info> [options] <file>"
+        "Usage: lessmark <parse|check|format|fix|from-markdown|to-markdown|info> [options] <file|dir|->"
     );
 }

@@ -57,19 +57,25 @@ cargo add lessmark
 
 ```sh
 lessmark parse file.lmk
+lessmark parse -
 lessmark check file.lmk
+lessmark check docs
 lessmark check --json file.lmk
 lessmark format file.lmk
 lessmark format --check file.lmk
+lessmark format --check --json docs
 lessmark fix --write file.lmk
+lessmark fix --write docs
 lessmark from-markdown README.md
+lessmark from-markdown -
 lessmark to-markdown file.lmk
+lessmark to-markdown -
 lessmark render --document file.lmk
 lessmark build --strict input public
 lessmark info --json
 ```
 
-`parse`, `check`, `format`, `fix`, `from-markdown`, `to-markdown`, and `info` are shared by the JavaScript, Python, and Rust packages. HTML rendering and static-site builds are npm CLI features.
+Use `-` to read from stdin. `check`, `format --check`, and `fix --write` can also walk a directory recursively. `parse`, `check`, `format`, `fix`, `from-markdown`, `to-markdown`, and `info` are shared by the JavaScript, Python, and Rust packages. HTML rendering and static-site builds are npm CLI features.
 
 </details>
 

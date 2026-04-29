@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,6 +13,35 @@ const fixture = fileURLToPath(new URL("../../../fixtures/valid/project-context.l
 const siteFixture = fileURLToPath(new URL("../../../fixtures/site/basic", import.meta.url));
 const markdownFixture = fileURLToPath(new URL("../../../fixtures/valid/markdown-import.fixture", import.meta.url));
 const invalidFixture = fileURLToPath(new URL("../../../fixtures/invalid/raw-html.lmk", import.meta.url));
+
+function execInput(args, input) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [cli, ...args], { stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      const result = { stdout, stderr };
+      if (code === 0) resolve(result);
+      else {
+        const error = new Error(`command failed: lessmark ${args.join(" ")}`);
+        error.stdout = stdout;
+        error.stderr = stderr;
+        error.code = code;
+        reject(error);
+      }
+    });
+    child.stdin.end(input);
+  });
+}
 
 test("CLI parse prints document AST", async () => {
   const { stdout } = await exec(process.execPath, [cli, "parse", fixture]);
@@ -53,6 +82,26 @@ test("CLI info --json prints machine-readable capabilities", async () => {
   assert.ok(info.inlineFunctions.includes("ref"));
 });
 
+test("CLI check walks Lessmark files in a directory", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-check-dir-"));
+  try {
+    const docs = join(temp, "docs");
+    await mkdir(join(docs, "nested"), { recursive: true });
+    await writeFile(join(docs, "index.lmk"), "# Index\n\nValid.\n", "utf8");
+    await writeFile(join(docs, "nested", "guide.lessmark"), "# Guide\n\nValid.\n", "utf8");
+    const { stdout } = await exec(process.execPath, [cli, "check", docs]);
+    assert.match(stdout, /index\.lmk: ok/);
+    assert.match(stdout, /guide\.lessmark: ok/);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("CLI check reads stdin", async () => {
+  const { stdout } = await execInput(["check", "-"], "# Stdin\n\nValid.\n");
+  assert.match(stdout, /<stdin>: ok/);
+});
+
 test("CLI info prints human-readable capabilities without internal labels", async () => {
   const { stdout } = await exec(process.execPath, [cli, "info"]);
   assert.match(stdout, /^Lessmark 0\.1\.5\n/);
@@ -85,6 +134,64 @@ test("CLI format --check reports formatting status", async () => {
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+});
+
+test("CLI format --check --json reports directory formatting", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-format-dir-json-"));
+  try {
+    const docs = join(temp, "docs");
+    await mkdir(docs, { recursive: true });
+    const formatted = join(docs, "formatted.lmk");
+    const unformatted = join(docs, "unformatted.lmk");
+    await writeFile(formatted, "# Done\n\nPlain.\n", "utf8");
+    await writeFile(unformatted, "@task todo\nDo it.\n", "utf8");
+    await assert.rejects(
+      exec(process.execPath, [cli, "format", "--check", "--json", docs]),
+      (error) => {
+        const result = JSON.parse(error.stdout);
+        assert.equal(result.ok, false);
+        assert.equal(result.files.length, 2);
+        assert.equal(result.files.find((file) => file.file.endsWith("formatted.lmk")).changed, false);
+        assert.equal(result.files.find((file) => file.file.endsWith("unformatted.lmk")).changed, true);
+        return true;
+      }
+    );
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("CLI fix --write formats a directory", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-fix-dir-"));
+  try {
+    const docs = join(temp, "docs");
+    await mkdir(docs, { recursive: true });
+    const file = join(docs, "task.lmk");
+    await writeFile(file, "@task todo\nDo it.\n", "utf8");
+    const { stdout } = await exec(process.execPath, [cli, "fix", "--write", docs]);
+    assert.match(stdout, /task\.lmk: formatted/);
+    assert.match(await readFile(file, "utf8"), /@task status="todo"/);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("CLI parse, format, convert, and render read stdin", async () => {
+  const source = "# Stdin\n\nPlain prose.\n";
+  const parsed = await execInput(["parse", "-"], source);
+  assert.equal(JSON.parse(parsed.stdout).children[0].text, "Stdin");
+
+  const formatted = await execInput(["format", "-"], "@task todo\nDo it.\n");
+  assert.match(formatted.stdout, /@task status="todo"/);
+
+  const imported = await execInput(["from-markdown", "-"], "# Imported\n\nText.\n");
+  assert.match(imported.stdout, /^# Imported/);
+
+  const markdown = await execInput(["to-markdown", "-"], source);
+  assert.match(markdown.stdout, /^# Stdin/);
+
+  const rendered = await execInput(["render", "--document", "-"], source);
+  assert.match(rendered.stdout, /<!doctype html>/);
 });
 
 test("CLI fix is a formatter alias", async () => {
