@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" role="img" aria-label="spark" shape-rendering="crispEdges">
-  <rect width="16" height="16" fill="none"/>
-  <rect x="7" y="2" width="2" height="4" fill="#f6b73c"/>
-  <rect x="7" y="10" width="2" height="4" fill="#f6b73c"/>
-  <rect x="2" y="7" width="4" height="2" fill="#f6b73c"/>
-  <rect x="10" y="7" width="4" height="2" fill="#f6b73c"/>
-  <rect x="6" y="6" width="4" height="4" fill="#ffe08a"/>
-</svg>
