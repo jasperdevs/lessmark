@@ -1,21 +1,48 @@
-# What is lessmark?
+# Lessmark playground
 
-Lessmark is a Markdown-inspired document language for tools and agents. Every
-document is a sequence of typed blocks, and every parser produces the
-same JSON tree.
+Lessmark keeps prose readable while giving tools and agents a predictable
+tree. Plain text becomes a paragraph, and typed blocks carry explicit
+meaning.
 
-Lessmark is open source. The source is available on
-{{link:GitHub|https://github.com/jasperdevs/lessmark}}.
+Use {{strong:inline functions}}, {{em:authoring shortcuts}}, and
+{{link:safe links|https://lessmark.org/docs/syntax}} in normal prose.
 
-## How is lessmark different?
+@decision id="storage-backend"
+Store project notes in one SQLite file so import and export stay simple.
 
-Markdown is a presentation format. Lessmark is a structure format. A
-{{code:@decision}} block is a decision, a {{code:@constraint}} block is
-a constraint, and tooling can read the file without guessing.
-{{link:Read more|docs/syntax}}.
+@constraint
+Do not run code from the document. The source is data, not a plugin
+surface.
+
+@task status="doing"
+Try editing this document, then use format to normalize the source.
+
+@list kind="ordered"
+- Write readable prose.
+- Add typed blocks where structure matters.
+- Parse the same source in JavaScript, Python, or Rust.
+
+@callout kind="tip" title="Canonical source"
+You can type **bold**, *emphasis*, `inline code`, or [links](docs/syntax).
+The formatter rewrites those shortcuts to the explicit inline form.
+
+@code lang="js"
+import { parseLessmark, validateSource } from "lessmark";
+
+const ast = parseLessmark(source);
+const errors = validateSource(source);
+
+@table columns="Block|Purpose"
+\@decision|stable choice with an id
+\@task|tracked work with a status
+\@list|strict unordered or ordered list
+
+@footnote id="typed-blocks"
+Typed blocks make intent available without scraping prose.
 
 ## Next steps
 
 @list kind="unordered"
 - {{link:Install lessmark|docs/getting-started}}
 - {{link:Explore the syntax|docs/syntax}}
+- {{footnote:typed-blocks}}

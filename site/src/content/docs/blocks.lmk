@@ -32,7 +32,7 @@ These blocks carry intent for tools and agents without scraping prose.
 @list kind="unordered"
 - quote cite, for blockquotes with attribution.
 - callout kind, for boxed notes (note, tip, warning, caution).
-- list kind, for flat lists with one item per line.
+- list kind, for strict lists with one item per line and two-space nesting.
 - table columns, for pipe-separated rows.
 - image src and alt, for figures.
 - code lang, for fenced code with a language tag.

@@ -36,6 +36,7 @@ for (const contentDir of [docsDir, siteContentDir]) {
 checkReadmeCliExamples();
 checkReadmeCliBehavior();
 checkApiReference();
+checkLessmarkCodeExamples();
 checkStaleDocsText();
 
 console.log("docs ok");
@@ -133,6 +134,32 @@ function checkApiReference() {
   assertDocumentedApisExist("Rust", sections.Rust, rustExports());
 }
 
+function checkLessmarkCodeExamples() {
+  const checkedFiles = walk(siteContentDir)
+    .filter((file) => extname(file).toLowerCase() === ".lmk");
+  for (const file of checkedFiles) {
+    const source = readFileSync(file, "utf8");
+    const ast = parseLessmark(source);
+    let index = 0;
+    for (const node of ast.children) {
+      if (node.type !== "block" || node.name !== "code" || node.attrs?.lang !== "lessmark") continue;
+      index += 1;
+      const body = normalizeIndentedExample(node.text ?? "");
+      const errors = validateSource(body);
+      assert.deepEqual(errors, [], `${relative(root, file)} lessmark code example ${index} failed validation`);
+    }
+  }
+}
+
+function normalizeIndentedExample(source) {
+  const lines = String(source).split("\n");
+  const nonEmpty = lines.filter((line) => line.trim() !== "");
+  if (nonEmpty.length > 0 && nonEmpty.every((line) => line.startsWith("  "))) {
+    return `${lines.map((line) => line.startsWith("  ") ? line.slice(2) : line).join("\n")}\n`;
+  }
+  return `${source.replace(/\n?$/, "")}\n`;
+}
+
 function documentedApis(source, startHeading, endHeading) {
   const start = source.indexOf(`## ${startHeading}`);
   const end = source.indexOf(`## ${endHeading}`);
@@ -184,6 +211,9 @@ function checkStaleDocsText() {
     /Every export from the lessmark packages/,
     /The CLI prints a line:column pointer for each error/,
     /CommonMark to lessmark\./,
+    /fenced \{\{code:`{3}\}\} blocks/,
+    /LessmarkError[\s\S]{0,120}\{\{code:code\}\}/,
+    /2\|I\/O error/,
     /\bv0\b/,
     /ast-v0/,
     /language-v0/,

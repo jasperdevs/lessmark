@@ -48,8 +48,8 @@ subset to lessmark source on a best-effort basis.
 
 @api name="toMarkdown"
 {{code:toMarkdown(source: string): string}}. Convert a lessmark
-document to CommonMark. Some typed blocks have no Markdown equivalent
-and emit a comment.
+document to Markdown. Typed blocks are represented with the closest
+Markdown shape; site-only metadata may be omitted or emitted as comments.
 
 @api name="highlightLessmark"
 {{code:highlightLessmark(source: string): string}}. Return HTML with
@@ -62,8 +62,9 @@ Highlight code in a fenced block. Used by the renderer for
 
 @api name="LessmarkError"
 {{code:class LessmarkError extends Error}}. Carries
-{{code:line}}, {{code:column}}, and {{code:code}} fields. Thrown by
-parse and surfaced by validation.
+{{code:line}} and {{code:column}} fields. Thrown by parse and surfaced
+by validation. Stable error codes are returned by {{code:validateSource}}
+and {{code:errorCodeForMessage}}.
 
 @api name="CORE_BLOCKS"
 A {{code:Set}} of strings. The names of every typed block in the language
@@ -104,14 +105,14 @@ validate in one call.
 subset to lessmark source on a best-effort basis.
 
 @api name="to_markdown"
-{{code:to_markdown(source: str) -> str}}. Lessmark to CommonMark.
+{{code:to_markdown(source: str) -> str}}. Lessmark to Markdown.
 
 @api name="get_capabilities"
 {{code:get_capabilities() -> dict}}. Build and contract version.
 
 @api name="LessmarkError"
 {{code:class LessmarkError(Exception)}}. Carries {{code:line}},
-{{code:column}}, and {{code:code}}.
+and {{code:column}}.
 
 @api name="CORE_BLOCKS"
 {{code:frozenset[str]}}. Names of every typed block.
@@ -155,7 +156,7 @@ Convert a safe Markdown subset to lessmark source on a best-effort basis.
 
 @api name="to_markdown"
 {{code:to_markdown(source: &str) -> Result of String or LessmarkError}}.
-Lessmark to CommonMark.
+Lessmark to Markdown.
 
 ## CLI
 

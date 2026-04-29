@@ -43,5 +43,4 @@ lessmark info --json
 
 @table columns="Code|Meaning"
 0|Success
-1|Validation or parse error
-2|I/O error
+1|Parse, validation, usage, or I/O failure

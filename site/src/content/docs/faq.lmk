@@ -43,10 +43,11 @@ lessmark fits.
 ## Can I use it for blogs and articles?
 
 Yes. The shorthand layer accepts the Markdown forms ({{code:**bold**}},
-{{code:[link](url)}}, fenced {{code:```}} blocks) so writing prose is no
-slower than writing Markdown. Run {{code:lessmark format}} to canonicalize.
-See the {{link:Blog Post Maker|examples/blog-maker}} example for a
-template you can copy.
+{{code:[link](url)}}, backtick inline code, and footnote pointers) so
+writing prose is no slower than writing Markdown. Use {{code:@code}} for
+code blocks and run {{code:lessmark format}} to canonicalize. See the
+{{link:Blog Post Maker|examples/blog-maker}} example for a template you
+can copy.
 
 ## Does it have a renderer?
 

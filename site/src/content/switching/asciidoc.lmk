@@ -8,7 +8,8 @@ formatting uses double-curly-brace functions.
 ## Headings
 
 AsciiDoc {{code:=}} headings become {{code:#}} headings. Levels still go
-one through six, and a blank line is required after every heading.
+one through six, and the formatter writes a blank line after every
+heading.
 
 @code lang="asciidoc"
 = Document title

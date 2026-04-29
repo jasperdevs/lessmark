@@ -13,7 +13,7 @@ hash, and raw HTML or JSX is forbidden everywhere.
 ## Headings
 
 ATX-style only, levels one through six, single space after the hash.
-Always leave a blank line after a heading.
+The formatter leaves a blank line after each heading.
 
 @code lang="lessmark"
   # Document title
@@ -26,7 +26,7 @@ Always leave a blank line after a heading.
 Plain text is the normal paragraph syntax. Separate paragraphs with a
 blank line. The parser records each one as a {{code:paragraph}} block.
 Use {{code:@paragraph}} only when prose must start with a reserved
-block sigil. {{code:lessmark format}} writes ordinary plain paragraphs.
+block sigil; {{code:lessmark format}} writes ordinary plain paragraphs.
 
 Blank lines end prose blocks. For multiple paragraphs, write multiple
 plain paragraphs instead of hiding paragraph breaks inside one block.
@@ -138,10 +138,9 @@ Headers live in the {{code:columns}} attribute. Body rows are
 pipe-separated cells; empty cells are allowed.
 
 @code lang="lessmark"
-  @table columns="Code|Meaning"
-  0|Success
-  1|Validation error
-  2|I/O error
+@table columns="Code|Meaning"
+0|Success
+1|Parse, validation, usage, or I/O failure
 
 ## Quotes
 

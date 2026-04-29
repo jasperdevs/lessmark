@@ -19,8 +19,8 @@ In Lessmark, this paragraph can also sit in the document.
 ## Headings
 
 Only ATX-style headings ({{code:#}} through {{code:######}}) are accepted.
-Setext-style underlined headings are not. A blank line after every heading
-is required.
+Setext-style underlined headings are not. The formatter writes a blank
+line after every heading.
 
 ## Emphasis and inline code
 

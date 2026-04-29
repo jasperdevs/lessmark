@@ -75,8 +75,7 @@ Embedding a script tag in any block body is a parse error.
 
 @table columns="Code|Meaning|Exit"
 0|Success|exits 0
-1|Validation or parse error|exits 1
-2|I/O error|exits 2
+1|Parse, validation, usage, or I/O failure|exits 1
 
 ## Code blocks
 
