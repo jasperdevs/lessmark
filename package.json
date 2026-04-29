@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspace lessmark && cargo check --workspace",
+    "build:site": "npm run build --prefix site",
     "test": "npm run test:js && npm run test:python && npm run test:rust",
     "test:js": "npm run test --workspace lessmark",
     "test:python": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PYTHONPATH='packages/python/src'; python -m unittest discover packages/python/tests\"",
