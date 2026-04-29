@@ -1,0 +1,64 @@
+# From Typst
+
+@summary
+Typst is a programmable typesetting system. Lessmark is not a typesetter; it is a strict document source format for parsing, validation, rendering, and agent context.
+
+## What changes
+
+Typst controls layout and produces polished documents. Lessmark describes content structure and leaves layout to the renderer.
+
+## Headings
+
+Typst uses equals signs for headings. Lessmark uses {{code:#}} headings.
+
+@code lang="typst"
+= Release notes
+== Highlights
+
+@code lang="lessmark"
+  # Release notes
+  ## Highlights
+
+## Functions and scripting
+
+Typst lets markup call functions and define values. Lessmark has no scripting surface.
+
+@code lang="typst"
+#let product = "lessmark"
+This page documents #product.
+
+@code lang="lessmark"
+This page documents lessmark.
+
+## Blocks
+
+Typst layout blocks should become semantic Lessmark blocks, not renderer instructions.
+
+@code lang="typst"
+#quote(block: true)[
+  Keep source simple.
+]
+
+@code lang="lessmark"
+  @quote
+  Keep source simple.
+
+## Math
+
+Typst has native math syntax. Lessmark stores math as literal text and lets a renderer decide how to display it.
+
+@code lang="typst"
+$ E = m c^2 $
+
+@code lang="lessmark"
+  @math notation="tex"
+  E = mc^2
+
+## When to keep Typst
+
+Keep Typst for print-quality layout, equations, PDF output, and documents where typography is the product. Use Lessmark for web docs, data-like content, and agent-readable files where parse stability matters more than page layout.
+
+## Reference
+
+@link href="https://typst.app/docs/tutorial/formatting/"
+Typst formatting tutorial

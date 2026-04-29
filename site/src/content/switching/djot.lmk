@@ -1,0 +1,66 @@
+# From Djot
+
+@summary
+Djot fixes many Markdown ambiguities with a fuller light-markup syntax. Lessmark takes a stricter route: fewer spellings, named blocks, and no raw content containers.
+
+## What changes
+
+Djot is close to Markdown but more coherent. Lessmark is less flexible on purpose. It turns structure into named blocks instead of general containers and attributes on any element.
+
+## Headings and prose
+
+Both formats keep plain prose readable. Djot heading markers use one or more {{code:#}} characters. Lessmark uses the same heading shape and canonical blank-line formatting.
+
+@code lang="djot"
+# Release notes
+
+Plain prose with _emphasis_ and *strong text*.
+
+@code lang="lessmark"
+# Release notes
+
+Plain prose with {{em:emphasis}} and {{strong:strong text}}.
+
+## Divs and containers
+
+Djot has generic containers. Lessmark uses named blocks with fixed attributes.
+
+@code lang="djot"
+::: warning
+Do not publish unreviewed examples.
+:::
+
+@code lang="lessmark"
+  @callout kind="warning"
+  Do not publish unreviewed examples.
+
+## Attributes
+
+Djot can attach attributes broadly. Lessmark only accepts attributes declared for the block.
+
+@code lang="djot"
+[Install guide]{#install .primary}
+
+@code lang="lessmark"
+{{link:Install guide|docs/getting-started}}
+
+## Tables, footnotes, math, and diagrams
+
+Use Lessmark's typed blocks for structures that Djot writes as built-in light markup.
+
+@code lang="lessmark"
+  @table columns="Feature|Status"
+  Footnotes|supported
+  Math|supported
+
+  @math notation="tex"
+  E = mc^2
+
+## When to keep Djot
+
+Keep Djot when you want a broad Markdown-like language with attributes and containers. Use Lessmark when the goal is a smaller grammar, stable AST shape, and source that rejects unknown structure.
+
+## Reference
+
+@link href="https://djot.net/"
+Djot syntax and design notes

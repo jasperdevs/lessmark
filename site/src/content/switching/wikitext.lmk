@@ -1,0 +1,65 @@
+# From Wikitext
+
+@summary
+MediaWiki wikitext is built for collaborative wiki pages, templates, links, and parser extensions. Lessmark is for smaller, fixed-grammar documents without template expansion.
+
+## Headings
+
+Wikitext equals-sign headings become {{code:#}} headings.
+
+@code lang="wikitext"
+= Release notes =
+== Highlights ==
+
+@code lang="lessmark"
+  # Release notes
+  ## Highlights
+
+## Links
+
+Internal wiki links become references when the target exists in the same document. External links become safe inline links.
+
+@code lang="wikitext"
+[[Install guide]]
+[https://lessmark.org Lessmark]
+
+@code lang="lessmark"
+{{link:Install guide|docs/getting-started}}
+{{link:Lessmark|https://lessmark.org}}
+
+## Lists
+
+Wikitext uses leading punctuation for list depth. Lessmark uses {{code:@list}} and two-space nesting.
+
+@code lang="wikitext"
+* one
+** nested
+* two
+
+@code lang="lessmark"
+  @list kind="unordered"
+  - one
+    - nested
+  - two
+
+## Templates
+
+Wikitext templates have no Lessmark equivalent. Render or expand templates before conversion, then write the final content as Lessmark blocks.
+
+@code lang="wikitext"
+{{Infobox
+| name = Lessmark
+}}
+
+@code lang="lessmark"
+  @metadata key="name"
+  Lessmark
+
+## When to keep Wikitext
+
+Keep wikitext inside MediaWiki, especially when templates, categories, parser functions, or wiki link databases matter. Use Lessmark when documents should be portable source files with no template engine.
+
+## Reference
+
+@link href="https://www.mediawiki.org/wiki/Help:Wikitext_examples"
+MediaWiki wikitext examples

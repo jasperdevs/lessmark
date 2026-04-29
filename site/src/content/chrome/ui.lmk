@@ -90,8 +90,26 @@ Markdown
 @metadata key="switching.mdx"
 MDX
 
+@metadata key="switching.markdoc"
+Markdoc
+
+@metadata key="switching.djot"
+Djot
+
 @metadata key="switching.asciidoc"
 AsciiDoc
 
 @metadata key="switching.rst"
 reStructuredText
+
+@metadata key="switching.typst"
+Typst
+
+@metadata key="switching.org"
+Org mode
+
+@metadata key="switching.textile"
+Textile
+
+@metadata key="switching.wikitext"
+Wikitext

@@ -1,6 +1,10 @@
 # Switching
 
 @summary
-Coming from another format? Pick a tab below for a side-by-side mapping
-into lessmark.
+Coming from Markdown, MDX, Markdoc, Djot, AsciiDoc, reStructuredText,
+Typst, Org mode, Textile, or wikitext? Pick a tab below for a practical
+mapping into lessmark.
 
+These guides focus on real migration choices: what maps directly, what
+should be rewritten as typed blocks, and what has no Lessmark equivalent
+because it depends on a renderer, template engine, editor, or runtime.

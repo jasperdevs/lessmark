@@ -105,7 +105,7 @@ export const ui: string = readByName(chromeModules, "ui");
 export const uiText: Record<string, string> = readMetadata(ui);
 export const playgroundDefault: string = readByName(playgroundModules, "default");
 
-const SWITCHING_ORDER = ["markdown", "mdx", "asciidoc", "rst"];
+const SWITCHING_ORDER = ["markdown", "mdx", "markdoc", "djot", "asciidoc", "rst", "typst", "org", "textile", "wikitext"];
 export const switching: { slug: string; label: string; source: string }[] =
   SWITCHING_ORDER.map((slug) => ({
     slug,

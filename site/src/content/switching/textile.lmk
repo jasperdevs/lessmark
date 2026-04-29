@@ -1,0 +1,59 @@
+# From Textile
+
+@summary
+Textile is an older lightweight markup language for blogs and CMS content. Lessmark keeps the plain-text readability but replaces punctuation-heavy shortcuts with typed blocks.
+
+## Headings
+
+Textile heading prefixes become {{code:#}} headings.
+
+@code lang="textile"
+h1. Release notes
+
+h2. Highlights
+
+@code lang="lessmark"
+  # Release notes
+  ## Highlights
+
+## Inline formatting
+
+Textile uses compact punctuation. Lessmark accepts readable Markdown-like shortcuts and canonical typed inline functions.
+
+@code lang="textile"
+*bold* _emphasis_ @inline code@
+
+@code lang="lessmark"
+{{strong:bold}} {{em:emphasis}} {{code:inline code}}
+
+## Block quotes
+
+@code lang="textile"
+bq. Keep source simple.
+
+@code lang="lessmark"
+  @quote
+  Keep source simple.
+
+## Tables
+
+Textile table rows become {{code:@table}}.
+
+@code lang="textile"
+|_. Code |_. Meaning |
+| 0 | Success |
+| 1 | Error |
+
+@code lang="lessmark"
+  @table columns="Code|Meaning"
+  0|Success
+  1|Error
+
+## When to keep Textile
+
+Keep Textile for legacy CMS content that already renders correctly. Use Lessmark for new content that needs validation, stable formatting, and a predictable AST.
+
+## Reference
+
+@link href="https://textile-lang.com/"
+Textile documentation

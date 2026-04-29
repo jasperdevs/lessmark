@@ -1,0 +1,57 @@
+# From Markdoc
+
+@summary
+Markdoc extends Markdown with tags, variables, functions, and custom rendering. Lessmark keeps the authoring surface fixed: typed blocks in, predictable AST out.
+
+## What changes
+
+Markdoc is strongest when a docs site needs configurable custom tags. Lessmark is a better fit when the document itself should stay portable across renderers and AI agents without loading a project-specific tag config.
+
+## Tags
+
+Markdoc tags become built-in typed blocks. A custom callout tag maps directly to {{code:@callout}}.
+
+@code lang="markdoc"
+{% callout type="warning" title="Careful" %}
+Hotkey changes break old workflows.
+{% /callout %}
+
+@code lang="lessmark"
+  @callout kind="warning" title="Careful"
+  Hotkey changes break old workflows.
+
+## Variables and functions
+
+Lessmark has no runtime interpolation. Values should be written into the document before parsing.
+
+@code lang="markdoc"
+Version {% $version %} ships today.
+
+{% if equals($plan, "pro") %}
+Advanced settings are enabled.
+{% /if %}
+
+@code lang="lessmark"
+Version 1.2.0 ships today.
+
+@callout kind="note"
+Advanced settings are enabled.
+
+## Attributes
+
+Markdoc attributes become fixed Lessmark attributes only when the target block supports them. Unknown attributes are validation errors.
+
+@code lang="markdoc"
+{% image src="assets/logo.png" alt="Logo" width=240 /%}
+
+@code lang="lessmark"
+  @image src="assets/logo.png" alt="Logo" caption="Logo"
+
+## When to keep Markdoc
+
+Keep Markdoc if the whole docs system is built around custom tags, conditional content, and renderer configuration. Use Lessmark when you want documents that are readable source, safe by default, and parse the same way outside the site that renders them.
+
+## Reference
+
+@link href="https://markdoc.dev/docs/syntax"
+Markdoc syntax documentation

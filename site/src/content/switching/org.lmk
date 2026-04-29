@@ -1,0 +1,65 @@
+# From Org mode
+
+@summary
+Org mode is excellent for Emacs-centered notes, planning, TODOs, and exports. Lessmark keeps the useful document shapes but removes editor-specific behavior and runtime directives.
+
+## Headings and tasks
+
+Org headings can carry TODO state. Lessmark separates headings from task blocks.
+
+@code lang="org"
+* TODO Update docs
+The switching guide needs more examples.
+
+@code lang="lessmark"
+  # Update docs
+
+  @task status="todo"
+  Add more switching examples.
+
+## Metadata
+
+Org keyword lines become typed metadata blocks.
+
+@code lang="org"
+#+title: Release notes
+#+author: Docs team
+
+@code lang="lessmark"
+  @metadata key="title"
+  Release notes
+
+  @metadata key="author"
+  Docs team
+
+## Source blocks
+
+Org source blocks map to {{code:@code}}.
+
+@code lang="org"
+#+begin_src js
+console.log("hello");
+#+end_src
+
+@code lang="lessmark"
+  @code lang="js"
+  console.log("hello");
+
+## Links
+
+Org links become inline Lessmark links when they use a safe target.
+
+@code lang="org"
+[[https://lessmark.org][Lessmark]]
+
+@code lang="lessmark"
+{{link:Lessmark|https://lessmark.org}}
+
+## When to keep Org mode
+
+Keep Org if Emacs agenda, capture, TODO workflows, or Babel execution are central. Use Lessmark when the same file must be consumed by packages, sites, AI agents, and editors without Emacs-specific semantics.
+
+## Reference
+
+@link href="https://orgmode.org/quickstart.html"
+Org mode quickstart
