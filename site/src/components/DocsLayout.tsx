@@ -33,13 +33,17 @@ const DOC_MARKS = {
   faq: PixelQuestion,
 };
 
+export function getDocMark(slug: string) {
+  return DOC_MARKS[slug as keyof typeof DOC_MARKS] || PixelDoc;
+}
+
 export function DocsLayout({ children }: Props) {
   return (
     <div className="mx-auto max-w-[1080px] px-4 sm:px-6 py-8 sm:py-10 grid gap-8 md:gap-10 md:grid-cols-[220px_1fr]">
       <aside className="md:sticky md:top-20 md:self-start">
         <nav className="flex flex-wrap gap-x-4 gap-y-1 text-[14px] md:flex-col">
           {docs.map((d) => {
-            const Mark = DOC_MARKS[d.slug as keyof typeof DOC_MARKS] || PixelDoc;
+            const Mark = getDocMark(d.slug);
             return (
               <NavLink
                 key={d.slug}

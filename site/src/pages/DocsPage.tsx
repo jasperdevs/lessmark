@@ -1,12 +1,11 @@
 import { useEffect } from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
-import { DocsLayout } from "@/components/DocsLayout";
+import { DocsLayout, getDocMark } from "@/components/DocsLayout";
 import { Renderer } from "@/components/Renderer";
 import { SwitchingTabs } from "@/components/SwitchingTabs";
 import { docs, getDoc, sourceId, uiText } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
 import { ArrowRightIcon } from "@/components/Icons";
-import { PixelDoc, PixelSpark } from "@/components/PixelIcons";
 
 export function DocsPage() {
   const { slug } = useParams();
@@ -24,6 +23,8 @@ export function DocsPage() {
   const idx = docs.findIndex((d) => d.slug === slug);
   const prev = idx > 0 ? docs[idx - 1] : null;
   const next = idx < docs.length - 1 ? docs[idx + 1] : null;
+  const PrevMark = prev ? getDocMark(prev.slug) : null;
+  const NextMark = next ? getDocMark(next.slug) : null;
 
   return (
     <DocsLayout>
@@ -38,7 +39,7 @@ export function DocsPage() {
             className="text-fg-muted hover:text-fg transition-colors inline-flex flex-col"
           >
             <span className="text-[12px] text-fg-faint mb-1 inline-flex items-center gap-1">
-              <PixelDoc className="size-3.5" />
+              {PrevMark ? <PrevMark className="size-3.5" /> : null}
               {uiText["docs.previous"] || "previous"}
             </span>
             <span>{prev.title}</span>
@@ -52,7 +53,7 @@ export function DocsPage() {
             className="text-fg-muted hover:text-fg transition-colors text-right inline-flex flex-col"
           >
             <span className="text-[12px] text-fg-faint mb-1 inline-flex items-center justify-end gap-1">
-              <PixelSpark className="size-3.5" />
+              {NextMark ? <NextMark className="size-3.5" /> : null}
               {uiText["docs.next"] || "next"}
             </span>
             <span className="inline-flex items-center gap-1">
