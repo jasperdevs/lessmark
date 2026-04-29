@@ -35,13 +35,13 @@ export function DocsPage() {
         {prev ? (
           <Link
             to={`/docs/${prev.slug}`}
-            className="text-fg-muted hover:text-fg transition-colors"
+            className="text-fg-muted hover:text-fg transition-colors inline-flex flex-col"
           >
             <span className="text-[12px] text-fg-faint mb-1 inline-flex items-center gap-1">
               <PixelDoc className="size-3.5" />
               {uiText["docs.previous"] || "previous"}
             </span>
-            {prev.title}
+            <span>{prev.title}</span>
           </Link>
         ) : (
           <span />
