@@ -37,11 +37,11 @@ type AstNode = {
 
 function parseFooter(source: string): FooterModel {
   const fallback: FooterModel = {
-    brand: "lessmark",
+    brand: "",
     links: [],
-    darkLabel: "dark mode",
-    lightLabel: "light mode",
-    sourceButton: "this site was built with lessmark →",
+    darkLabel: "",
+    lightLabel: "",
+    sourceButton: "",
   };
   if (!source) return fallback;
   let ast: { children: AstNode[] };

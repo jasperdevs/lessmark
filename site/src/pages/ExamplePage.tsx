@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Playground } from "@/components/Playground";
-import { examples, getExample, sourceId, uiText } from "@/lib/content";
+import { examples, getExample, sourceId, uiString } from "@/lib/content";
 import { useLiveSourceCtx } from "@/lib/live-source";
 import { ArrowRightIcon } from "@/components/Icons";
 import { PixelDoc } from "@/components/PixelIcons";
@@ -34,7 +34,7 @@ export function ExamplePage() {
             to="/examples"
             className="text-fg-muted hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
           >
-            ← {uiText["examples.back"] || "all examples"}
+            ← {uiString("examples.back")}
           </Link>
           <span className="text-fg-faint italic inline-flex items-center gap-1.5">
             <PixelDoc className="size-3.5" />

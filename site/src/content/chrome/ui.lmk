@@ -1,7 +1,16 @@
 # UI
 
+@metadata key="site.title"
+lessmark <M
+
+@metadata key="site.description"
+The markdown alternative that agents (and humans) love.
+
 @metadata key="header.brand"
 lessmark
+
+@metadata key="header.home-label"
+lessmark home
 
 @metadata key="home.docs-link"
 getting started
@@ -53,6 +62,9 @@ edits update the page live
 
 @metadata key="source.modified"
 modified
+
+@metadata key="code.copy-label"
+Copy code
 
 @metadata key="playground.reset"
 reset
@@ -113,3 +125,114 @@ Textile
 
 @metadata key="switching.wikitext"
 Wikitext
+
+@metadata key="editor.attribute-detail"
+attribute
+
+@metadata key="editor.block.summary"
+Document summary. Body is plain inline text.
+
+@metadata key="editor.block.decision"
+Decision block. Required: id="lowercase-slug". The id becomes a local reference target.
+
+@metadata key="editor.block.constraint"
+Constraint body. Use for rules the document must preserve.
+
+@metadata key="editor.block.task"
+Task block. Required: status="todo|doing|done|blocked".
+
+@metadata key="editor.block.risk"
+Risk block. Required: level="low|medium|high|critical".
+
+@metadata key="editor.block.depends-on"
+Dependency block. Required: target="decision-id".
+
+@metadata key="editor.block.code"
+Literal code block. Optional: lang="js". Inline syntax is not parsed inside the body.
+
+@metadata key="editor.block.example"
+Literal example block. Inline syntax is not parsed inside the body.
+
+@metadata key="editor.block.list"
+List block. Required: kind="unordered|ordered". Body uses one "- " marker per item; nest with two spaces.
+
+@metadata key="editor.block.table"
+Table block. Required: columns="Name|Value". Body rows must match the column count.
+
+@metadata key="editor.block.image"
+Image block. Required: src and alt. Optional: caption.
+
+@metadata key="editor.block.math"
+Math block. Required: notation="tex|asciimath". Body is literal.
+
+@metadata key="editor.block.diagram"
+Diagram block. Required: kind="mermaid|graphviz|plantuml". Body is literal.
+
+@metadata key="editor.block.footnote"
+Footnote block. Required: id="lowercase-slug". Can be referenced with {{code:{{footnote:id}}}}.
+
+@metadata key="editor.block.reference"
+Reference block. Required: target="local-anchor". Target must resolve.
+
+@metadata key="editor.block.link"
+Standalone link block. Required: href. Body is the label.
+
+@metadata key="editor.block.callout"
+Callout block. Required: kind="note|tip|warning|caution". Optional: title.
+
+@metadata key="editor.block.quote"
+Quote block. Optional: cite.
+
+@metadata key="editor.block.definition"
+Definition block. Required: term.
+
+@metadata key="editor.block.metadata"
+Metadata block. Required: key.
+
+@metadata key="editor.block.page"
+Page metadata. Optional: title, output. Body is not allowed.
+
+@metadata key="editor.block.nav"
+Navigation block. Required: label, href. Body is not allowed.
+
+@metadata key="editor.block.api"
+API block. Required: name.
+
+@metadata key="editor.block.separator"
+Separator block. No attributes or body.
+
+@metadata key="editor.block.toc"
+Table of contents marker. No body.
+
+@metadata key="editor.inline.strong"
+{{code:{{strong:text}}}} makes text strong.
+
+@metadata key="editor.inline.em"
+{{code:{{em:text}}}} emphasizes text.
+
+@metadata key="editor.inline.code"
+{{code:{{code:text}}}} marks inline code.
+
+@metadata key="editor.inline.kbd"
+{{code:{{kbd:key}}}} marks keyboard input.
+
+@metadata key="editor.inline.del"
+{{code:{{del:text}}}} marks deleted text.
+
+@metadata key="editor.inline.mark"
+{{code:{{mark:text}}}} highlights text.
+
+@metadata key="editor.inline.sup"
+{{code:{{sup:text}}}} marks superscript text.
+
+@metadata key="editor.inline.sub"
+{{code:{{sub:text}}}} marks subscript text.
+
+@metadata key="editor.inline.ref"
+{{code:{{ref:Label|target}}}} links to a local heading, decision id, or footnote id.
+
+@metadata key="editor.inline.footnote"
+{{code:{{footnote:id}}}} links to a matching footnote id.
+
+@metadata key="editor.inline.link"
+{{code:{{link:Label|href}}}} creates a safe external or project-relative link.

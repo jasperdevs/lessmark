@@ -37,6 +37,7 @@ checkReadmeCliExamples();
 checkReadmeCliBehavior();
 checkApiReference();
 checkLessmarkCodeExamples();
+checkSiteIsContentBackedByLessmark();
 checkStaleDocsText();
 
 console.log("docs ok");
@@ -148,6 +149,25 @@ function checkLessmarkCodeExamples() {
       const errors = validateSource(body);
       assert.deepEqual(errors, [], `${relative(root, file)} lessmark code example ${index} failed validation`);
     }
+  }
+}
+
+function checkSiteIsContentBackedByLessmark() {
+  const contentFiles = walk(siteContentDir)
+    .map((file) => relative(siteContentDir, file).split(sep).join("/"));
+  const nonLessmarkContent = contentFiles.filter((file) => extname(file).toLowerCase() !== ".lmk");
+  assert.deepEqual(nonLessmarkContent, [], `site/src/content must only contain .lmk files: ${nonLessmarkContent.join(", ")}`);
+
+  const index = readFileSync(join(root, "site", "index.html"), "utf8");
+  assert.match(index, /<title><\/title>/, "site title must be set from chrome/ui.lmk at runtime");
+  assert.match(index, /<meta name="description" content="" \/>/, "site description must be set from chrome/ui.lmk at runtime");
+
+  const sourceFiles = walk(join(root, "site", "src"))
+    .filter((file) => [".ts", ".tsx"].includes(extname(file).toLowerCase()))
+    .filter((file) => !file.endsWith(`${sep}lessmark.d.ts`));
+  for (const file of sourceFiles) {
+    const source = readFileSync(file, "utf8");
+    assert.ok(!/\|\|\s*"[^"]*[A-Za-z][^"]*"/.test(source), `${relative(root, file)} contains hardcoded UI fallback text`);
   }
 }
 

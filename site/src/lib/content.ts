@@ -103,13 +103,18 @@ export const footer: string = readByName(chromeModules, "footer");
 export const header: string = readByName(chromeModules, "header");
 export const ui: string = readByName(chromeModules, "ui");
 export const uiText: Record<string, string> = readMetadata(ui);
+export function uiString(key: string): string {
+  const value = uiText[key];
+  if (!value) throw new Error(`Missing UI text: ${key}`);
+  return value;
+}
 export const playgroundDefault: string = readByName(playgroundModules, "default");
 
 const SWITCHING_ORDER = ["markdown", "mdx", "markdoc", "djot", "asciidoc", "rst", "typst", "org", "textile", "wikitext"];
 export const switching: { slug: string; label: string; source: string }[] =
   SWITCHING_ORDER.map((slug) => ({
     slug,
-    label: uiText[`switching.${slug}`] ?? slug,
+    label: uiString(`switching.${slug}`),
     source: readByName(switchingModules, slug),
   })).filter((t) => t.source);
 

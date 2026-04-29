@@ -1,4 +1,5 @@
 import { useEffect, type RefObject } from "react";
+import { uiString } from "@/lib/content";
 
 const COPY_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
 const CHECK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
@@ -46,7 +47,7 @@ export function useCodeCopyButtons(
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "code-copy-btn";
-      btn.setAttribute("aria-label", "Copy code");
+      btn.setAttribute("aria-label", uiString("code.copy-label"));
       btn.innerHTML = COPY_SVG;
       let timer: number | undefined;
       const onClick = async (e: MouseEvent) => {

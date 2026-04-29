@@ -10,7 +10,7 @@ import {
   TerminalIcon,
 } from "@/components/PixelIcons";
 import { Link } from "react-router-dom";
-import { sourceId, playgroundDefault, uiText } from "@/lib/content";
+import { sourceId, playgroundDefault, uiString } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
 import { useCodeCopyButtons } from "@/lib/code-copy";
 import { useMermaid } from "@/lib/mermaid-render";
@@ -25,8 +25,6 @@ type AstNode = {
 };
 
 const HERO_DEMO = playgroundDefault;
-const text = (key: string, fallback: string) => uiText[key] || fallback;
-
 type Section = {
   slug: string;
   heading: string;
@@ -104,7 +102,7 @@ export function Home() {
           <span
             className="font-sans font-bold text-[clamp(36px,5vw,56px)] leading-none tracking-[-0.02em] text-fg"
           >
-            {text("header.brand", "lessmark")}
+            {uiString("header.brand")}
           </span>
         </div>
         <h1 className="font-sans font-bold text-[clamp(28px,4vw,42px)] leading-[1.15] tracking-[-0.02em] max-w-[24ch] text-fg">
@@ -114,13 +112,13 @@ export function Home() {
           <Link to="/docs/getting-started" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
             <span className="inline-flex items-center gap-1.5">
               <PixelMonoDoc className="size-4 text-current" />
-              {text("home.docs-link", "getting started")}
+              {uiString("home.docs-link")}
             </span>
           </Link>
           <Link to="/playground" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
             <span className="inline-flex items-center gap-1.5">
               <PixelMonoPlayground className="size-4 text-current" />
-              {text("home.playground-link", "playground")}
+              {uiString("home.playground-link")}
             </span>
           </Link>
         </div>
@@ -140,7 +138,7 @@ export function Home() {
                 to="/playground"
                 className="text-fg-faint hover:text-fg transition-colors inline-flex items-center gap-1.5"
               >
-                {text("home.open-playground", "open full playground")}
+                {uiString("home.open-playground")}
                 <ArrowRightIcon className="size-3" />
               </Link>
             }
@@ -171,7 +169,7 @@ export function Home() {
         <h2 className="font-sans font-bold text-[20px] tracking-[-0.01em] text-fg mb-3">
           <span className="inline-flex items-center gap-2">
             <PixelHeart className="size-5" />
-            {text("home.next-heading", "Next")}
+            {uiString("home.next-heading")}
           </span>
         </h2>
         <Link
@@ -179,12 +177,12 @@ export function Home() {
           className="group flex items-baseline gap-2 text-fg hover:text-fg"
         >
           <span className="text-[15px] underline underline-offset-4 decoration-fg-faint group-hover:decoration-fg">
-            {text("home.next-link", "Read the getting-started guide")}
+            {uiString("home.next-link")}
           </span>
           <ArrowRightIcon className="size-3.5 text-fg-muted group-hover:text-fg transition-colors" />
         </Link>
         <p className="text-[14px] text-fg-faint mt-1">
-          {text("home.next-summary", "install a package, write your first document")}
+          {uiString("home.next-summary")}
         </p>
       </section>
     </main>

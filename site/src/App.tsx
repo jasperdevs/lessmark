@@ -7,7 +7,7 @@ import { PlaygroundPage } from "@/pages/PlaygroundPage";
 import { DocsPage } from "@/pages/DocsPage";
 import { ExamplesIndex } from "@/pages/ExamplesIndex";
 import { ExamplePage } from "@/pages/ExamplePage";
-import { allSources, docs } from "@/lib/content";
+import { allSources, docs, uiString } from "@/lib/content";
 import { LiveSourceProvider } from "@/lib/live-source";
 
 function ScrollToTop() {
@@ -19,6 +19,13 @@ function ScrollToTop() {
 }
 
 function App() {
+  useEffect(() => {
+    document.title = uiString("site.title");
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute("content", uiString("site.description"));
+  }, []);
+
   return (
     <LiveSourceProvider defaults={allSources}>
       <ScrollToTop />

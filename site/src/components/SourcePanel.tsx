@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LessmarkEditor } from "@/components/LessmarkEditor";
-import { uiText } from "@/lib/content";
+import { uiString } from "@/lib/content";
 import { useLiveSourceCtx } from "@/lib/live-source";
 
 export type PanelFile = { id: string; name: string };
@@ -36,7 +36,7 @@ export function SourcePanel({ open, files, onClose }: Props) {
   return (
     <aside
       role="dialog"
-      aria-label={uiText["source.panel-label"] || "Edit page source"}
+      aria-label={uiString("source.panel-label")}
       aria-hidden={!open}
       className={`fixed inset-y-0 right-0 z-50 w-[min(560px,100vw)] bg-code-bg text-code-fg border-l border-code-line flex flex-col transition-transform duration-200 ease-out ${
         open ? "translate-x-0" : "translate-x-full"
@@ -67,22 +67,22 @@ export function SourcePanel({ open, files, onClose }: Props) {
               onClick={() => ctx.reset(activeId)}
               className="px-2 h-8 rounded-md text-code-faint hover:text-code-fg hover:bg-code-line/40 transition-colors"
             >
-              {uiText["source.reset"] || "reset"}
+              {uiString("source.reset")}
             </button>
           )}
           <button
             type="button"
             onClick={onClose}
             className="px-2 h-8 rounded-md text-code-faint hover:text-code-fg hover:bg-code-line/40 transition-colors"
-            aria-label={uiText["source.close-label"] || "Close source panel"}
+            aria-label={uiString("source.close-label")}
           >
-            {uiText["source.close"] || "close"}
+            {uiString("source.close")}
           </button>
         </div>
       </div>
       <div className="px-3 py-1.5 border-b border-code-line text-[11px] font-mono text-code-faint flex items-center justify-between">
-        <span>{uiText["source.live-note"] || "edits update the page live"}</span>
-        {dirty && <span className="text-[var(--code-key)]">{uiText["source.modified"] || "modified"}</span>}
+        <span>{uiString("source.live-note")}</span>
+        {dirty && <span className="text-[var(--code-key)]">{uiString("source.modified")}</span>}
       </div>
       <LessmarkEditor value={value} onChange={(next) => ctx.set(activeId, next)} className="flex-1 overflow-hidden" />
     </aside>

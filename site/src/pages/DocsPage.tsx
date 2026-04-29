@@ -3,7 +3,7 @@ import { useParams, Navigate, Link } from "react-router-dom";
 import { DocsLayout, getDocMark } from "@/components/DocsLayout";
 import { Renderer } from "@/components/Renderer";
 import { SwitchingTabs } from "@/components/SwitchingTabs";
-import { docs, getDoc, sourceId, uiText } from "@/lib/content";
+import { docs, getDoc, sourceId, uiString } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
 import { ArrowRightIcon } from "@/components/Icons";
 
@@ -40,7 +40,7 @@ export function DocsPage() {
           >
             <span className="text-[12px] text-fg-faint mb-1 inline-flex items-center gap-1">
               {PrevMark ? <PrevMark className="size-3.5" /> : null}
-              {uiText["docs.previous"] || "previous"}
+              {uiString("docs.previous")}
             </span>
             <span>{prev.title}</span>
           </Link>
@@ -54,7 +54,7 @@ export function DocsPage() {
           >
             <span className="text-[12px] text-fg-faint mb-1 inline-flex items-center justify-end gap-1">
               {NextMark ? <NextMark className="size-3.5" /> : null}
-              {uiText["docs.next"] || "next"}
+              {uiString("docs.next")}
             </span>
             <span className="inline-flex items-center gap-1">
               {next.title}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { formatLessmark, parseLessmark, LessmarkError } from "lessmark";
 import { Renderer } from "@/components/Renderer";
 import { LessmarkEditor } from "@/components/LessmarkEditor";
-import { uiText } from "@/lib/content";
+import { uiString } from "@/lib/content";
 
 type View = "html" | "tree" | "ast";
 
@@ -113,7 +113,7 @@ export function Playground({
                 onClick={() => setSource(resetTarget!)}
                 className="text-code-faint hover:text-code-fg transition-colors rounded"
               >
-                {uiText["playground.reset"] || "reset"}
+                {uiString("playground.reset")}
               </button>
             )}
             <button
@@ -122,7 +122,7 @@ export function Playground({
               disabled={formatted === null}
               className="text-code-faint hover:text-code-fg transition-colors rounded disabled:opacity-40 disabled:hover:text-code-faint"
             >
-                {uiText["playground.format"] || "format"}
+                {uiString("playground.format")}
             </button>
           </div>
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-tl-xl bg-bg">
@@ -135,7 +135,7 @@ export function Playground({
           aria-orientation="vertical"
           onMouseDown={onSplitDown}
           className="hidden md:block relative w-px shrink-0 bg-border-soft hover:bg-fg-muted/40 transition-colors cursor-col-resize"
-          title={uiText["playground.resize-title"] || "drag to resize"}
+          title={uiString("playground.resize-title")}
         >
           <span className="absolute inset-y-0 -left-1.5 -right-1.5" />
         </div>
@@ -162,12 +162,12 @@ export function Playground({
 
 function ViewToggle({ value, onChange }: { value: View; onChange: (v: View) => void }) {
   const items: Array<{ key: View; label: string }> = [
-    { key: "html", label: uiText["playground.view-html"] || "html" },
-    { key: "tree", label: uiText["playground.view-tree"] || "tree" },
-    { key: "ast", label: uiText["playground.view-ast"] || "ast" },
+    { key: "html", label: uiString("playground.view-html") },
+    { key: "tree", label: uiString("playground.view-tree") },
+    { key: "ast", label: uiString("playground.view-ast") },
   ];
   return (
-    <div role="tablist" aria-label={uiText["playground.preview-label"] || "preview view"} className="flex items-center gap-3">
+    <div role="tablist" aria-label={uiString("playground.preview-label")} className="flex items-center gap-3">
       {items.map((item) => {
         const active = item.key === value;
         return (
@@ -221,7 +221,7 @@ function RightPane({ source, view }: { source: string; view: View }) {
         <div className="font-mono text-[13px] leading-[1.6] text-destructive">
           <div>{body.message}</div>
           <div className="text-fg-faint mt-1">
-            {uiText["playground.error-line"] || "line"} {body.line}, {uiText["playground.error-column"] || "column"} {body.column}
+            {uiString("playground.error-line")} {body.line}, {uiString("playground.error-column")} {body.column}
           </div>
         </div>
       </div>

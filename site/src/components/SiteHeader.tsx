@@ -2,7 +2,7 @@ import { useMemo, type CSSProperties } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { parseLessmark } from "lessmark";
 import { GithubIcon } from "@/components/Icons";
-import { sourceId } from "@/lib/content";
+import { sourceId, uiString } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
 
 type AstNode = {
@@ -30,13 +30,8 @@ function navStyle(index: number): CSSProperties {
 
 function parseHeader(source: string): HeaderModel {
   const fallback: HeaderModel = {
-    brand: "lessmark",
-    links: [
-      { label: "docs", href: "/docs" },
-      { label: "examples", href: "/examples" },
-      { label: "playground", href: "/playground" },
-      { label: "github", href: "https://github.com/jasperdevs/lessmark" },
-    ],
+    brand: "",
+    links: [],
   };
   if (!source) return fallback;
   let ast: { children: AstNode[] };
@@ -74,7 +69,7 @@ export function SiteHeader() {
       <div className="mx-auto max-w-[1080px] px-4 sm:px-6 flex items-center justify-between gap-4">
         <Link
           to="/"
-          aria-label={`${model.brand} home`}
+          aria-label={uiString("header.home-label")}
           className="inline-flex items-center gap-2 text-[15px] font-bold shrink-0"
         >
           <img src="/lessmarklogowhitebackground.svg" alt="" className="size-6" />

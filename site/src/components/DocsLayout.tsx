@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import type { ReactNode } from "react";
-import { docs, uiText } from "@/lib/content";
+import { docs, uiString } from "@/lib/content";
 import {
   PixelApi,
   PixelBlocks,
@@ -42,7 +42,7 @@ export function DocsLayout({ children }: Props) {
     <div className="mx-auto max-w-[1080px] px-4 sm:px-6 py-8 sm:py-10 grid gap-8 md:gap-10 md:grid-cols-[220px_1fr]">
       <aside className="md:sticky md:top-20 md:self-start">
         <div className="text-[12px] text-fg-faint mb-3">
-          {uiText["docs.sidebar-label"] || "Docs"}
+          {uiString("docs.sidebar-label")}
         </div>
         <nav className="flex flex-wrap gap-x-4 gap-y-1 text-[14px] md:flex-col">
           {docs.map((d) => {

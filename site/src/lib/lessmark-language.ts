@@ -1,3 +1,5 @@
+import { uiString } from "@/lib/content";
+
 export type LessmarkCompletion = {
   label: string;
   detail: string;
@@ -6,45 +8,45 @@ export type LessmarkCompletion = {
 };
 
 export const BLOCK_DOCS = new Map<string, string>([
-  ["summary", "Document summary. Body is plain inline text."],
-  ["decision", "Decision block. Required: id=\"lowercase-slug\". The id becomes a local reference target."],
-  ["constraint", "Constraint body. Use for rules the document must preserve."],
-  ["task", "Task block. Required: status=\"todo|doing|done|blocked\"."],
-  ["risk", "Risk block. Required: level=\"low|medium|high|critical\"."],
-  ["depends-on", "Dependency block. Required: target=\"decision-id\"."],
-  ["code", "Literal code block. Optional: lang=\"js\". Inline syntax is not parsed inside the body."],
-  ["example", "Literal example block. Inline syntax is not parsed inside the body."],
-  ["list", "List block. Required: kind=\"unordered|ordered\". Body uses one '- ' marker per item; nest with two spaces."],
-  ["table", "Table block. Required: columns=\"Name|Value\". Body rows must match the column count."],
-  ["image", "Image block. Required: src and alt. Optional: caption."],
-  ["math", "Math block. Required: notation=\"tex|asciimath\". Body is literal."],
-  ["diagram", "Diagram block. Required: kind=\"mermaid|graphviz|plantuml\". Body is literal."],
-  ["footnote", "Footnote block. Required: id=\"lowercase-slug\". Can be referenced with {{footnote:id}}."],
-  ["reference", "Reference block. Required: target=\"local-anchor\". Target must resolve."],
-  ["link", "Standalone link block. Required: href. Body is the label."],
-  ["callout", "Callout block. Required: kind=\"note|tip|warning|caution\". Optional: title."],
-  ["quote", "Quote block. Optional: cite."],
-  ["definition", "Definition block. Required: term."],
-  ["metadata", "Metadata block. Required: key."],
-  ["page", "Page metadata. Optional: title, output. Body is not allowed."],
-  ["nav", "Navigation block. Required: label, href. Body is not allowed."],
-  ["api", "API block. Required: name."],
-  ["separator", "Separator block. No attributes or body."],
-  ["toc", "Table of contents marker. No body."],
+  ["summary", uiString("editor.block.summary")],
+  ["decision", uiString("editor.block.decision")],
+  ["constraint", uiString("editor.block.constraint")],
+  ["task", uiString("editor.block.task")],
+  ["risk", uiString("editor.block.risk")],
+  ["depends-on", uiString("editor.block.depends-on")],
+  ["code", uiString("editor.block.code")],
+  ["example", uiString("editor.block.example")],
+  ["list", uiString("editor.block.list")],
+  ["table", uiString("editor.block.table")],
+  ["image", uiString("editor.block.image")],
+  ["math", uiString("editor.block.math")],
+  ["diagram", uiString("editor.block.diagram")],
+  ["footnote", uiString("editor.block.footnote")],
+  ["reference", uiString("editor.block.reference")],
+  ["link", uiString("editor.block.link")],
+  ["callout", uiString("editor.block.callout")],
+  ["quote", uiString("editor.block.quote")],
+  ["definition", uiString("editor.block.definition")],
+  ["metadata", uiString("editor.block.metadata")],
+  ["page", uiString("editor.block.page")],
+  ["nav", uiString("editor.block.nav")],
+  ["api", uiString("editor.block.api")],
+  ["separator", uiString("editor.block.separator")],
+  ["toc", uiString("editor.block.toc")],
 ]);
 
 export const INLINE_DOCS = new Map<string, string>([
-  ["strong", "{{strong:text}} makes text strong."],
-  ["em", "{{em:text}} emphasizes text."],
-  ["code", "{{code:text}} marks inline code."],
-  ["kbd", "{{kbd:key}} marks keyboard input."],
-  ["del", "{{del:text}} marks deleted text."],
-  ["mark", "{{mark:text}} highlights text."],
-  ["sup", "{{sup:text}} marks superscript text."],
-  ["sub", "{{sub:text}} marks subscript text."],
-  ["ref", "{{ref:Label|target}} links to a local heading, @decision id, or @footnote id."],
-  ["footnote", "{{footnote:id}} links to a matching @footnote id."],
-  ["link", "{{link:Label|href}} creates a safe external or project-relative link."],
+  ["strong", uiString("editor.inline.strong")],
+  ["em", uiString("editor.inline.em")],
+  ["code", uiString("editor.inline.code")],
+  ["kbd", uiString("editor.inline.kbd")],
+  ["del", uiString("editor.inline.del")],
+  ["mark", uiString("editor.inline.mark")],
+  ["sup", uiString("editor.inline.sup")],
+  ["sub", uiString("editor.inline.sub")],
+  ["ref", uiString("editor.inline.ref")],
+  ["footnote", uiString("editor.inline.footnote")],
+  ["link", uiString("editor.inline.link")],
 ]);
 
 const BLOCK_ATTRS = new Map<string, string[]>([
@@ -160,7 +162,7 @@ export function completionsFor(value: string, cursor: number): { from: number; i
       .filter((attr) => !used.has(attr) && attr.startsWith(prefix))
       .map((attr) => ({
         label: attr,
-        detail: `${header[1]} attribute`,
+        detail: `${header[1]} ${uiString("editor.attribute-detail")}`,
         insert: `${attr}=""`,
         cursorOffset: attr.length + 2,
       }));

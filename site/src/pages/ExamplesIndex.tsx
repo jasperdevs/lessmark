@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { examples, uiText } from "@/lib/content";
+import { examples, uiString } from "@/lib/content";
 import { PixelDoc, PixelSpark } from "@/components/PixelIcons";
 
 export function ExamplesIndex() {
@@ -9,7 +9,7 @@ export function ExamplesIndex() {
         <h1 className="font-bold text-[clamp(32px,4.5vw,44px)] leading-[1.1] tracking-[-0.02em] text-fg">
           <span className="inline-flex items-center gap-2">
             <PixelSpark className="size-7" />
-            {uiText["examples.index-heading"] || "Examples"}
+            {uiString("examples.index-heading")}
           </span>
         </h1>
       </div>
