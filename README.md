@@ -21,9 +21,9 @@ Lessmark is readable markup with typed blocks, canonical formatting, safe render
 
 ## Why use Lessmark instead of Markdown?
 
-Markdown is good when a human is the only reader. Lessmark is for documents that humans edit and tools need to trust.
+Markdown is good when a human is the only reader. Lessmark is for documents that humans edit and AI agents need to trust.
 
-In Markdown, the same-looking document can parse differently across engines, raw HTML can change the output, and malformed structure often gets accepted silently. That is fine for notes and comments, but painful for agent context files, docs pipelines, renderers, and import/export tools that need one predictable tree.
+In Markdown, the same-looking document can parse differently across engines, raw HTML can change the output, and malformed structure often gets accepted silently. That is fine for notes and comments, but painful for AI agent context files, docs pipelines, renderers, and import/export paths that need one predictable tree.
 
 Lessmark keeps the readable parts and removes the guesswork:
 
@@ -32,7 +32,7 @@ Lessmark keeps the readable parts and removes the guesswork:
 | Many equivalent spellings for the same idea | One canonical format |
 | Parser-dependent edge cases | Shared grammar and conformance tests |
 | Raw HTML and renderer-specific behavior | Safe rendering with no raw HTML |
-| Loose structure that tools have to infer | Typed blocks with explicit attributes |
+| Loose structure that AI agents and parsers have to infer | Typed blocks with explicit attributes |
 | Formatting is mostly cosmetic | Formatting produces stable source |
 | AST shape depends on the parser | Stable JSON AST across JavaScript, Python, and Rust |
 
@@ -102,6 +102,10 @@ use lessmark::{parse_lessmark, validate_source, format_lessmark};
 Lessmark source files use `.lmk`; `.lessmark` is a readable alias. The language includes plain top-level paragraphs, headings, inline functions, typed context blocks, lists, tables, callouts, code, math, diagrams, links, footnotes, and page/navigation metadata.
 
 </details>
+
+<p align="center">
+  <img src="./assets/brand/readme-pixel-scene.svg" alt="Lessmark pixel art character in a night field" width="100%" />
+</p>
 
 ## License
 
