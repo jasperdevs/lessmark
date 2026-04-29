@@ -5,6 +5,9 @@ Markdown import fixture.
 - [ ] Add import command.
 - [x] Keep validation strict.
 
+1. Parse the input.
+2. Emit explicit blocks.
+
 ```shell
 lessmark check file.lmk
 ```
@@ -23,3 +26,12 @@ lessmark check file.lmk
 | --- | --- |
 | Images | imported |
 | Tables \| escaped | imported |
+
+$$
+E = mc^2
+$$
+
+```mermaid
+graph TD
+  A --> B
+```

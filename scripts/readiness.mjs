@@ -67,7 +67,20 @@ const mermaidRender = read("site/src/lib/mermaid-render.ts");
 if (mermaidRender.includes('import("mermaid")')) {
   assert.ok(sitePackage.dependencies?.mermaid, "site must declare mermaid because it dynamically imports it");
   assert.equal(sitePackage.overrides?.uuid, "14.0.0", "site must override uuid until mermaid no longer depends on vulnerable uuid versions");
+  assert.match(read("site/vite.config.ts"), /chunkSizeWarningLimit:\s*700/, "site must acknowledge the lazy Mermaid chunk size explicitly");
 }
+
+assert.ok(existsSync(join(root, "site/src/content/docs/conformance.lmk")), "missing public conformance docs page");
+assert.match(read("site/src/lib/content.ts"), /"conformance"/, "docs navigation must include conformance");
+
+const treeSitterPackage = readJson("integrations/tree-sitter-lessmark/package.json");
+assert.equal(treeSitterPackage.name, "tree-sitter-lessmark");
+assert.deepEqual(treeSitterPackage["tree-sitter"]?.[0]?.["file-types"], ["lmk", "lessmark"], "tree-sitter file types must match public extensions");
+const treeSitterGrammar = read("integrations/tree-sitter-lessmark/grammar.js");
+for (const name of sourceBlocks) {
+  assert.ok(treeSitterGrammar.includes(`"${name}"`), `tree-sitter grammar is missing block @${name}`);
+}
+assert.ok(!treeSitterGrammar.includes('"paragraph",'), "tree-sitter grammar must not expose @paragraph as source syntax");
 
 for (const path of [
   "schemas/ast-v0.schema.json",
@@ -78,4 +91,4 @@ for (const path of [
   assert.ok(existsSync(join(root, path)), `missing schema: ${path}`);
 }
 
-console.log(`readiness ok: version ${packageVersion}, extension policy, dependency ownership, editor grammar, and schema copies verified`);
+console.log(`readiness ok: version ${packageVersion}, extension policy, dependency ownership, docs conformance, editor grammar, tree-sitter, and schema copies verified`);

@@ -1,0 +1,101 @@
+{
+  "type": "document",
+  "children": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Agent Handoff"
+    },
+    {
+      "type": "block",
+      "name": "summary",
+      "attrs": {},
+      "text": "Ship the docs refresh without changing parser behavior."
+    },
+    {
+      "type": "block",
+      "name": "metadata",
+      "attrs": {
+        "key": "owner.team"
+      },
+      "text": "docs"
+    },
+    {
+      "type": "block",
+      "name": "decision",
+      "attrs": {
+        "id": "plain-prose"
+      },
+      "text": "Plain top-level text remains the only paragraph source syntax."
+    },
+    {
+      "type": "block",
+      "name": "constraint",
+      "attrs": {},
+      "text": "Do not reintroduce explicit paragraph blocks in source files."
+    },
+    {
+      "type": "block",
+      "name": "file",
+      "attrs": {
+        "path": "site/src/content/docs/syntax.lmk"
+      },
+      "text": "Owns the public syntax reference."
+    },
+    {
+      "type": "block",
+      "name": "api",
+      "attrs": {
+        "name": "parseLessmark"
+      },
+      "text": "Parses source into the shared AST."
+    },
+    {
+      "type": "block",
+      "name": "task",
+      "attrs": {
+        "status": "doing"
+      },
+      "text": "Verify public docs, examples, and packages agree on the same syntax."
+    },
+    {
+      "type": "block",
+      "name": "risk",
+      "attrs": {
+        "level": "medium"
+      },
+      "text": "Stale examples can teach old syntax even when the parser is correct."
+    },
+    {
+      "type": "block",
+      "name": "depends-on",
+      "attrs": {
+        "target": "plain-prose"
+      },
+      "text": "Docs must show plain prose instead of an explicit paragraph tag."
+    },
+    {
+      "type": "block",
+      "name": "example",
+      "attrs": {},
+      "text": "# Notes\n\nPlain prose."
+    },
+    {
+      "type": "block",
+      "name": "list",
+      "attrs": {
+        "kind": "unordered"
+      },
+      "text": "- Explicit list item.\n- Another item."
+    },
+    {
+      "type": "block",
+      "name": "callout",
+      "attrs": {
+        "kind": "note",
+        "title": "Agent rule"
+      },
+      "text": "Prefer the canonical source spelling."
+    }
+  ]
+}

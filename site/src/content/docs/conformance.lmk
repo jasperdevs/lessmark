@@ -1,0 +1,41 @@
+# Conformance
+
+@summary
+How Lessmark keeps JavaScript, Python, Rust, docs, and editor tooling on the same language.
+
+Conformance means the public packages agree on parse output, formatted source, validation errors, Markdown conversion, and the shared language contract.
+
+## What is checked
+
+@list kind="unordered"
+- Valid fixtures parse to the same JSON AST in JavaScript, Python, and Rust.
+- Invalid fixtures return the same validation errors across packages.
+- Formatting is idempotent and matches across packages.
+- Markdown import and export produce the same output across packages.
+- Schema and language contract copies stay identical.
+- Site docs and public examples are parsed and validated before release.
+- VS Code grammar block names stay aligned with the language contract.
+
+## What is not accepted
+
+@list kind="unordered"
+- Raw HTML or JSX in source.
+- Renderer hooks or executable blocks.
+- Custom private block names.
+- Markdown reference definitions, blockquotes, list markers, or thematic breaks in Lessmark prose.
+- Silent dialect switches between runtimes.
+
+## Verify locally
+
+@code lang="sh"
+npm run test:conformance
+npm run test:docs
+npm run test:readiness
+npm run check
+
+## Fixture rule
+
+When syntax changes, add or update fixtures first. A language change is not done until every package parses, formats, validates, and converts the new case the same way.
+
+@callout kind="note" title="Markdown import"
+Markdown import is a migration path for common safe shapes. It is not a promise to accept every Markdown extension.

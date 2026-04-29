@@ -1,0 +1,40 @@
+# Agent Handoff
+
+@summary
+Ship the docs refresh without changing parser behavior.
+
+@metadata key="owner.team"
+docs
+
+@decision id="plain-prose"
+Plain top-level text remains the only paragraph source syntax.
+
+@constraint
+Do not reintroduce explicit paragraph blocks in source files.
+
+@file path="site/src/content/docs/syntax.lmk"
+Owns the public syntax reference.
+
+@api name="parseLessmark"
+Parses source into the shared AST.
+
+@task status="doing"
+Verify public docs, examples, and packages agree on the same syntax.
+
+@risk level="medium"
+Stale examples can teach old syntax even when the parser is correct.
+
+@depends-on target="plain-prose"
+Docs must show plain prose instead of an explicit paragraph tag.
+
+@example
+# Notes
+
+Plain prose.
+
+@list kind="unordered"
+- Explicit list item.
+- Another item.
+
+@callout kind="note" title="Agent rule"
+Prefer the canonical source spelling.

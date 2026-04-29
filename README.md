@@ -101,6 +101,8 @@ use lessmark::{parse_lessmark, validate_source, format_lessmark};
 
 Lessmark source files use `.lmk`; `.lessmark` is a readable alias. The language includes plain top-level paragraphs, headings, inline functions, typed context blocks, lists, tables, callouts, code, math, diagrams, links, footnotes, and page/navigation metadata.
 
+Conformance is checked across JavaScript, Python, Rust, docs, Markdown conversion, fixtures, schemas, VS Code syntax, and the Tree-sitter starter grammar. See [lessmark.org/docs/conformance](https://lessmark.org/docs/conformance).
+
 </details>
 
 ## <img src="./assets/brand/pixel-heart-color.svg" alt="" width="18" /> License

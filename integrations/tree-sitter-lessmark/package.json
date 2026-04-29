@@ -1,0 +1,16 @@
+{
+  "name": "tree-sitter-lessmark",
+  "version": "0.1.5",
+  "description": "Tree-sitter grammar starter for Lessmark.",
+  "license": "MIT",
+  "main": "grammar.js",
+  "tree-sitter": [
+    {
+      "scope": "source.lessmark",
+      "file-types": [
+        "lmk",
+        "lessmark"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "type": "document",
+  "children": [
+    {
+      "type": "block",
+      "name": "page",
+      "attrs": {
+        "title": "Release Notes",
+        "output": "release-notes.html"
+      },
+      "text": ""
+    },
+    {
+      "type": "block",
+      "name": "nav",
+      "attrs": {
+        "label": "Docs",
+        "href": "index.html",
+        "slot": "primary"
+      },
+      "text": ""
+    },
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "Release Notes"
+    },
+    {
+      "type": "block",
+      "name": "summary",
+      "attrs": {},
+      "text": "A real docs page with prose, structured sections, tables, code, and local references."
+    },
+    {
+      "type": "block",
+      "name": "paragraph",
+      "attrs": {},
+      "text": "Lessmark uses plain prose for paragraphs and typed blocks when structure matters."
+    },
+    {
+      "type": "block",
+      "name": "toc",
+      "attrs": {},
+      "text": ""
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Highlights"
+    },
+    {
+      "type": "block",
+      "name": "list",
+      "attrs": {
+        "kind": "unordered"
+      },
+      "text": "- Parser, formatter, and validator stay in sync.\n- The site renders code, math, diagrams, tables, and callouts.\n- Public packages share the same fixture set."
+    },
+    {
+      "type": "block",
+      "name": "decision",
+      "attrs": {
+        "id": "canonical-format"
+      },
+      "text": "Formatting is part of the language contract, not a cosmetic option."
+    },
+    {
+      "type": "block",
+      "name": "reference",
+      "attrs": {
+        "target": "canonical-format",
+        "label": "canonical format"
+      },
+      "text": ""
+    },
+    {
+      "type": "block",
+      "name": "table",
+      "attrs": {
+        "columns": "Surface|Status|Notes"
+      },
+      "text": "JavaScript|done|Parser and renderer\nPython|done|Parser and CLI\nRust|done|Parser and CLI"
+    },
+    {
+      "type": "heading",
+      "level": 2,
+      "text": "Example"
+    },
+    {
+      "type": "block",
+      "name": "code",
+      "attrs": {
+        "lang": "lessmark"
+      },
+      "text": "# Notes\n\nPlain prose."
+    },
+    {
+      "type": "block",
+      "name": "task",
+      "attrs": {
+        "status": "todo"
+      },
+      "text": "Write the next section."
+    },
+    {
+      "type": "block",
+      "name": "math",
+      "attrs": {
+        "notation": "tex"
+      },
+      "text": "E = mc^2"
+    },
+    {
+      "type": "block",
+      "name": "diagram",
+      "attrs": {
+        "kind": "mermaid"
+      },
+      "text": "graph TD\n  A --> B"
+    },
+    {
+      "type": "block",
+      "name": "callout",
+      "attrs": {
+        "kind": "tip",
+        "title": "Stable output"
+      },
+      "text": "Run {{code:lessmark format file.lmk}} before committing generated docs."
+    },
+    {
+      "type": "block",
+      "name": "footnote",
+      "attrs": {
+        "id": "fixtures"
+      },
+      "text": "Fixtures are parsed by every package in conformance tests."
+    }
+  ]
+}

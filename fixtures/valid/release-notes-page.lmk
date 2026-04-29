@@ -1,0 +1,52 @@
+@page title="Release Notes" output="release-notes.html"
+
+@nav label="Docs" href="index.html" slot="primary"
+
+# Release Notes
+
+@summary
+A real docs page with prose, structured sections, tables, code, and local references.
+
+Lessmark uses plain prose for paragraphs and typed blocks when structure matters.
+
+@toc
+
+## Highlights
+
+@list kind="unordered"
+- Parser, formatter, and validator stay in sync.
+- The site renders code, math, diagrams, tables, and callouts.
+- Public packages share the same fixture set.
+
+@decision id="canonical-format"
+Formatting is part of the language contract, not a cosmetic option.
+
+@reference target="canonical-format" label="canonical format"
+
+@table columns="Surface|Status|Notes"
+JavaScript|done|Parser and renderer
+Python|done|Parser and CLI
+Rust|done|Parser and CLI
+
+## Example
+
+@code lang="lessmark"
+# Notes
+
+Plain prose.
+
+@task status="todo"
+Write the next section.
+
+@math notation="tex"
+E = mc^2
+
+@diagram kind="mermaid"
+graph TD
+  A --> B
+
+@callout kind="tip" title="Stable output"
+Run {{code:lessmark format file.lmk}} before committing generated docs.
+
+@footnote id="fixtures"
+Fixtures are parsed by every package in conformance tests.
