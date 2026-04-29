@@ -4,6 +4,7 @@ import { Playground } from "@/components/Playground";
 import { examples, getExample, sourceId, uiText } from "@/lib/content";
 import { useLiveSourceCtx } from "@/lib/live-source";
 import { ArrowRightIcon } from "@/components/Icons";
+import { PixelDoc } from "@/components/PixelIcons";
 
 export function ExamplePage() {
   const { slug } = useParams();
@@ -35,7 +36,10 @@ export function ExamplePage() {
           >
             ← {uiText["examples.back"] || "all examples"}
           </Link>
-          <span className="text-fg-faint italic">{ex.slug}.lmk</span>
+          <span className="text-fg-faint italic inline-flex items-center gap-1.5">
+            <PixelDoc className="size-3.5" />
+            {ex.slug}.lmk
+          </span>
         </div>
         <div className="flex flex-wrap items-baseline justify-end gap-x-4 gap-y-1">
           {prev ? (

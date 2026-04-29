@@ -6,6 +6,7 @@ import { SwitchingTabs } from "@/components/SwitchingTabs";
 import { docs, getDoc, sourceId, uiText } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
 import { ArrowRightIcon } from "@/components/Icons";
+import { PixelDoc, PixelSpark } from "@/components/PixelIcons";
 
 export function DocsPage() {
   const { slug } = useParams();
@@ -36,7 +37,10 @@ export function DocsPage() {
             to={`/docs/${prev.slug}`}
             className="text-fg-muted hover:text-fg transition-colors"
           >
-            <span className="block text-[12px] text-fg-faint mb-1">{uiText["docs.previous"] || "previous"}</span>
+            <span className="text-[12px] text-fg-faint mb-1 inline-flex items-center gap-1">
+              <PixelDoc className="size-3.5" />
+              {uiText["docs.previous"] || "previous"}
+            </span>
             {prev.title}
           </Link>
         ) : (
@@ -47,7 +51,10 @@ export function DocsPage() {
             to={`/docs/${next.slug}`}
             className="text-fg-muted hover:text-fg transition-colors text-right inline-flex flex-col"
           >
-            <span className="text-[12px] text-fg-faint mb-1">{uiText["docs.next"] || "next"}</span>
+            <span className="text-[12px] text-fg-faint mb-1 inline-flex items-center justify-end gap-1">
+              <PixelSpark className="size-3.5" />
+              {uiText["docs.next"] || "next"}
+            </span>
             <span className="inline-flex items-center gap-1">
               {next.title}
               <ArrowRightIcon className="size-3.5" />

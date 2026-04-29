@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { parseLessmark, renderHtml } from "lessmark";
 import { ArrowRightIcon } from "@/components/Icons";
-import { AstIcon, SourceIcon, TerminalIcon } from "@/components/PixelIcons";
+import { PixelDoc, PixelHeart, PixelOk, PixelSpark, PixelWand } from "@/components/PixelIcons";
 import { Link } from "react-router-dom";
 import { sourceId, playgroundDefault, uiText } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
@@ -105,10 +105,16 @@ export function Home() {
         </h1>
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[15px] text-fg-muted">
           <Link to="/docs/getting-started" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
-            {text("home.docs-link", "getting started")}
+            <span className="inline-flex items-center gap-1.5">
+              <PixelDoc className="size-4" />
+              {text("home.docs-link", "getting started")}
+            </span>
           </Link>
           <Link to="/playground" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
-            {text("home.playground-link", "playground")}
+            <span className="inline-flex items-center gap-1.5">
+              <PixelWand className="size-4" />
+              {text("home.playground-link", "playground")}
+            </span>
           </Link>
         </div>
       </section>
@@ -156,7 +162,10 @@ export function Home() {
 
       <section className="py-10">
         <h2 className="font-sans font-bold text-[20px] tracking-[-0.01em] text-fg mb-3">
-          {text("home.next-heading", "Next")}
+          <span className="inline-flex items-center gap-2">
+            <PixelHeart className="size-5" />
+            {text("home.next-heading", "Next")}
+          </span>
         </h2>
         <Link
           to="/docs/getting-started"
@@ -189,7 +198,7 @@ function ContentSection({ section }: { section: Section }) {
   );
 }
 
-const FEATURE_ICONS = [SourceIcon, TerminalIcon, AstIcon];
+const FEATURE_ICONS = [PixelDoc, PixelSpark, PixelOk];
 
 function FeatureTrio({ section }: { section: Section }) {
   const items = useMemo(
@@ -208,7 +217,7 @@ function FeatureTrio({ section }: { section: Section }) {
           return (
             <FeatureCard
               key={sub.heading}
-              icon={<Icon className="size-8 text-fg" />}
+              icon={<Icon className="size-8" />}
               heading={sub.heading}
               html={sub.html}
             />

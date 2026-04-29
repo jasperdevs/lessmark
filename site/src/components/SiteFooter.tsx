@@ -5,7 +5,7 @@ import { docs, examples, switching, sourceId } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
 import { useTheme } from "@/lib/theme";
 import { GithubIcon, MailIcon, MoonIcon, SunIcon, VSCodeIcon, XIcon } from "@/components/Icons";
-import { FooterMark } from "@/components/PixelIcons";
+import { FooterMark, PixelSpark } from "@/components/PixelIcons";
 
 function iconFor(href: string) {
   if (href.startsWith("mailto:")) return MailIcon;
@@ -150,8 +150,9 @@ export function SiteFooter() {
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
+              className="inline-flex items-center gap-1.5 hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
             >
+              <PixelSpark className="size-3.5" />
               {model.sourceButton}
             </button>
           </div>

@@ -4,6 +4,80 @@
 type Props = { className?: string };
 type FooterProps = Props & { animated?: boolean };
 
+export function PixelOk({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="checked" shapeRendering="crispEdges">
+      <rect x="1" y="6" width="2" height="2" fill="#1b6f3a" />
+      <rect x="3" y="8" width="2" height="2" fill="#219653" />
+      <rect x="5" y="10" width="2" height="2" fill="#27ae60" />
+      <rect x="7" y="8" width="2" height="2" fill="#43d17a" />
+      <rect x="9" y="6" width="2" height="2" fill="#5be38e" />
+      <rect x="11" y="4" width="2" height="2" fill="#7cf3a8" />
+      <rect x="13" y="2" width="2" height="2" fill="#b8ffd0" />
+    </svg>
+  );
+}
+
+export function PixelDoc({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="document" shapeRendering="crispEdges">
+      <rect x="3" y="1" width="8" height="2" fill="#2f5d9f" />
+      <rect x="3" y="3" width="2" height="11" fill="#2f5d9f" />
+      <rect x="5" y="3" width="7" height="10" fill="#d8ecff" />
+      <rect x="11" y="3" width="2" height="2" fill="#78b7ff" />
+      <rect x="13" y="5" width="1" height="9" fill="#2f5d9f" />
+      <rect x="5" y="13" width="8" height="1" fill="#2f5d9f" />
+      <rect x="11" y="1" width="1" height="1" fill="#78b7ff" />
+      <rect x="12" y="2" width="1" height="1" fill="#78b7ff" />
+      <rect x="6" y="6" width="5" height="1" fill="#2f5d9f" />
+      <rect x="6" y="9" width="4" height="1" fill="#2f5d9f" />
+    </svg>
+  );
+}
+
+export function PixelSpark({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="spark" shapeRendering="crispEdges">
+      <rect x="7" y="1" width="2" height="4" fill="#f2a900" />
+      <rect x="7" y="11" width="2" height="4" fill="#f2a900" />
+      <rect x="1" y="7" width="4" height="2" fill="#f2a900" />
+      <rect x="11" y="7" width="4" height="2" fill="#f2a900" />
+      <rect x="6" y="6" width="4" height="4" fill="#ffe08a" />
+      <rect x="3" y="3" width="1" height="1" fill="#ffd166" />
+      <rect x="12" y="12" width="1" height="1" fill="#ffd166" />
+    </svg>
+  );
+}
+
+export function PixelHeart({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="heart" shapeRendering="crispEdges">
+      <rect x="3" y="3" width="3" height="2" fill="#ff5c8a" />
+      <rect x="10" y="3" width="3" height="2" fill="#ff5c8a" />
+      <rect x="2" y="5" width="12" height="3" fill="#ff5c8a" />
+      <rect x="3" y="8" width="10" height="2" fill="#e83f73" />
+      <rect x="5" y="10" width="6" height="2" fill="#c92f62" />
+      <rect x="7" y="12" width="2" height="2" fill="#a82453" />
+      <rect x="4" y="4" width="1" height="1" fill="#ffd1df" />
+    </svg>
+  );
+}
+
+export function PixelWand({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="format" shapeRendering="crispEdges">
+      <rect x="3" y="11" width="2" height="2" fill="#5c3b91" />
+      <rect x="5" y="9" width="2" height="2" fill="#7b52c8" />
+      <rect x="7" y="7" width="2" height="2" fill="#9b72f2" />
+      <rect x="9" y="5" width="2" height="2" fill="#c5a8ff" />
+      <rect x="12" y="2" width="1" height="3" fill="#f2a900" />
+      <rect x="11" y="3" width="3" height="1" fill="#f2a900" />
+      <rect x="2" y="3" width="1" height="2" fill="#ffd166" />
+      <rect x="1" y="4" width="3" height="1" fill="#ffd166" />
+    </svg>
+  );
+}
+
 function pixelIcon(grid: string) {
   const rows = grid.replace(/^\n|\n$/g, "").split("\n");
   const rects: Array<{ x: number; y: number }> = [];
