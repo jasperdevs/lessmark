@@ -8,6 +8,7 @@ target/
 .omx/
 .wrangler/
 site-tmp/
+site/dist/
 
 __pycache__/
 *.py[cod]
