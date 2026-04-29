@@ -350,6 +350,7 @@ fn shorthand_attr(name: &str) -> Option<&'static str> {
         "metadata" => Some("key"),
         "reference" => Some("target"),
         "risk" => Some("level"),
+        "skill" => Some("name"),
         "table" => Some("columns"),
         "task" => Some("status"),
         _ => None,

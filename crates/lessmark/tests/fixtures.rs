@@ -171,6 +171,22 @@ fn caps_deeply_nested_inline_validation() {
 }
 
 #[test]
+fn parses_and_validates_agent_skill_metadata() {
+    let source = "@skill name=\"code-review\" description=\"Review code when the user asks for bugs and regressions.\"\n\nSkill instructions.\n";
+    let ast = parse_lessmark(source).expect("skill parses");
+    let json = serde_json::to_value(ast).expect("skill serializes");
+    assert_eq!(json["children"][0]["name"], "skill");
+    assert_eq!(json["children"][0]["attrs"]["name"], "code-review");
+    assert!(validate_source(source).is_empty());
+    assert!(
+        parse_lessmark("@skill name=\"Bad--Name\" description=\"Bad.\"\n")
+            .expect_err("bad skill name rejects")
+            .message
+            .contains("@skill name")
+    );
+}
+
+#[test]
 fn cli_info_json_prints_machine_readable_capabilities() {
     let output = Command::new(env!("CARGO_BIN_EXE_lessmark"))
         .args(["info", "--json"])

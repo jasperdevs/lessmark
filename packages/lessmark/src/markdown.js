@@ -138,15 +138,16 @@ export function toMarkdown(lessmark) {
     if (node.type !== "block") return "";
 
     if (node.name === "summary" || node.name === "paragraph") return inlineToMarkdown(node.text);
-    if (node.name === "constraint") return `> Constraint: ${node.text}`;
+    if (node.name === "skill") return "";
+    if (node.name === "constraint") return labelledQuoteToMarkdown("Constraint", node.text);
     if (node.name === "decision") return `### ${node.attrs.id}\n\n**Decision:** ${inlineToMarkdown(node.text)}`;
-    if (node.name === "task") return `- [${node.attrs.status === "done" ? "x" : " "}] ${node.text}`;
-    if (node.name === "file") return `**File:** \`${node.attrs.path}\`\n\n${node.text}`;
-    if (node.name === "api") return `**API:** \`${node.attrs.name}\`\n\n${node.text}`;
+    if (node.name === "task") return `- [${node.attrs.status === "done" ? "x" : " "}] ${inlineToMarkdown(node.text)}`;
+    if (node.name === "file") return `**File:** \`${node.attrs.path}\`\n\n${inlineToMarkdown(node.text)}`;
+    if (node.name === "api") return `**API:** \`${node.attrs.name}\`\n\n${inlineToMarkdown(node.text)}`;
     if (node.name === "link") return `[${node.text || node.attrs.href}](${node.attrs.href})`;
     if (node.name === "metadata") return `<!-- lessmark:${node.attrs.key}=${node.text} -->`;
-    if (node.name === "risk") return `> Risk (${node.attrs.level}): ${node.text}`;
-    if (node.name === "depends-on") return `> Depends on \`${node.attrs.target}\`: ${node.text}`;
+    if (node.name === "risk") return labelledQuoteToMarkdown(`Risk (${node.attrs.level})`, node.text);
+    if (node.name === "depends-on") return labelledQuoteToMarkdown(`Depends on \`${node.attrs.target}\``, node.text);
     if (node.name === "code") return `\`\`\`${node.attrs.lang ?? ""}\n${node.text}\n\`\`\``;
     if (node.name === "math") return mathToMarkdown(node.attrs.notation, node.text);
     if (node.name === "diagram") return `\`\`\`${node.attrs.kind}\n${node.text}\n\`\`\``;
@@ -243,6 +244,12 @@ function quoteToMarkdown(text, cite) {
     .map((line) => `> ${line}`)
     .join("\n");
   return cite ? `${quoted}\n>\n> Source: ${inlineToMarkdown(cite)}` : quoted;
+}
+
+function labelledQuoteToMarkdown(label, text) {
+  const lines = inlineToMarkdown(text).split("\n");
+  const [first = "", ...rest] = lines;
+  return [`> ${label}: ${first}`, ...rest.map((line) => `> ${line}`)].join("\n");
 }
 
 function calloutToMarkdown(kind, title, text) {

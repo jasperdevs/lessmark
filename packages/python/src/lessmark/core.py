@@ -56,6 +56,7 @@ CORE_BLOCKS = {
     "page",
     "nav",
     "paragraph",
+    "skill",
     "decision",
     "constraint",
     "task",
@@ -86,6 +87,7 @@ CORE_BLOCK_NAMES = [
     "page",
     "nav",
     "paragraph",
+    "skill",
     "decision",
     "constraint",
     "task",
@@ -143,6 +145,7 @@ MARKDOWN_THEMATIC_BREAK_PATTERN = re.compile(r"^(?:(?: {0,3})(?:[-*_]\s*){3,}|(?
 MARKDOWN_BLOCKQUOTE_PATTERN = re.compile(r"^\s{0,3}>\s?")
 MARKDOWN_LIST_MARKER_PATTERN = re.compile(r"^\s{0,3}(?:[-+*]\s+|\d+[.)]\s+)")
 DECISION_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 METADATA_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$")
 DEFINITION_TERM_PATTERN = re.compile(r"^(?=.*\S)[^\r\n\t<>]+$")
 BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
@@ -150,6 +153,10 @@ BLOCK_ATTRS: dict[str, BlockAttrSpec] = {
     "page": {"allowed": {"title", "output"}, "required": set()},
     "nav": {"allowed": {"label", "href", "slot"}, "required": {"label", "href"}},
     "paragraph": {"allowed": set(), "required": set()},
+    "skill": {
+        "allowed": {"name", "description", "license", "compatibility", "allowed-tools"},
+        "required": {"name", "description"},
+    },
     "decision": {"allowed": {"id"}, "required": {"id"}},
     "constraint": {"allowed": set(), "required": set()},
     "task": {"allowed": {"status"}, "required": {"status"}},
@@ -193,6 +200,7 @@ SHORTHAND_ATTRS = {
     "metadata": "key",
     "reference": "target",
     "risk": "level",
+    "skill": "name",
     "table": "columns",
     "task": "status",
 }
@@ -699,6 +707,14 @@ def _get_block_attr_errors(name: str, attrs: Mapping[str, object]) -> list[str]:
 def _get_semantic_attr_error(name: str, attrs: Mapping[str, object]) -> str | None:
     if name == "task" and isinstance(attrs.get("status"), str) and attrs["status"] not in TASK_STATUSES:
         return "@task status must be one of: todo, doing, done, blocked"
+    if name == "skill" and isinstance(attrs.get("name"), str):
+        value = attrs["name"]
+        if not SKILL_NAME_PATTERN.match(value) or len(value) > 64 or "--" in value:
+            return "@skill name must be 1-64 lowercase letters, numbers, and single hyphens"
+    if name == "skill" and isinstance(attrs.get("description"), str) and len(attrs["description"]) > 1024:
+        return "@skill description must be 1-1024 characters"
+    if name == "skill" and isinstance(attrs.get("compatibility"), str) and len(attrs["compatibility"]) > 500:
+        return "@skill compatibility must be 1-500 characters"
     if name == "decision" and isinstance(attrs.get("id"), str) and not DECISION_ID_PATTERN.match(attrs["id"]):
         return "@decision id must be a lowercase slug"
     if name == "file" and isinstance(attrs.get("path"), str) and not _is_relative_project_path(attrs["path"]):
@@ -914,7 +930,7 @@ def hint_for_code(code: str) -> str:
 def get_capabilities() -> dict[str, object]:
     return {
         "language": "lessmark",
-        "version": "0.1.5",
+        "version": "0.1.6",
         "astVersion": "v0",
         "extensions": [".lmk", ".lessmark"],
         "mediaType": "text/vnd.lessmark; charset=utf-8",
@@ -969,6 +985,7 @@ def get_capabilities() -> dict[str, object]:
                 "metadata": "key",
                 "reference": "target",
                 "risk": "level",
+                "skill": "name",
                 "table": "columns",
                 "task": "status",
             },
@@ -1468,24 +1485,26 @@ def to_markdown(lessmark: str | DocumentNode) -> str:
         text = str(node.get("text", ""))
         if name in {"summary", "paragraph"}:
             chunks.append(_inline_to_markdown(text))
+        elif name == "skill":
+            continue
         elif name == "constraint":
-            chunks.append(f"> Constraint: {text}")
+            chunks.append(_labelled_quote_to_markdown("Constraint", text))
         elif name == "decision":
             chunks.append(f"### {attrs.get('id')}\n\n**Decision:** {_inline_to_markdown(text)}")
         elif name == "task":
-            chunks.append(f"- [{'x' if attrs.get('status') == 'done' else ' '}] {text}")
+            chunks.append(f"- [{'x' if attrs.get('status') == 'done' else ' '}] {_inline_to_markdown(text)}")
         elif name == "file":
-            chunks.append(f"**File:** `{attrs.get('path')}`\n\n{text}")
+            chunks.append(f"**File:** `{attrs.get('path')}`\n\n{_inline_to_markdown(text)}")
         elif name == "api":
-            chunks.append(f"**API:** `{attrs.get('name')}`\n\n{text}")
+            chunks.append(f"**API:** `{attrs.get('name')}`\n\n{_inline_to_markdown(text)}")
         elif name == "link":
             chunks.append(f"[{text or attrs.get('href')}]({attrs.get('href')})")
         elif name == "metadata":
             chunks.append(f"<!-- lessmark:{attrs.get('key')}={text} -->")
         elif name == "risk":
-            chunks.append(f"> Risk ({attrs.get('level')}): {text}")
+            chunks.append(_labelled_quote_to_markdown(f"Risk ({attrs.get('level')})", text))
         elif name == "depends-on":
-            chunks.append(f"> Depends on `{attrs.get('target')}`: {text}")
+            chunks.append(_labelled_quote_to_markdown(f"Depends on `{attrs.get('target')}`", text))
         elif name == "code":
             chunks.append(f"```{attrs.get('lang', '')}\n{text}\n```")
         elif name == "math":
@@ -1582,6 +1601,12 @@ def _assert_inline_local_targets(text: str) -> None:
 def _quote_to_markdown(text: str, cite: str) -> str:
     quoted = "\n".join(f"> {line}" for line in _inline_to_markdown(text).splitlines())
     return f"{quoted}\n>\n> Source: {_inline_to_markdown(cite)}" if cite else quoted
+
+
+def _labelled_quote_to_markdown(label: str, text: str) -> str:
+    lines = _inline_to_markdown(text).splitlines() or [""]
+    first, rest = lines[0], lines[1:]
+    return "\n".join([f"> {label}: {first}", *(f"> {line}" for line in rest)])
 
 
 def _callout_to_markdown(kind: str, title: str, text: str) -> str:

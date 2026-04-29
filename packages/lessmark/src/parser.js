@@ -20,6 +20,7 @@ const SHORTHAND_ATTRS = {
   metadata: "key",
   reference: "target",
   risk: "level",
+  skill: "name",
   table: "columns",
   task: "status"
 };

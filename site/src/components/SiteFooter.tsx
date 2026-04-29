@@ -74,6 +74,7 @@ function allSiteFiles(): PanelFile[] {
     { id: sourceId.chrome("header"), name: "chrome/header.lmk" },
     { id: sourceId.chrome("footer"), name: "chrome/footer.lmk" },
     { id: sourceId.chrome("ui"), name: "chrome/ui.lmk" },
+    { id: sourceId.playground("default"), name: "playground/default.lmk" },
   ];
   for (const d of docs) {
     out.push({ id: sourceId.doc(d.slug), name: `docs/${d.slug}.lmk` });

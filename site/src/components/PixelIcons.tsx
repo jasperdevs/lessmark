@@ -18,6 +18,25 @@ export function PixelOk({ className }: Props) {
   );
 }
 
+export function PixelNo({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="not checked" shapeRendering="crispEdges">
+      <rect x="2" y="2" width="2" height="2" fill="#8f1835" />
+      <rect x="4" y="4" width="2" height="2" fill="#c92f62" />
+      <rect x="6" y="6" width="2" height="2" fill="#ff4f7d" />
+      <rect x="8" y="8" width="2" height="2" fill="#ff4f7d" />
+      <rect x="10" y="10" width="2" height="2" fill="#e83f73" />
+      <rect x="12" y="12" width="2" height="2" fill="#a82453" />
+      <rect x="12" y="2" width="2" height="2" fill="#8f1835" />
+      <rect x="10" y="4" width="2" height="2" fill="#c92f62" />
+      <rect x="8" y="6" width="2" height="2" fill="#ff4f7d" />
+      <rect x="6" y="8" width="2" height="2" fill="#ff4f7d" />
+      <rect x="4" y="10" width="2" height="2" fill="#e83f73" />
+      <rect x="2" y="12" width="2" height="2" fill="#a82453" />
+    </svg>
+  );
+}
+
 export function PixelDoc({ className }: Props) {
   return (
     <svg viewBox="0 0 16 16" className={className} role="img" aria-label="document" shapeRendering="crispEdges">

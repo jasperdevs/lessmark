@@ -227,6 +227,11 @@ function assertProfileContract(contract) {
       requiredBlocks: [],
       recommendedBlocks: ["page", "nav", "paragraph", "image", "math", "diagram", "separator", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
       disallowedFeatures: ["rawHtml", "hooks", "customComponents", "styleDirectives", "layoutDirectives", "privateFlavors"]
+    },
+    "agent-skill": {
+      requiredBlocks: ["skill"],
+      recommendedBlocks: ["constraint", "task", "file", "example", "metadata"],
+      disallowedFeatures: ["rawHtml", "hooks", "customBlocks", "privateFlavors", "rendererSpecificSyntax"]
     }
   };
   assert.deepEqual(contract.profiles.map((profile) => profile.name).sort(), Object.keys(expectedProfiles).sort(), "accepted profile names");

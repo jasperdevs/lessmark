@@ -173,4 +173,5 @@ The {{code:lessmark}} binary. Documented in full on the
 - {{code:lessmark from-markdown FILE}}: convert a safe Markdown subset to lessmark for migration. It preserves common document shapes, not every Markdown token.
 - {{code:lessmark to-markdown FILE}}: convert lessmark to Markdown.
 - {{code:lessmark init DIR}}: create a starter {{code:index.lmk}} without overwriting an existing file.
+- {{code:lessmark skill build DIR}}: build a Lessmark-authored agent skill into native {{code:SKILL.md}} bundles in the npm CLI.
 - {{code:lessmark info --json}}: package and contract version.

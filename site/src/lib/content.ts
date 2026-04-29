@@ -84,7 +84,7 @@ function readByName(modules: Record<string, string>, name: string): string {
   return "";
 }
 
-const DOCS_ORDER = ["getting-started", "switching", "syntax", "blocks", "validation", "conformance", "guarantees", "render", "phases", "ast", "api", "cli", "shortcuts", "faq"];
+const DOCS_ORDER = ["getting-started", "switching", "syntax", "blocks", "skills", "validation", "conformance", "guarantees", "render", "phases", "ast", "api", "cli", "shortcuts", "faq"];
 const EXAMPLES_ORDER = ["syntax-tour", "blog-maker", "skill", "resume", "changelog"];
 
 function order(entries: Entry[], priority: string[]): Entry[] {
@@ -124,6 +124,7 @@ export const sourceId = {
   example: (slug: string) => `examples/${slug}`,
   switching: (slug: string) => `switching/${slug}`,
   chrome: (slug: string) => `chrome/${slug}`,
+  playground: (slug: string) => `playground/${slug}`,
 } as const;
 
 export const allSources: Record<string, string> = {
@@ -131,6 +132,7 @@ export const allSources: Record<string, string> = {
   [sourceId.chrome("footer")]: footer,
   [sourceId.chrome("header")]: header,
   [sourceId.chrome("ui")]: ui,
+  [sourceId.playground("default")]: playgroundDefault,
   ...Object.fromEntries(docs.map((d) => [sourceId.doc(d.slug), d.source])),
   ...Object.fromEntries(examples.map((e) => [sourceId.example(e.slug), e.source])),
   ...Object.fromEntries(switching.map((s) => [sourceId.switching(s.slug), s.source])),

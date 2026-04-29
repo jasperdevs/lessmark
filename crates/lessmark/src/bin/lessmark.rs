@@ -48,6 +48,7 @@ fn info_command(args: &[String]) -> i32 {
             "page",
             "nav",
             "paragraph",
+            "skill",
             "decision",
             "constraint",
             "task",
@@ -122,6 +123,7 @@ fn info_command(args: &[String]) -> i32 {
                 "metadata": "key",
                 "reference": "target",
                 "risk": "level",
+                "skill": "name",
                 "table": "columns",
                 "task": "status"
             },

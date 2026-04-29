@@ -26,6 +26,7 @@ module.exports = grammar({
       "summary",
       "page",
       "nav",
+      "skill",
       "decision",
       "constraint",
       "task",

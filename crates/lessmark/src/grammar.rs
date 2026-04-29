@@ -1,11 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::LazyLock;
 
-pub const CORE_BLOCK_NAMES: [&str; 27] = [
+pub const CORE_BLOCK_NAMES: [&str; 28] = [
     "summary",
     "page",
     "nav",
     "paragraph",
+    "skill",
     "decision",
     "constraint",
     "task",
@@ -55,6 +56,19 @@ pub static BLOCK_ATTR_SPECS: LazyLock<BTreeMap<&'static str, BlockAttrSpec>> =
         specs.insert("page", spec(&["title", "output"], &[]));
         specs.insert("nav", spec(&["label", "href", "slot"], &["label", "href"]));
         specs.insert("paragraph", spec(&[], &[]));
+        specs.insert(
+            "skill",
+            spec(
+                &[
+                    "name",
+                    "description",
+                    "license",
+                    "compatibility",
+                    "allowed-tools",
+                ],
+                &["name", "description"],
+            ),
+        );
         specs.insert("decision", spec(&["id"], &["id"]));
         specs.insert("constraint", spec(&[], &[]));
         specs.insert("task", spec(&["status"], &["status"]));

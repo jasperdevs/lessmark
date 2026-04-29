@@ -1,6 +1,6 @@
 {
   "name": "lessmark",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "The markdown alternative that agents (and humans) love.",
   "type": "module",
   "main": "src/index.js",

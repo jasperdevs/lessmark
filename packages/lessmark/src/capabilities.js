@@ -17,7 +17,7 @@ export const INLINE_FUNCTIONS = [
 export function getCapabilities() {
   return {
     language: "lessmark",
-    version: "0.1.5",
+    version: "0.1.6",
     astVersion: "v0",
     extensions: [".lmk", ".lessmark"],
     mediaType: "text/vnd.lessmark; charset=utf-8",
@@ -32,7 +32,7 @@ export function getCapabilities() {
       diagramKind: [...DIAGRAM_KINDS]
     },
     cli: {
-      commands: ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "render", "build", "init", "info"],
+      commands: ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "render", "build", "init", "skill", "info"],
       jsonCommands: ["check --json", "format --check --json", "info --json"],
       formatCheck: true,
       sourcePositions: true,
@@ -72,6 +72,7 @@ export function getCapabilities() {
         metadata: "key",
         reference: "target",
         risk: "level",
+        skill: "name",
         table: "columns",
         task: "status"
       },

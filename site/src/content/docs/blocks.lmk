@@ -18,6 +18,7 @@ These blocks carry intent for tools and agents without scraping prose.
 
 @list kind="unordered"
 - summary, the one-paragraph "what is this document".
+- skill name and description, metadata for an agent skill source.
 - decision id, a binding choice with a stable slug for citation.
 - constraint, a rule that must hold.
 - task status, one of todo, doing, done, blocked.

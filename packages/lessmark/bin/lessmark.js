@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { copyFile, lstat, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { watch } from "node:fs";
+import { copyFile, lstat, mkdir, readdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import {
   LessmarkError,
@@ -41,6 +42,8 @@ const STATIC_ASSET_EXTS = new Set([
   ".xml"
 ]);
 const SKIP_STATIC_DIRS = new Set([".git", ".hg", ".svn", "build", "dist", "node_modules", "out", "target"]);
+const SKILL_TARGETS = new Set(["codex", "claude", "both"]);
+const SKILL_RESOURCE_DIRS = ["scripts", "references", "assets"];
 const INIT_DOCS_TEMPLATE = `# Project docs
 
 @page title="Project docs" output="index.html"
@@ -54,6 +57,16 @@ Replace this with a short description of the project.
 - Run {{code:lessmark check docs}} before committing.
 - Run {{code:lessmark format --check docs}} in CI.
 - Add decisions, constraints, tasks, and source-file ownership as the project grows.
+`;
+const INIT_SKILL_TEMPLATE = (name) => `@skill name="${name}" description="Describe what this skill does and when an agent should use it."
+
+Write the main instructions here. Keep this file focused; move long details into references/.
+
+@constraint
+Keep changes scoped to the user's request.
+
+@task status="todo"
+Replace this starter task with the workflow the agent should follow.
 `;
 
 if (!command || command === "help" || command === "--help" || command === "-h") {
@@ -103,6 +116,8 @@ try {
   } else if (command === "init") {
     const targetDir = requireFile(args[1]);
     await initDocs(targetDir);
+  } else if (command === "skill") {
+    await skillCommand(args.slice(1));
   } else if (command === "info") {
     if (args.includes("--json")) {
       console.log(JSON.stringify(getCapabilities(), null, 2));
@@ -478,6 +493,401 @@ async function initDocs(targetDir) {
   console.log(`created ${target}`);
 }
 
+async function skillCommand(args) {
+  const subcommand = args[0];
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    printSkillHelp();
+    return;
+  }
+  if (subcommand === "init") {
+    await skillInit(requireFile(args[1]));
+    return;
+  }
+  if (subcommand === "check") {
+    const result = await checkSkill(requireFile(args[1]));
+    console.log(`${result.source.file}: ok`);
+    return;
+  }
+  if (subcommand === "build") {
+    const result = await buildSkill(requireFile(args[1]), skillOptions(args.slice(2)));
+    for (const file of result.files) console.log(`created ${file}`);
+    return;
+  }
+  if (subcommand === "import") {
+    await importSkill(requireFile(args[1]), skillOptions(args.slice(2)));
+    return;
+  }
+  if (subcommand === "install") {
+    const result = await installSkill(requireFile(args[1]), skillOptions(args.slice(2)));
+    for (const file of result.files) console.log(`installed ${file}`);
+    return;
+  }
+  if (subcommand === "dev") {
+    await devSkill(requireFile(args[1]), skillOptions(args.slice(2)));
+    return;
+  }
+  throw new Error(`Unknown skill command: ${subcommand}`);
+}
+
+function skillOptions(args) {
+  const option = (name) => {
+    const index = args.indexOf(name);
+    return index === -1 ? undefined : args[index + 1];
+  };
+  return {
+    out: option("--out"),
+    target: option("--target") || "both",
+    repo: option("--repo") || process.cwd(),
+    once: args.includes("--once")
+  };
+}
+
+async function skillInit(targetDir) {
+  const root = resolve(targetDir);
+  const name = basename(root);
+  assertSkillName(name);
+  const target = join(root, "skill.lmk");
+  if (await exists(target)) throw new Error(`${target} already exists`);
+  await mkdir(root, { recursive: true });
+  await mkdir(join(root, "references"), { recursive: true });
+  await mkdir(join(root, "scripts"), { recursive: true });
+  await writeFile(target, INIT_SKILL_TEMPLATE(name), "utf8");
+  console.log(`created ${target}`);
+}
+
+async function checkSkill(input) {
+  const sourceInfo = await readSkillSource(input);
+  const skill = parseSkillSource(sourceInfo.source, sourceInfo);
+  await assertReferencedSkillFiles(skill, sourceInfo.root);
+  return { source: sourceInfo, root: sourceInfo.root, skill };
+}
+
+async function buildSkill(input, options = {}) {
+  const { skill, source, root } = await checkSkill(input);
+  const targets = targetList(options.target);
+  const files = [];
+  for (const target of targets) {
+    const outDir = resolve(options.out ? (targets.length > 1 ? join(options.out, target) : options.out) : join(root, "build", target));
+    const outFile = join(outDir, "SKILL.md");
+    await writeSkillOutput({ skill, source, root, outDir, outFile });
+    files.push(outFile);
+  }
+  return { files };
+}
+
+async function importSkill(input, options = {}) {
+  const markdown = await readFile(input, "utf8");
+  const imported = skillFromMarkdown(markdown);
+  const out = resolve(options.out || join(dirname(input), "skill.lmk"));
+  if (await exists(out)) throw new Error(`${out} already exists`);
+  await mkdir(dirname(out), { recursive: true });
+  await writeFile(out, imported, "utf8");
+  console.log(`created ${out}`);
+}
+
+async function installSkill(input, options = {}) {
+  const { skill, source, root } = await checkSkill(input);
+  const repo = resolve(options.repo || process.cwd());
+  const files = [];
+  for (const target of targetList(options.target)) {
+    const installRoot = target === "codex"
+      ? join(repo, ".agents", "skills", skill.attrs.name)
+      : join(repo, ".claude", "skills", skill.attrs.name);
+    await writeSkillOutput({ skill, source, root, outDir: installRoot, outFile: join(installRoot, "SKILL.md") });
+    files.push(join(installRoot, "SKILL.md"));
+  }
+  return { files };
+}
+
+async function devSkill(input, options = {}) {
+  await buildSkill(input, options);
+  if (options.once) return;
+  const sourceInfo = await readSkillSource(input);
+  console.log(`watching ${sourceInfo.root}`);
+  let timer;
+  const watcher = watch(sourceInfo.root, { recursive: true }, () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        await buildSkill(input, options);
+        console.log("rebuilt skill");
+      } catch (error) {
+        console.error(`skill dev: ${formatError(error)}`);
+      }
+    }, 100);
+  });
+  process.on("SIGINT", () => {
+    watcher.close();
+    process.exit(0);
+  });
+}
+
+async function writeSkillOutput({ skill, source, root, outDir, outFile }) {
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(outDir, { recursive: true });
+  await writeFile(outFile, skillMarkdown(skill, source), "utf8");
+  for (const dir of SKILL_RESOURCE_DIRS) {
+    const from = join(root, dir);
+    if (await exists(from)) await copyDir(from, join(outDir, dir));
+  }
+}
+
+async function readSkillSource(input) {
+  const resolved = resolve(input);
+  const info = await stat(resolved);
+  if (info.isDirectory()) {
+    const file = join(resolved, "skill.lmk");
+    if (await exists(file)) return { root: resolved, file, source: await readFile(file, "utf8") };
+    throw new Error(`${resolved} does not contain skill.lmk`);
+  }
+  return { root: dirname(resolved), file: resolved, source: await readFile(resolved, "utf8") };
+}
+
+function parseSkillSource(source, sourceInfo) {
+  const errors = validateSource(source);
+  if (errors.length > 0) {
+    throw new Error(errors.map((error) => `${error.message}${error.line ? ` at ${error.line}:${error.column}` : ""}`).join("; "));
+  }
+  const ast = parseLessmark(source);
+  const skillBlocks = ast.children.filter((node) => node.type === "block" && node.name === "skill");
+  if (skillBlocks.length !== 1) throw new Error("Skill source must contain exactly one @skill block");
+  const skill = skillBlocks[0];
+  assertSkillName(skill.attrs.name);
+  return { attrs: skill.attrs, ast };
+}
+
+function skillMarkdown(skill, source) {
+  const children = [];
+  for (const node of skill.ast.children) {
+    if (node.type === "block" && node.name === "skill") {
+      const text = String(node.text || "").trim();
+      if (text) children.push({ type: "block", name: "paragraph", attrs: {}, text });
+    } else {
+      children.push(node);
+    }
+  }
+  const bodyAst = {
+    type: "document",
+    children
+  };
+  const frontmatter = [
+    "---",
+    `name: ${yamlString(skill.attrs.name)}`,
+    `description: ${yamlString(skill.attrs.description)}`
+  ];
+  for (const key of ["license", "compatibility", "allowed-tools"]) {
+    if (skill.attrs[key]) frontmatter.push(`${key}: ${yamlString(skill.attrs[key])}`);
+  }
+  frontmatter.push("---", "", `<!-- Generated from ${basename(source.file)}. Edit the Lessmark source, then run lessmark skill build. -->`, "");
+  return `${frontmatter.join("\n")}${toMarkdown(bodyAst)}`;
+}
+
+function skillFromMarkdown(markdown) {
+  const source = String(markdown).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const match = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(source);
+  if (!match) throw new Error("SKILL.md must start with YAML frontmatter");
+  const attrs = readSkillFrontmatter(match[1]);
+  const body = match[2].replace(/<!-- Generated from .*? -->\n*/g, "");
+  const header = `@skill${Object.entries(attrs).map(([key, value]) => ` ${key}="${escapeSkillAttr(value)}"`).join("")}`;
+  return `${header}\n\n${skillBodyFromMarkdown(body)}`;
+}
+
+function skillBodyFromMarkdown(markdown) {
+  const lines = String(markdown).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split("\n");
+  const chunks = [];
+  let index = 0;
+  while (index < lines.length) {
+    if (lines[index].trim() === "") {
+      index += 1;
+      continue;
+    }
+
+    const metadata = /^<!--\s*lessmark:([a-z][a-z0-9]*(?:[._-][a-z0-9]+)*)=(.*?)\s*-->\s*$/.exec(lines[index].trim());
+    if (metadata) {
+      chunks.push(`@metadata key="${escapeSkillAttr(metadata[1])}"\n${markdownText(metadata[2])}`);
+      index += 1;
+      continue;
+    }
+
+    const quote = readSkillQuote(lines, index);
+    if (quote) {
+      chunks.push(quote.chunk);
+      index = quote.nextIndex;
+      continue;
+    }
+
+    const decision = readSkillDecision(lines, index);
+    if (decision) {
+      chunks.push(decision.chunk);
+      index = decision.nextIndex;
+      continue;
+    }
+
+    const labelled = readSkillLabelledBlock(lines, index);
+    if (labelled) {
+      chunks.push(labelled.chunk);
+      index = labelled.nextIndex;
+      continue;
+    }
+
+    const generic = [];
+    while (index < lines.length && lines[index].trim() !== "") {
+      generic.push(lines[index]);
+      index += 1;
+    }
+    const converted = fromMarkdown(generic.join("\n")).trim();
+    if (converted) chunks.push(converted);
+  }
+  return `${chunks.join("\n\n")}\n`;
+}
+
+function readSkillQuote(lines, index) {
+  if (!/^\s*>\s?/.test(lines[index])) return null;
+  const quoted = [];
+  while (index < lines.length && /^\s*>\s?/.test(lines[index])) {
+    quoted.push(lines[index].replace(/^\s*>\s?/, ""));
+    index += 1;
+  }
+  while (index < lines.length && lines[index].trim() !== "") {
+    quoted.push(lines[index]);
+    index += 1;
+  }
+  const first = quoted[0]?.trim() || "";
+  const constraint = /^Constraint:\s*(.*)$/.exec(first);
+  if (constraint) return { nextIndex: index, chunk: `@constraint\n${quoteText([constraint[1], ...quoted.slice(1)])}` };
+  const risk = /^Risk \((low|medium|high|critical)\):\s*(.*)$/.exec(first);
+  if (risk) return { nextIndex: index, chunk: `@risk level="${risk[1]}"\n${quoteText([risk[2], ...quoted.slice(1)])}` };
+  const dependsOn = /^Depends on `([^`]+)`:\s*(.*)$/.exec(first);
+  if (dependsOn) return { nextIndex: index, chunk: `@depends-on target="${escapeSkillAttr(dependsOn[1])}"\n${quoteText([dependsOn[2], ...quoted.slice(1)])}` };
+  return null;
+}
+
+function readSkillDecision(lines, index) {
+  const heading = /^###\s+([a-z0-9]+(?:-[a-z0-9]+)*)\s*$/.exec(lines[index]);
+  if (!heading) return null;
+  let next = index + 1;
+  while (next < lines.length && lines[next].trim() === "") next += 1;
+  const decision = /^\*\*Decision:\*\*\s*(.*)$/.exec(lines[next] || "");
+  if (!decision) return null;
+  const body = [decision[1]];
+  next += 1;
+  while (next < lines.length && lines[next].trim() !== "") {
+    body.push(lines[next]);
+    next += 1;
+  }
+  return { nextIndex: next, chunk: `@decision id="${heading[1]}"\n${body.map(markdownText).join("\n")}` };
+}
+
+function readSkillLabelledBlock(lines, index) {
+  const label = /^\*\*(File|API):\*\*\s+`([^`]+)`\s*$/.exec(lines[index]);
+  if (!label) return null;
+  let next = index + 1;
+  while (next < lines.length && lines[next].trim() === "") next += 1;
+  const body = [];
+  while (next < lines.length && lines[next].trim() !== "") {
+    body.push(lines[next]);
+    next += 1;
+  }
+  const blockName = label[1] === "File" ? "file" : "api";
+  const attrName = label[1] === "File" ? "path" : "name";
+  return {
+    nextIndex: next,
+    chunk: `@${blockName} ${attrName}="${escapeSkillAttr(label[2])}"\n${body.map(markdownText).join("\n")}`
+  };
+}
+
+function quoteText(lines) {
+  return lines.map(markdownText).filter(Boolean).join("\n");
+}
+
+function markdownText(text) {
+  return markdownInlineToLessmark(text).trim();
+}
+
+function markdownInlineToLessmark(text) {
+  return String(text)
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (_match, label, href) => `{{link:${label}|${href}}}`)
+    .replace(/`([^`\n]+)`/g, (_match, value) => `{{code:${value}}}`)
+    .replace(/\*\*([^*\n]+)\*\*/g, (_match, value) => `{{strong:${value}}}`)
+    .replace(/\*([^*\n]+)\*/g, (_match, value) => `{{em:${value}}}`)
+    .replace(/~~([^~\n]+)~~/g, (_match, value) => `{{del:${value}}}`);
+}
+
+function readSkillFrontmatter(frontmatter) {
+  const attrs = {};
+  for (const line of frontmatter.split("\n")) {
+    const match = /^([A-Za-z][A-Za-z0-9-]*):\s*(.*)$/.exec(line.trim());
+    if (!match) continue;
+    const key = match[1];
+    if (["name", "description", "license", "compatibility", "allowed-tools"].includes(key)) {
+      attrs[key] = unquoteYamlString(match[2]);
+    }
+  }
+  if (!attrs.name || !attrs.description) throw new Error("SKILL.md frontmatter requires name and description");
+  assertSkillName(attrs.name);
+  return attrs;
+}
+
+async function assertReferencedSkillFiles(skill, root) {
+  for (const node of skill.ast.children) {
+    if (node.type !== "block" || node.name !== "file") continue;
+    const path = node.attrs.path;
+    if (!SKILL_RESOURCE_DIRS.some((dir) => path === dir || path.startsWith(`${dir}/`))) continue;
+    if (!(await exists(join(root, path)))) throw new Error(`Referenced skill file does not exist: ${path}`);
+  }
+}
+
+function targetList(target) {
+  if (!SKILL_TARGETS.has(target)) throw new Error("--target must be codex, claude, or both");
+  return target === "both" ? ["codex", "claude"] : [target];
+}
+
+async function copyDir(from, to) {
+  await mkdir(to, { recursive: true });
+  for (const entry of await readdir(from, { withFileTypes: true })) {
+    const source = join(from, entry.name);
+    const target = join(to, entry.name);
+    if (entry.isDirectory()) {
+      await copyDir(source, target);
+    } else if (entry.isFile()) {
+      await copyFile(source, target);
+    }
+  }
+}
+
+async function exists(path) {
+  try {
+    await stat(path);
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+function assertSkillName(name) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) || name.length > 64 || name.includes("--")) {
+    throw new Error("Skill name must be 1-64 lowercase letters, numbers, and single hyphens");
+  }
+}
+
+function yamlString(value) {
+  return JSON.stringify(String(value));
+}
+
+function unquoteYamlString(value) {
+  const trimmed = String(value).trim();
+  if ((trimmed.startsWith("\"") && trimmed.endsWith("\"")) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1).replace(/\\"/g, "\"");
+  }
+  return trimmed;
+}
+
+function escapeSkillAttr(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
+}
+
 function printHelp() {
   console.log(`Lessmark CLI
 
@@ -504,7 +914,25 @@ Usage:
   lessmark build docs out
   lessmark build --strict input out
   lessmark init docs
+  lessmark skill init code-review
+  lessmark skill check code-review
+  lessmark skill build code-review --target both
+  lessmark skill import code-review/SKILL.md --out code-review/skill.lmk
+  lessmark skill install code-review --target codex
+  lessmark skill dev code-review
   lessmark info --json`);
+}
+
+function printSkillHelp() {
+  console.log(`Lessmark skill commands
+
+Usage:
+  lessmark skill init <skill-dir>
+  lessmark skill check <skill-dir|skill.lmk>
+  lessmark skill build <skill-dir|skill.lmk> [--target codex|claude|both] [--out dir]
+  lessmark skill import <SKILL.md> [--out skill.lmk]
+  lessmark skill install <skill-dir|skill.lmk> [--target codex|claude|both] [--repo dir]
+  lessmark skill dev <skill-dir|skill.lmk> [--target codex|claude|both] [--once]`);
 }
 
 function formatError(error) {

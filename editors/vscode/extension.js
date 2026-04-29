@@ -6,6 +6,7 @@ const vscode = require("vscode");
 const diagnosticCollection = vscode.languages.createDiagnosticCollection("lessmark");
 const BLOCK_DOCS = new Map([
   ["summary", "Document summary. Body is plain inline text."],
+  ["skill", "Agent skill metadata. Required: name and description. The npm CLI can emit native SKILL.md bundles."],
   ["decision", "Decision block. Required: id=\"lowercase-slug\". The id becomes a local reference target."],
   ["constraint", "Constraint body. Use for rules the document must preserve."],
   ["task", "Task block. Required: status=\"todo|doing|done|blocked\"."],

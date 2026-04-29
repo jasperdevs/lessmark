@@ -219,6 +219,14 @@ Blocks that carry intent for tools and agents without scraping prose.
   @summary
   A small CLI for tracking time across projects.
 
+### skill
+
+Skill metadata for a Lessmark-authored agent skill. The npm CLI can
+compile the source into native {{code:SKILL.md}} bundles.
+
+@code lang="lessmark"
+  @skill name="code-review" description="Review code for bugs, regressions, security issues, and missing tests."
+
 ### decision
 
 A binding choice with a stable id. Other blocks can point at the id.

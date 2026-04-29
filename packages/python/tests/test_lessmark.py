@@ -285,6 +285,15 @@ def f(): pass
         with self.assertRaisesRegex(LessmarkError, "does not allow attribute"):
             parse_lessmark('@summary mood="casual"\nAttributes are fixed by block type.\n')
 
+    def test_parses_and_validates_agent_skill_metadata(self):
+        source = '@skill name="code-review" description="Review code when the user asks for bugs and regressions."\n\nSkill instructions.\n'
+        ast = parse_lessmark(source)
+        self.assertEqual(ast["children"][0]["name"], "skill")
+        self.assertEqual(ast["children"][0]["attrs"]["name"], "code-review")
+        self.assertEqual(validate_source(source), [])
+        with self.assertRaisesRegex(LessmarkError, "@skill name"):
+            parse_lessmark('@skill name="Bad--Name" description="Bad."\n')
+
     def test_rejects_bad_task_status(self):
         with self.assertRaisesRegex(LessmarkError, "@task status must be one of"):
             parse_lessmark('@task status="later"\nUse one of the fixed task statuses.\n')
@@ -786,7 +795,7 @@ def f(): pass
         with redirect_stdout(output):
             status = main(["info"])
         self.assertEqual(status, 0)
-        self.assertTrue(output.getvalue().startswith("Lessmark 0.1.5\n"))
+        self.assertTrue(output.getvalue().startswith("Lessmark 0.1.6\n"))
         self.assertNotIn("(v", output.getvalue())
 
 

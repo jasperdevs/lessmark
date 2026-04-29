@@ -72,12 +72,18 @@ lessmark from-markdown -
 lessmark to-markdown file.lmk
 lessmark to-markdown -
 lessmark init docs
+lessmark skill init code-review
+lessmark skill check code-review
+lessmark skill build code-review --target both
+lessmark skill import code-review/SKILL.md --out code-review/skill.lmk
+lessmark skill install code-review --target codex
+lessmark skill dev code-review
 lessmark render --document file.lmk
 lessmark build --strict input public
 lessmark info --json
 ```
 
-Use `-` to read from stdin. `check`, `format --check`, and `fix --write` can also walk a directory recursively. `parse --positions` includes source ranges for tooling. `init` creates a starter `docs/index.lmk` without overwriting. `parse`, `check`, `format`, `fix`, `from-markdown`, `to-markdown`, `init`, and `info` are shared by the JavaScript, Python, and Rust packages. HTML rendering and static-site builds are npm CLI features.
+Use `-` to read from stdin. `check`, `format --check`, and `fix --write` can also walk a directory recursively. `parse --positions` includes source ranges for tooling. `init` creates a starter `docs/index.lmk` without overwriting. `parse`, `check`, `format`, `fix`, `from-markdown`, `to-markdown`, `init`, and `info` are shared by the JavaScript, Python, and Rust packages. HTML rendering, static-site builds, and skill bundle commands are npm CLI features.
 
 </details>
 
@@ -107,7 +113,7 @@ use lessmark::{parse_lessmark, validate_source, format_lessmark};
 <details>
 <summary><img src="./assets/brand/pixel-spark-color.svg" alt="" width="14" /> Language</summary>
 
-Lessmark source files use `.lmk`; `.lessmark` is a readable alias. The language includes plain top-level paragraphs, headings, inline functions, typed context blocks, lists, tables, callouts, code, math, diagrams, links, footnotes, and page/navigation metadata.
+Lessmark source files use `.lmk`; `.lessmark` is a readable alias. The language includes plain top-level paragraphs, headings, inline functions, typed context blocks, skill metadata, lists, tables, callouts, code, math, diagrams, links, footnotes, and page/navigation metadata.
 
 Conformance is checked across JavaScript, Python, Rust, docs, Markdown conversion, fixtures, schemas, VS Code syntax, and the Tree-sitter starter grammar. See [lessmark.org/docs/conformance](https://lessmark.org/docs/conformance).
 

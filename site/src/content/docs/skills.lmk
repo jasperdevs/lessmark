@@ -1,0 +1,105 @@
+# Agent skills
+
+@summary
+Author agent skills in Lessmark and emit native SKILL.md bundles for
+the tools that load them.
+
+Codex, Claude, and the open Agent Skills format use a folder with a
+{{code:SKILL.md}} file at runtime. Lessmark does not replace that
+runtime contract. It gives the author a typed source file, validation,
+canonical formatting, and deterministic build output.
+
+## Source shape
+
+@code lang="lessmark"
+@skill name="code-review" description="Review code for bugs, regressions, security issues, and missing tests."
+
+When reviewing code, lead with findings.
+
+@constraint
+Do not rewrite unrelated files.
+
+@task status="todo"
+Inspect the diff before suggesting changes.
+
+@file path="references/checklist.lmk"
+Use this reference for deeper reviews.
+
+The skill source is the file people and agents edit. Generated
+{{code:SKILL.md}} files are build output.
+
+## Bundle shape
+
+@code lang="text"
+code-review/
+  skill.lmk
+  references/
+  scripts/
+  build/
+    codex/
+      SKILL.md
+      references/
+      scripts/
+    claude/
+      SKILL.md
+      references/
+      scripts/
+
+## Commands
+
+@code lang="sh"
+lessmark skill init code-review
+lessmark skill check code-review
+lessmark skill build code-review --target both
+lessmark skill import code-review/SKILL.md --out code-review/skill.lmk
+lessmark skill install code-review --target codex
+lessmark skill install code-review --target claude
+lessmark skill dev code-review
+
+@table columns="Command|What it does"
+init|Creates skill.lmk, references/, and scripts/.
+check|Validates the Lessmark source and referenced resource paths.
+build|Writes native SKILL.md bundles under build/codex and build/claude.
+import|Converts an existing SKILL.md into a Lessmark skill source.
+install|Writes a repo-scoped native skill for Codex or Claude.
+dev|Watches the Lessmark source and rebuilds the bundle.
+
+## Generated SKILL.md
+
+@code lang="md"
+---
+name: "code-review"
+description: "Review code for bugs, regressions, security issues, and missing tests."
+---
+
+When reviewing code, lead with findings.
+
+> Constraint: Do not rewrite unrelated files.
+
+- [ ] Inspect the diff before suggesting changes.
+
+**File:** `references/checklist.lmk`
+
+Use this reference for deeper reviews.
+
+## Targets
+
+@table columns="Target|Install path"
+codex|.agents/skills/name/SKILL.md
+claude|.claude/skills/name/SKILL.md
+both|Build or install both native bundles.
+
+## Why this is not two-source editing
+
+@list kind="unordered"
+- Edit {{code:skill.lmk}}.
+- Run {{code:lessmark skill build}} or {{code:lessmark skill dev}}.
+- Commit generated bundles only when the target tool needs them in the repo.
+- Do not hand-edit generated {{code:SKILL.md}} files.
+
+## Portable core
+
+The portable Lessmark skill block supports {{code:name}},
+{{code:description}}, {{code:license}}, {{code:compatibility}}, and
+{{code:allowed-tools}}. Keep vendor-specific behavior out of the source
+unless a target adapter needs it.

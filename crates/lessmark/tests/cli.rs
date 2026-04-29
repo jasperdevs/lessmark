@@ -81,7 +81,7 @@ fn cli_info_text_hides_internal_ast_label() {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8(output.stdout).expect("stdout is utf8");
-    assert!(stdout.starts_with("Lessmark 0.1.5\n"));
+    assert!(stdout.starts_with("Lessmark 0.1.6\n"));
     assert!(!stdout.contains("(v"));
     assert!(stdout.contains("Blocks: "));
 }

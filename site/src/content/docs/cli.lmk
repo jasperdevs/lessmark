@@ -28,6 +28,9 @@ lessmark to-markdown file.lmk
 lessmark to-markdown -
 lessmark init docs
 # npm package only:
+lessmark skill init code-review
+lessmark skill build code-review --target both
+lessmark skill install code-review --target codex
 lessmark render --document docs/index.lmk
 lessmark build --strict docs public
 lessmark info --json
@@ -47,6 +50,7 @@ lessmark info --json
 - build --strict walks a directory and writes a static site in the npm CLI.
 - build copies only public assets under assets/, public/, or static/.
 - init creates a starter docs/index.lmk without overwriting an existing file.
+- skill creates, validates, builds, imports, installs, and watches Lessmark-authored agent skill bundles in the npm CLI.
 - info --json reports the supported blocks, inline functions, and CLI features.
 
 ## Stdin and directories
@@ -68,6 +72,30 @@ lessmark init docs
 - Directory walking works for check, format --check, and fix --write.
 - Directory walking only reads .lmk and .lessmark files.
 - Hidden folders, build output, dist, node_modules, out, and target are skipped.
+
+## Agent skill bundles
+
+@summary
+Codex, Claude, and the open Agent Skills format load native
+{{code:SKILL.md}} files. Lessmark can be the typed source and emit that
+runtime file as build output.
+
+@code lang="sh"
+lessmark skill init code-review
+lessmark skill check code-review
+lessmark skill build code-review --target both
+lessmark skill import code-review/SKILL.md --out code-review/skill.lmk
+lessmark skill install code-review --target codex
+lessmark skill install code-review --target claude
+lessmark skill dev code-review
+
+@list kind="unordered"
+- init creates skill.lmk plus references/ and scripts/.
+- check validates the Lessmark source and referenced resource paths.
+- build writes deterministic build/codex/SKILL.md and build/claude/SKILL.md bundles.
+- import converts an existing SKILL.md into a Lessmark skill source.
+- install writes a native repo-scoped skill under .agents/skills or .claude/skills.
+- dev watches the Lessmark source and rebuilds the native bundle.
 
 ## CI
 

@@ -9,14 +9,29 @@ typed blocks. Every package parses the same source into the same JSON tree.
 Lessmark is open-source. The grammar, parsers, and website are available on
 {{link:GitHub|https://github.com/jasperdevs/lessmark}}.
 
-## How is lessmark different?
+## Why use Lessmark instead of Markdown?
 
-Markdown is a presentation format. Lessmark is a structure format. A
-{{code:@decision}} block is a decision, a {{code:@constraint}} block is a
-constraint, and tooling can read the file without guessing.
+Markdown is good when a human is the only reader. Lessmark is for documents
+that humans edit and AI agents need to trust.
 
-There is no raw HTML, no JSX, and no template engine. The parser stops at the
-first violation, so a broken document never reaches a renderer.
+In Markdown, the same-looking document can parse differently across engines,
+raw HTML can change the output, and malformed structure often gets accepted
+silently. That is fine for notes and comments, but painful for AI agent context
+files, docs pipelines, renderers, and import/export paths that need one
+predictable tree.
+
+Lessmark keeps the readable parts and removes the guesswork:
+
+@table columns="Markdown|Lessmark"
+Many equivalent spellings for the same idea|One canonical format
+Parser-dependent edge cases|Shared grammar and conformance tests
+Raw HTML and renderer-specific behavior|Safe rendering with no raw HTML
+Loose structure that AI agents and parsers have to infer|Typed blocks with explicit attributes
+Formatting is mostly cosmetic|Formatting produces stable source
+AST shape depends on the parser|Stable JSON AST across JavaScript, Python, and Rust
+
+Use Markdown for casual prose. Use Lessmark when the file is part of a build,
+a parser, a validator, a site, or an agent workflow.
 
 ## features
 

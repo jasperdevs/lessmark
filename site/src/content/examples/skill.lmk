@@ -5,6 +5,8 @@ A reusable skill an agent can invoke to capture a single application
 window. The agent reads this file, follows the constraints, and produces a
 PNG plus a JSON sidecar.
 
+@skill name="capture-window" description="Capture one application window and write a PNG plus metadata sidecar."
+
 @metadata key="skill.id"
 capture-window
 

@@ -315,6 +315,15 @@ test("rejects attributes not defined by the block type", async () => {
   assert.throws(() => parseLessmark(source), /does not allow attribute/);
 });
 
+test("parses and validates agent skill metadata", () => {
+  const source = '@skill name="code-review" description="Review code when the user asks for bugs and regressions."\n\nSkill instructions.\n';
+  const ast = parseLessmark(source);
+  assert.equal(ast.children[0].name, "skill");
+  assert.equal(ast.children[0].attrs.name, "code-review");
+  assert.deepEqual(validateSource(source), []);
+  assert.throws(() => parseLessmark('@skill name="Bad--Name" description="Bad."\n'), /@skill name/);
+});
+
 test("rejects task statuses outside the fixed set", async () => {
   const source = await read("fixtures/invalid/bad-task-status.lmk");
   assert.throws(() => parseLessmark(source), /@task status must be one of/);

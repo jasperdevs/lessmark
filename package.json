@@ -1,7 +1,7 @@
 {
   "name": "lessmark-workspace",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "The markdown alternative that agents (and humans) love.",
   "license": "MIT",
   "workspaces": [

@@ -342,7 +342,8 @@ fn markdown_node(node: &Node, footnote_ids: &BTreeSet<String>) -> Option<String>
             name, attrs, text, ..
         } => match name.as_str() {
             "summary" | "paragraph" => Some(inline_to_markdown(text)),
-            "constraint" => Some(format!("> Constraint: {}", text)),
+            "skill" => None,
+            "constraint" => Some(labelled_quote_to_markdown("Constraint", text)),
             "decision" => Some(format!(
                 "### {}\n\n**Decision:** {}",
                 attrs.get("id").map(String::as_str).unwrap_or(""),
@@ -355,17 +356,17 @@ fn markdown_node(node: &Node, footnote_ids: &BTreeSet<String>) -> Option<String>
                 } else {
                     " "
                 },
-                text
+                inline_to_markdown(text)
             )),
             "file" => Some(format!(
                 "**File:** `{}`\n\n{}",
                 attrs.get("path").map(String::as_str).unwrap_or(""),
-                text
+                inline_to_markdown(text)
             )),
             "api" => Some(format!(
                 "**API:** `{}`\n\n{}",
                 attrs.get("name").map(String::as_str).unwrap_or(""),
-                text
+                inline_to_markdown(text)
             )),
             "link" => Some(format!(
                 "[{}]({})",
@@ -381,15 +382,19 @@ fn markdown_node(node: &Node, footnote_ids: &BTreeSet<String>) -> Option<String>
                 attrs.get("key").map(String::as_str).unwrap_or(""),
                 text
             )),
-            "risk" => Some(format!(
-                "> Risk ({}): {}",
-                attrs.get("level").map(String::as_str).unwrap_or(""),
-                text
+            "risk" => Some(labelled_quote_to_markdown(
+                &format!(
+                    "Risk ({})",
+                    attrs.get("level").map(String::as_str).unwrap_or("")
+                ),
+                text,
             )),
-            "depends-on" => Some(format!(
-                "> Depends on `{}`: {}",
-                attrs.get("target").map(String::as_str).unwrap_or(""),
-                text
+            "depends-on" => Some(labelled_quote_to_markdown(
+                &format!(
+                    "Depends on `{}`",
+                    attrs.get("target").map(String::as_str).unwrap_or("")
+                ),
+                text,
             )),
             "code" => Some(format!(
                 "```{}\n{}\n```",
@@ -520,6 +525,15 @@ fn quote_to_markdown(text: &str, cite: &str) -> String {
     } else {
         format!("{}\n>\n> Source: {}", quoted, inline_to_markdown(cite))
     }
+}
+
+fn labelled_quote_to_markdown(label: &str, text: &str) -> String {
+    let markdown = inline_to_markdown(text);
+    let mut lines = markdown.lines();
+    let first = lines.next().unwrap_or("");
+    let mut quoted = vec![format!("> {}: {}", label, first)];
+    quoted.extend(lines.map(|line| format!("> {}", line)));
+    quoted.join("\n")
 }
 
 fn callout_to_markdown(kind: &str, title: &str, text: &str) -> String {

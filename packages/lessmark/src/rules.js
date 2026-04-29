@@ -9,6 +9,7 @@ export const MARKDOWN_THEMATIC_BREAK_PATTERN = /^(?:(?: {0,3})(?:[-*_]\s*){3,}|(
 export const MARKDOWN_BLOCKQUOTE_PATTERN = /^\s{0,3}>\s?/;
 export const MARKDOWN_LIST_MARKER_PATTERN = /^\s{0,3}(?:[-+*]\s+|\d+[.)]\s+)/;
 export const DECISION_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const METADATA_KEY_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 export const DEFINITION_TERM_PATTERN = /^(?=.*\S)[^\r\n\t<>]+$/;
 export const NAV_SLOTS = new Set(["primary", "footer"]);
@@ -129,6 +130,17 @@ function getLegacyMarkdownBodyError(text) {
 function getSemanticAttrError(name, attrs) {
   if (name === "task" && typeof attrs.status === "string" && attrs.status && !TASK_STATUSES.has(attrs.status)) {
     return "@task status must be one of: todo, doing, done, blocked";
+  }
+  if (name === "skill" && typeof attrs.name === "string" && attrs.name) {
+    if (!SKILL_NAME_PATTERN.test(attrs.name) || attrs.name.length > 64 || attrs.name.includes("--")) {
+      return "@skill name must be 1-64 lowercase letters, numbers, and single hyphens";
+    }
+  }
+  if (name === "skill" && typeof attrs.description === "string" && attrs.description && attrs.description.length > 1024) {
+    return "@skill description must be 1-1024 characters";
+  }
+  if (name === "skill" && typeof attrs.compatibility === "string" && attrs.compatibility && attrs.compatibility.length > 500) {
+    return "@skill compatibility must be 1-500 characters";
   }
   if (name === "decision" && typeof attrs.id === "string" && attrs.id && !DECISION_ID_PATTERN.test(attrs.id)) {
     return "@decision id must be a lowercase slug";

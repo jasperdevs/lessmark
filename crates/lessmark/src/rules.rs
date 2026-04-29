@@ -52,6 +52,11 @@ fn decision_id_pattern() -> &'static Regex {
     PATTERN.get_or_init(|| Regex::new(r#"^[a-z0-9]+(?:-[a-z0-9]+)*$"#).unwrap())
 }
 
+fn skill_name_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| Regex::new(r#"^[a-z0-9]+(?:-[a-z0-9]+)*$"#).unwrap())
+}
+
 fn metadata_key_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     PATTERN.get_or_init(|| Regex::new(r#"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"#).unwrap())
@@ -267,6 +272,26 @@ fn semantic_attr_error(name: &str, attrs: &BTreeMap<String, String>) -> Option<S
         if let Some(status) = attrs.get("status") {
             if !TASK_STATUSES.contains(&status.as_str()) {
                 return Some("@task status must be one of: todo, doing, done, blocked".to_string());
+            }
+        }
+    }
+    if name == "skill" {
+        if let Some(value) = attrs.get("name") {
+            if !skill_name_pattern().is_match(value) || value.len() > 64 || value.contains("--") {
+                return Some(
+                    "@skill name must be 1-64 lowercase letters, numbers, and single hyphens"
+                        .to_string(),
+                );
+            }
+        }
+        if let Some(value) = attrs.get("description") {
+            if value.len() > 1024 {
+                return Some("@skill description must be 1-1024 characters".to_string());
+            }
+        }
+        if let Some(value) = attrs.get("compatibility") {
+            if value.len() > 500 {
+                return Some("@skill compatibility must be 1-500 characters".to_string());
             }
         }
     }

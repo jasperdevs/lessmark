@@ -107,6 +107,8 @@ function checkReadmeCliBehavior() {
     assertCliOk([cli, "from-markdown", markdown], /# Notes/);
     assertCliOk([cli, "to-markdown", source], /# Notes/);
     assertCliOk([cli, "info", "--json"], /"language": "lessmark"/);
+    assertCliOk([cli, "skill", "init", join(temp, "code-review")], /created/);
+    assertCliOk([cli, "skill", "build", join(temp, "code-review"), "--target", "codex"], /SKILL\.md/);
     mkdirSync(input, { recursive: true });
     writeFileSync(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\nHome.\n', "utf8");
     assertCliOk([cli, "build", "--strict", input, output], /.*/);

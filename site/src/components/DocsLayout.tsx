@@ -23,6 +23,7 @@ const DOC_MARKS = {
   switching: PixelSwitch,
   syntax: PixelDoc,
   blocks: PixelBlocks,
+  skills: PixelWand,
   validation: PixelShield,
   render: PixelRender,
   phases: PixelLoop,

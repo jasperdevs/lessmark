@@ -107,7 +107,7 @@ test("CLI check reads stdin", async () => {
 
 test("CLI info prints human-readable capabilities without internal labels", async () => {
   const { stdout } = await exec(process.execPath, [cli, "info"]);
-  assert.match(stdout, /^Lessmark 0\.1\.5\n/);
+  assert.match(stdout, /^Lessmark 0\.1\.6\n/);
   assert.doesNotMatch(stdout, /\(v/);
   assert.match(stdout, /Blocks: /);
 });
@@ -212,6 +212,81 @@ test("CLI init creates a starter docs file without overwriting", async () => {
     const source = await readFile(join(docs, "index.lmk"), "utf8");
     assert.match(source, /@summary/);
     await assert.rejects(exec(process.execPath, [cli, "init", docs]), /already exists/);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("CLI skill workflow creates, validates, builds, imports, installs, and dev-builds skills", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-skill-"));
+  try {
+    const skill = join(temp, "code-review");
+    const repo = join(temp, "repo");
+    await mkdir(repo, { recursive: true });
+
+    const init = await exec(process.execPath, [cli, "skill", "init", skill]);
+    assert.match(init.stdout, /created/);
+
+    await writeFile(join(skill, "references", "checklist.lmk"), "# Checklist\n\nRead the diff.\n", "utf8");
+    await writeFile(join(skill, "skill.lmk"), [
+      '@skill name="code-review" description="Review code for bugs, regressions, security issues, and missing tests."',
+      "",
+      "When reviewing code, lead with findings.",
+      "",
+      "@constraint",
+      "Do not rewrite unrelated files.",
+      "Report missing tests separately.",
+      "",
+      '@decision id="review-order"',
+      "Lead with bugs.",
+      "Then mention test gaps.",
+      "",
+      '@file path="references/checklist.lmk"',
+      "Use this reference for deeper reviews.",
+      "Keep {{code:checklist.lmk}} and {{link:docs|https://example.com}} close while reading diffs.",
+      "",
+      '@api name="review.findings"',
+      "Return {{strong:findings}} before summaries.",
+      "Include file and line when possible.",
+      ""
+    ].join("\n"), "utf8");
+
+    const checked = await exec(process.execPath, [cli, "skill", "check", skill]);
+    assert.match(checked.stdout, /ok/);
+
+    const built = await exec(process.execPath, [cli, "skill", "build", skill, "--target", "codex"]);
+    assert.match(built.stdout, /SKILL\.md/);
+    const generated = await readFile(join(skill, "build", "codex", "SKILL.md"), "utf8");
+    assert.match(generated, /name: "code-review"/);
+    assert.match(generated, /Generated from skill\.lmk/);
+    assert.match(generated, /When reviewing code/);
+    assert.match(generated, /> Report missing tests separately\./);
+    assert.match(generated, /Keep `checklist\.lmk` and \[docs\]\(https:\/\/example\.com\) close while reading diffs\./);
+    assert.match(generated, /Return \*\*findings\*\* before summaries\./);
+    assert.match(await readFile(join(skill, "build", "codex", "references", "checklist.lmk"), "utf8"), /Checklist/);
+
+    const customOut = join(temp, "custom-build");
+    await exec(process.execPath, [cli, "skill", "build", skill, "--target", "both", "--out", customOut]);
+    assert.match(await readFile(join(customOut, "codex", "SKILL.md"), "utf8"), /code-review/);
+    assert.match(await readFile(join(customOut, "claude", "SKILL.md"), "utf8"), /code-review/);
+
+    const imported = join(temp, "imported.lmk");
+    await exec(process.execPath, [cli, "skill", "import", join(skill, "build", "codex", "SKILL.md"), "--out", imported]);
+    const importedSource = await readFile(imported, "utf8");
+    assert.match(importedSource, /@skill name="code-review"/);
+    assert.match(importedSource, /@constraint\nDo not rewrite unrelated files\.\nReport missing tests separately\./);
+    assert.match(importedSource, /@decision id="review-order"\nLead with bugs\.\nThen mention test gaps\./);
+    assert.match(importedSource, /@file path="references\/checklist\.lmk"/);
+    assert.match(importedSource, /Keep \{\{code:checklist\.lmk\}\} and \{\{link:docs\|https:\/\/example\.com\}\} close while reading diffs\./);
+    assert.match(importedSource, /@api name="review\.findings"\nReturn \{\{strong:findings\}\} before summaries\.\nInclude file and line when possible\./);
+
+    const installed = await exec(process.execPath, [cli, "skill", "install", skill, "--target", "codex", "--repo", repo]);
+    assert.match(installed.stdout, /installed/);
+    assert.match(await readFile(join(repo, ".agents", "skills", "code-review", "SKILL.md"), "utf8"), /code-review/);
+
+    await rm(join(skill, "build"), { recursive: true, force: true });
+    await exec(process.execPath, [cli, "skill", "dev", skill, "--target", "claude", "--once"]);
+    assert.match(await readFile(join(skill, "build", "claude", "SKILL.md"), "utf8"), /code-review/);
   } finally {
     await rm(temp, { recursive: true, force: true });
   }

@@ -6,6 +6,8 @@ import {
   PixelHeart,
   PixelMonoDoc,
   PixelMonoPlayground,
+  PixelNo,
+  PixelOk,
   SourceIcon,
   TerminalIcon,
 } from "@/components/PixelIcons";
@@ -155,6 +157,14 @@ export function Home() {
             </div>
           );
         }
+        if (section.slug === "why-use-lessmark-instead-of-markdown") {
+          return (
+            <div key={section.slug}>
+              <Divider />
+              <ComparisonSection section={section} />
+            </div>
+          );
+        }
         return (
           <div key={section.slug}>
             <Divider />
@@ -186,6 +196,88 @@ export function Home() {
         </p>
       </section>
     </main>
+  );
+}
+
+function ComparisonSection({ section }: { section: Section }) {
+  const tableIndex = section.intro.findIndex(
+    (node) => node.type === "block" && node.name === "table",
+  );
+  const table = tableIndex >= 0 ? section.intro[tableIndex] : null;
+  const before = tableIndex >= 0 ? section.intro.slice(0, tableIndex) : section.intro;
+  const after = tableIndex >= 0 ? section.intro.slice(tableIndex + 1) : [];
+  const beforeHtml = useMemo(
+    () => renderNodes([{ type: "heading", level: 2, text: section.heading }, ...before]),
+    [before, section.heading],
+  );
+  const afterHtml = useMemo(() => renderNodes(after), [after]);
+  const beforeRef = useRef<HTMLDivElement>(null);
+  const afterRef = useRef<HTMLDivElement>(null);
+  useCodeCopyButtons(beforeRef, beforeHtml);
+  useCodeCopyButtons(afterRef, afterHtml);
+
+  if (!table) {
+    return <ContentSection section={section} />;
+  }
+
+  const columns = (table.attrs?.columns ?? "").split("|");
+  const rows = (table.text ?? "")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((row) => row.split("|"));
+
+  return (
+    <article className="py-8">
+      <div
+        ref={beforeRef}
+        className="lessmark-output"
+        dangerouslySetInnerHTML={{ __html: beforeHtml }}
+      />
+      <div className="mt-5 overflow-x-auto">
+        <table className="w-full min-w-[640px] border-collapse text-[14px]">
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={column}
+                  className="border border-border px-4 py-3 text-left font-semibold text-fg"
+                >
+                  {column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([markdown, lessmark]) => (
+              <tr key={`${markdown}|${lessmark}`}>
+                <td className="border border-border-soft px-4 py-3 align-top text-fg">
+                  <ComparisonCell icon={<PixelNo className="size-4 shrink-0" />} text={markdown} />
+                </td>
+                <td className="border border-border-soft px-4 py-3 align-top text-fg">
+                  <ComparisonCell icon={<PixelOk className="size-4 shrink-0" />} text={lessmark} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {after.length > 0 ? (
+        <div
+          ref={afterRef}
+          className="lessmark-output mt-5"
+          dangerouslySetInnerHTML={{ __html: afterHtml }}
+        />
+      ) : null}
+    </article>
+  );
+}
+
+function ComparisonCell({ icon, text }: { icon: React.ReactNode; text?: string }) {
+  return (
+    <span className="inline-flex items-start gap-2.5">
+      <span className="mt-[0.15em] inline-flex size-4 items-center justify-center">{icon}</span>
+      <span>{text}</span>
+    </span>
   );
 }
 

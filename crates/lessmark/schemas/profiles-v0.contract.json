@@ -21,6 +21,16 @@
       "requiredBlocks": [],
       "recommendedBlocks": ["page", "nav", "paragraph", "image", "math", "diagram", "separator", "list", "table", "quote", "callout", "toc", "definition", "reference", "footnote"],
       "disallowedFeatures": ["rawHtml", "hooks", "customComponents", "styleDirectives", "layoutDirectives", "privateFlavors"]
+    },
+    {
+      "name": "agent-skill",
+      "status": "accepted",
+      "audience": "agents loading native SKILL.md files generated from Lessmark source",
+      "renderer": "npm CLI skill builder",
+      "securityModel": "non-executable source; generated SKILL.md remains runtime format; scripts stay explicit files",
+      "requiredBlocks": ["skill"],
+      "recommendedBlocks": ["constraint", "task", "file", "example", "metadata"],
+      "disallowedFeatures": ["rawHtml", "hooks", "customBlocks", "privateFlavors", "rendererSpecificSyntax"]
     }
   ],
   "changePolicy": {

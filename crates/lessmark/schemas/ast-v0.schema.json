@@ -45,6 +45,9 @@
             "$ref": "#/$defs/noAttrBlock"
           },
           {
+            "$ref": "#/$defs/skillBlock"
+          },
+          {
             "$ref": "#/$defs/navBlock"
           },
           {
@@ -316,6 +319,76 @@
         },
         "text": {
           "const": ""
+        },
+        "position": {
+          "$ref": "#/$defs/position"
+        }
+      }
+    },
+    "skillBlock": {
+      "type": "object",
+      "required": [
+        "type",
+        "name",
+        "attrs",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "block"
+        },
+        "name": {
+          "const": "skill"
+        },
+        "attrs": {
+          "type": "object",
+          "required": [
+            "name",
+            "description"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/attributeValue"
+                },
+                {
+                  "pattern": "^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+                }
+              ]
+            },
+            "description": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/attributeValue"
+                },
+                {
+                  "maxLength": 1024
+                }
+              ]
+            },
+            "license": {
+              "$ref": "#/$defs/attributeValue"
+            },
+            "compatibility": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/attributeValue"
+                },
+                {
+                  "maxLength": 500
+                }
+              ]
+            },
+            "allowed-tools": {
+              "$ref": "#/$defs/attributeValue"
+            }
+          }
+        },
+        "text": {
+          "$ref": "#/$defs/safeText"
         },
         "position": {
           "$ref": "#/$defs/position"
