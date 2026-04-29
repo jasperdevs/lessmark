@@ -11,6 +11,12 @@
 </p>
 
 <p align="center">
+  <img src="./assets/brand/pixel-file.svg" alt="" width="18" />
+  <img src="./assets/brand/pixel-check.svg" alt="" width="18" />
+  <img src="./assets/brand/pixel-spark.svg" alt="" width="18" />
+</p>
+
+<p align="center">
   <a href="https://github.com/jasperdevs/lessmark/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/github/actions/workflow/status/jasperdevs/lessmark/ci.yml?branch=main&style=flat-square"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode"><img alt="VS Code" src="https://img.shields.io/visual-studio-marketplace/v/JasperDevs.lessmark-vscode?label=vscode&style=flat-square"></a>
   <a href="https://github.com/jasperdevs/lessmark/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/jasperdevs/lessmark?style=flat-square"></a>
@@ -19,7 +25,7 @@
 
 Lessmark is readable markup with typed blocks, canonical formatting, safe rendering, and a stable JSON AST across JavaScript, Python, and Rust.
 
-## Why use Lessmark instead of Markdown?
+## <img src="./assets/brand/pixel-spark.svg" alt="" width="18" /> Why use Lessmark instead of Markdown?
 
 Markdown is good when a human is the only reader. Lessmark is for documents that humans edit and AI agents need to trust.
 
@@ -29,16 +35,16 @@ Lessmark keeps the readable parts and removes the guesswork:
 
 | Markdown | Lessmark |
 | --- | --- |
-| Many equivalent spellings for the same idea | One canonical format |
-| Parser-dependent edge cases | Shared grammar and conformance tests |
-| Raw HTML and renderer-specific behavior | Safe rendering with no raw HTML |
-| Loose structure that AI agents and parsers have to infer | Typed blocks with explicit attributes |
-| Formatting is mostly cosmetic | Formatting produces stable source |
-| AST shape depends on the parser | Stable JSON AST across JavaScript, Python, and Rust |
+| <img src="./assets/brand/pixel-x.svg" alt="" width="14" /> Many equivalent spellings for the same idea | <img src="./assets/brand/pixel-check.svg" alt="" width="14" /> One canonical format |
+| <img src="./assets/brand/pixel-x.svg" alt="" width="14" /> Parser-dependent edge cases | <img src="./assets/brand/pixel-check.svg" alt="" width="14" /> Shared grammar and conformance tests |
+| <img src="./assets/brand/pixel-x.svg" alt="" width="14" /> Raw HTML and renderer-specific behavior | <img src="./assets/brand/pixel-check.svg" alt="" width="14" /> Safe rendering with no raw HTML |
+| <img src="./assets/brand/pixel-x.svg" alt="" width="14" /> Loose structure that AI agents and parsers have to infer | <img src="./assets/brand/pixel-check.svg" alt="" width="14" /> Typed blocks with explicit attributes |
+| <img src="./assets/brand/pixel-x.svg" alt="" width="14" /> Formatting is mostly cosmetic | <img src="./assets/brand/pixel-check.svg" alt="" width="14" /> Formatting produces stable source |
+| <img src="./assets/brand/pixel-x.svg" alt="" width="14" /> AST shape depends on the parser | <img src="./assets/brand/pixel-check.svg" alt="" width="14" /> Stable JSON AST across JavaScript, Python, and Rust |
 
 Use Markdown for casual prose. Use Lessmark when the file is part of a build, a parser, a validator, a site, or an agent workflow.
 
-## Install
+## <img src="./assets/brand/pixel-file.svg" alt="" width="18" /> Install
 
 ```sh
 npm install lessmark
@@ -53,7 +59,7 @@ cargo add lessmark
 ```
 
 <details>
-<summary>CLI</summary>
+<summary><img src="./assets/brand/pixel-check.svg" alt="" width="14" /> CLI</summary>
 
 ```sh
 lessmark parse file.lmk
@@ -74,7 +80,7 @@ lessmark info --json
 </details>
 
 <details>
-<summary>API</summary>
+<summary><img src="./assets/brand/pixel-check.svg" alt="" width="14" /> API</summary>
 
 ```js
 import { parseLessmark, validateSource, formatLessmark, renderHtml } from "lessmark";
@@ -97,16 +103,12 @@ use lessmark::{parse_lessmark, validate_source, format_lessmark};
 </details>
 
 <details>
-<summary>Language</summary>
+<summary><img src="./assets/brand/pixel-check.svg" alt="" width="14" /> Language</summary>
 
 Lessmark source files use `.lmk`; `.lessmark` is a readable alias. The language includes plain top-level paragraphs, headings, inline functions, typed context blocks, lists, tables, callouts, code, math, diagrams, links, footnotes, and page/navigation metadata.
 
 </details>
 
-<p align="center">
-  <img src="./assets/brand/readme-pixel-scene.svg" alt="Lessmark pixel art character in a night field" width="100%" />
-</p>
-
-## License
+## <img src="./assets/brand/pixel-check.svg" alt="" width="18" /> License
 
 MIT
