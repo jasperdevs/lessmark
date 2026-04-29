@@ -218,9 +218,10 @@ function RightPane({ source, view }: { source: string; view: View }) {
   if (!body.ok) {
     return (
       <div className="lessmark-scrollbar h-full overflow-auto px-4 py-4 sm:px-6 sm:py-5">
-        <div className="font-mono text-[13px] leading-[1.6] text-destructive">
-          <div>{body.message}</div>
-          <div className="text-fg-faint mt-1">
+        <div className="rounded-md border border-border-soft bg-surface px-3 py-2 text-[13px] leading-[1.55] text-fg-muted">
+          <div className="font-sans text-fg">{uiString("preview.paused")}</div>
+          <div className="mt-1 font-mono text-[12px] text-fg-faint">{body.message}</div>
+          <div className="font-mono text-[12px] text-fg-faint">
             {uiString("playground.error-line")} {body.line}, {uiString("playground.error-column")} {body.column}
           </div>
         </div>

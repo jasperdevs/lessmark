@@ -33,9 +33,19 @@ type Section = {
   intro: AstNode[];
   subsections: { heading: string; nodes: AstNode[] }[];
 };
+type HomeSections = {
+  heroTitle: string;
+  sections: Section[];
+  error?: boolean;
+};
 
-function buildSections(source: string) {
-  const ast = parseLessmark(source);
+function buildSections(source: string): HomeSections {
+  let ast: { children: AstNode[] };
+  try {
+    ast = parseLessmark(source);
+  } catch {
+    return { heroTitle: "", sections: [], error: true };
+  }
   const heroIdx = ast.children.findIndex((n: AstNode) => n.type === "heading");
   const hero = heroIdx >= 0 ? ast.children[heroIdx] : null;
   const heroTitle = hero?.type === "heading" ? hero.text ?? "" : "";
@@ -86,7 +96,12 @@ function sectionHtml(section: Section) {
 
 export function Home() {
   const homeSrc = useLiveSource(sourceId.home());
-  const { heroTitle, sections } = useMemo(() => buildSections(homeSrc), [homeSrc]);
+  const parsed = useMemo(() => buildSections(homeSrc), [homeSrc]);
+  const lastGood = useRef<HomeSections>(parsed);
+  if (!parsed.error) {
+    lastGood.current = parsed;
+  }
+  const { heroTitle, sections } = parsed.error ? lastGood.current : parsed;
   const [demoSource, setDemoSource] = useState(HERO_DEMO);
 
   return (

@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import { renderHtml, parseLessmark, LessmarkError } from "lessmark";
 import { useCodeCopyButtons } from "@/lib/code-copy";
 import { useMermaid } from "@/lib/mermaid-render";
+import { uiString } from "@/lib/content";
 
 type Props = { source: string; className?: string };
 
@@ -22,9 +23,12 @@ export function Renderer({ source, className }: Props) {
 
   if (!result.ok) {
     return (
-      <div className="font-mono text-[13px] leading-[1.6] text-destructive">
-        <div>{result.message}</div>
-        <div className="text-fg-faint mt-1">line {result.line}, column {result.column}</div>
+      <div className="rounded-md border border-border-soft bg-surface px-3 py-2 text-[13px] leading-[1.55] text-fg-muted">
+        <div className="font-sans text-fg">{uiString("preview.paused")}</div>
+        <div className="mt-1 font-mono text-[12px] text-fg-faint">{result.message}</div>
+        <div className="font-mono text-[12px] text-fg-faint">
+          {uiString("playground.error-line")} {result.line}, {uiString("playground.error-column")} {result.column}
+        </div>
       </div>
     );
   }

@@ -93,6 +93,9 @@ line
 @metadata key="playground.error-column"
 column
 
+@metadata key="preview.paused"
+Preview paused while the source is incomplete.
+
 @metadata key="switching.source-format-label"
 source format
 
