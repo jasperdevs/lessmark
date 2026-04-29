@@ -11,12 +11,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jasperdevs/lessmark/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/github/actions/workflow/status/jasperdevs/lessmark/ci.yml?branch=main&label=ci&labelColor=111111&color=35c46b&style=flat-square"></a>
   <a href="https://www.npmjs.com/package/lessmark"><img alt="npm" src="https://img.shields.io/npm/v/lessmark?label=npm&labelColor=111111&color=cb3837&style=flat-square"></a>
   <a href="https://pypi.org/project/lessmark/"><img alt="PyPI" src="https://img.shields.io/pypi/v/lessmark?label=pypi&labelColor=111111&color=3775a9&style=flat-square"></a>
   <a href="https://crates.io/crates/lessmark"><img alt="crates.io" src="https://img.shields.io/crates/v/lessmark?label=crates&labelColor=111111&color=de7c00&style=flat-square"></a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode"><img alt="VS Code" src="https://img.shields.io/visual-studio-marketplace/v/JasperDevs.lessmark-vscode?label=vscode&labelColor=111111&color=0078d4&style=flat-square"></a>
-  <a href="./LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-111111?labelColor=111111&style=flat-square"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode"><img alt="VS Code Marketplace" src="https://img.shields.io/badge/vscode-marketplace-0078d4?labelColor=111111&style=flat-square"></a>
 </p>
 
 Lessmark is readable markup with typed blocks, canonical formatting, safe rendering, and a stable JSON AST across JavaScript, Python, and Rust.
