@@ -52,7 +52,6 @@ class LessmarkPythonTests(unittest.TestCase):
     def test_canonicalizes_documented_human_authoring_conveniences(self):
         source = """# Project Context
 
-@paragraph
 Use **bold**, *emphasis*, `code`, `**literal**`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
 @list unordered
@@ -142,19 +141,19 @@ RFC-0042
 
     def test_rejects_unsafe_shorthand_links_and_ambiguous_shortcut_emphasis(self):
         with self.assertRaisesRegex(Exception, "executable URL"):
-            format_lessmark("@paragraph\n[Bad](javascript:alert(1))\n")
+            format_lessmark("[Bad](javascript:alert(1))\n")
         with self.assertRaisesRegex(Exception, "shortcut emphasis"):
-            format_lessmark("@paragraph\n**bold *em***\n")
+            format_lessmark("**bold *em***\n")
         with self.assertRaisesRegex(Exception, "shortcut emphasis"):
-            format_lessmark("@paragraph\n*em **bold***\n")
+            format_lessmark("*em **bold***\n")
 
     def test_rejects_legacy_markdown_block_syntax_inside_lessmark_prose(self):
         for source in [
-            "@paragraph\n[docs]: https://example.com\n",
-            "@paragraph\n---\n",
-            "@paragraph\n===\n",
-            "@paragraph\n-*- \n",
-            "@paragraph\n> quoted text\n",
+            "[docs]: https://example.com\n",
+            "---\n",
+            "===\n",
+            "-*- \n",
+            "> quoted text\n",
             "- item\n",
             "* item\n",
             "+ item\n",
@@ -198,12 +197,16 @@ RFC-0042
             ("paragraph", "yo\nwant sup"),
             ("paragraph", "nah"),
         ])
-        self.assertEqual(format_lessmark("@paragraph\nyo\n\nnah\n"), "yo\n\nnah\n")
+        self.assertEqual(format_lessmark("yo\n\nnah\n"), "yo\n\nnah\n")
 
     def test_rejects_removed_block_aliases_to_keep_syntax_one_way(self):
         for alias in ["@p", "@ul", "@ol", "@note", "@warning"]:
             with self.assertRaisesRegex(LessmarkError, "Unknown typed block"):
                 parse_lessmark(f"{alias}\nbody\n")
+        errors = validate_source("@paragraph\nbody\n")
+        self.assertEqual(errors[0]["code"], "unsupported_source_syntax")
+        with self.assertRaisesRegex(LessmarkError, "Plain prose"):
+            parse_lessmark("@paragraph\nbody\n")
 
     def test_supports_escaped_leading_block_sigils_inside_prose(self):
         ast = parse_lessmark("\\@mention\n\\#hashtag\n")
@@ -250,13 +253,13 @@ def f(): pass
 
     def test_rejects_raw_comments_doctypes_and_expression_like_prose(self):
         for source in [
-            "@paragraph\n<!-- hidden -->\n",
-            "@paragraph\n<!doctype html>\n",
-            "@paragraph\n{component}\n",
-            "@paragraph\n{a+b}\n",
-            "@paragraph\n{foo()}\n",
-            "@paragraph\n{...props}\n",
-            "@paragraph\n${value}\n",
+            "<!-- hidden -->\n",
+            "<!doctype html>\n",
+            "{component}\n",
+            "{a+b}\n",
+            "{foo()}\n",
+            "{...props}\n",
+            "${value}\n",
             '@link href="{target}"\nBad href.\n',
         ]:
             with self.subTest(source=source):
@@ -270,7 +273,7 @@ def f(): pass
 
     def test_caps_deeply_nested_inline_validation(self):
         nested = "{{strong:" * 140 + "x" + "}}" * 140
-        errors = validate_source(f"@paragraph\n{nested}\n")
+        errors = validate_source(f"{nested}\n")
         self.assertEqual(errors[0]["code"], "inline_nesting_too_deep")
 
     def test_rejects_unknown_attributes(self):
@@ -542,28 +545,28 @@ def f(): pass
         self.assertIn("![Build pipeline](assets/diagram.svg)", markdown)
 
     def test_rejects_unresolved_inline_local_targets(self):
-        ref_errors = validate_source("@paragraph\n{{ref:Missing|missing-target}}\n")
+        ref_errors = validate_source("{{ref:Missing|missing-target}}\n")
         self.assertEqual(ref_errors[0]["code"], "unknown_inline_target")
         self.assertIn("missing-target", ref_errors[0]["message"])
 
-        footnote_errors = validate_source("@paragraph\n{{footnote:missing-note}}\n")
+        footnote_errors = validate_source("{{footnote:missing-note}}\n")
         self.assertEqual(footnote_errors[0]["code"], "unknown_inline_target")
         self.assertIn("missing-note", footnote_errors[0]["message"])
 
         parse_lessmark(
             '@decision id="known-target"\nDone.\n\n'
-            "@paragraph\n{{ref:Known|known-target}}\n\n"
+            "{{ref:Known|known-target}}\n\n"
             '@footnote id="known-note"\nA note.\n\n'
-            "@paragraph\n{{footnote:known-note}}\n"
+            "{{footnote:known-note}}\n"
         )
 
     def test_rejects_invalid_inline_local_targets_during_markdown_export(self):
         with self.assertRaisesRegex(ValueError, "lowercase slug"):
-            to_markdown("@paragraph\n{{ref:Build|Build System}}\n")
+            to_markdown("{{ref:Build|Build System}}\n")
         with self.assertRaisesRegex(LessmarkError, "Unknown inline local target"):
-            to_markdown("@paragraph\n{{ref:Build| build-system}}\n")
+            to_markdown("{{ref:Build| build-system}}\n")
         with self.assertRaisesRegex(ValueError, "lowercase slug"):
-            to_markdown("@paragraph\n{{footnote:}}\n")
+            to_markdown("{{footnote:}}\n")
         with self.assertRaisesRegex(ValueError, "lowercase slug"):
             to_markdown("# {{ref:Build|Build System}}\n")
         with self.assertRaisesRegex(LessmarkError, "Unknown inline local target"):

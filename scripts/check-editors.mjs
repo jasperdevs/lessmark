@@ -23,9 +23,10 @@ assert.ok(existsSync(join(vscodeDir, pkg.icon)), "VS Code extension icon must ex
 assert.ok(existsSync(languageConfigPath), "VS Code language configuration must exist");
 
 const grammarBlocks = blockNamesFromGrammar(grammar);
-assert.deepEqual(grammarBlocks, capabilities.blocks, "VS Code grammar block list must match core grammar");
+const sourceBlocks = capabilities.blocks.filter((block) => block !== "paragraph");
+assert.deepEqual(grammarBlocks, sourceBlocks, "VS Code grammar block list must match source block grammar");
 
-for (const block of capabilities.blocks) {
+for (const block of sourceBlocks) {
   assert.match(extensionSource, new RegExp(`\\["${escapeRegExp(block)}",`), `Missing hover docs for @${block}`);
 }
 for (const inline of capabilities.inlineFunctions) {

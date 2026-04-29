@@ -15,12 +15,13 @@ The shorthand set is part of the language contract exposed by
 guessing from implementation details.
 
 @table columns="Short|Long|Notes"
-plain prose|`@paragraph`|prose with full inline syntax; plain prose is canonical
+plain prose|plain prose only|prose with full inline syntax
 `@list unordered`|`@list kind="unordered"`|bulleted list
 `@list ordered`|`@list kind="ordered"`|numbered list
 
 @code lang="lessmark"
   Plain prose. Same paragraph rules.
+  \@mention starts with a literal at-sign.
 
   @list unordered
   - first

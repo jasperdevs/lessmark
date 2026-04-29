@@ -95,7 +95,6 @@ test("preserves indented example text", async () => {
 test("canonicalizes documented human authoring conveniences", () => {
   const source = `# Project Context
 
-@paragraph
 Use **bold**, *emphasis*, \`code\`, \`**literal**\`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
 @list unordered
@@ -187,18 +186,18 @@ RFC-0042
 });
 
 test("rejects unsafe shorthand links and ambiguous shortcut emphasis", () => {
-  assert.throws(() => formatLessmark("@paragraph\n[Bad](javascript:alert(1))\n"), /executable URL/);
-  assert.throws(() => formatLessmark("@paragraph\n**bold *em***\n"), /shortcut emphasis/);
-  assert.throws(() => formatLessmark("@paragraph\n*em **bold***\n"), /shortcut emphasis/);
+  assert.throws(() => formatLessmark("[Bad](javascript:alert(1))\n"), /executable URL/);
+  assert.throws(() => formatLessmark("**bold *em***\n"), /shortcut emphasis/);
+  assert.throws(() => formatLessmark("*em **bold***\n"), /shortcut emphasis/);
 });
 
 test("rejects legacy Markdown block syntax inside Lessmark prose", () => {
   for (const source of [
-    "@paragraph\n[docs]: https://example.com\n",
-    "@paragraph\n---\n",
-    "@paragraph\n===\n",
-    "@paragraph\n-*- \n",
-    "@paragraph\n> quoted text\n",
+    "[docs]: https://example.com\n",
+    "---\n",
+    "===\n",
+    "-*- \n",
+    "> quoted text\n",
     "- item\n",
     "* item\n",
     "+ item\n",
@@ -249,7 +248,7 @@ test("plain top-level prose parses as paragraphs", () => {
     ["paragraph", "yo\nwant sup"],
     ["paragraph", "nah"]
   ]);
-  assert.equal(formatLessmark("@paragraph\nyo\n\nnah\n"), "yo\n\nnah\n");
+  assert.equal(formatLessmark("yo\n\nnah\n"), "yo\n\nnah\n");
   assert.match(renderHtml("yo\nwant sup\n\nnah\n"), /<p>yo\nwant sup<\/p>\n<p>nah<\/p>/);
 });
 
@@ -257,6 +256,9 @@ test("rejects removed block aliases to keep syntax one-way", () => {
   for (const alias of ["@p", "@ul", "@ol", "@note", "@warning"]) {
     assert.throws(() => parseLessmark(`${alias}\nbody\n`), /Unknown typed block/);
   }
+  const errors = validateSource("@paragraph\nbody\n");
+  assert.equal(errors[0].code, "unsupported_source_syntax");
+  assert.throws(() => parseLessmark("@paragraph\nbody\n"), /Plain prose/);
 });
 
 test("supports escaped leading block sigils inside prose", () => {
@@ -281,13 +283,13 @@ test("rejects raw HTML-like text during parsing", async () => {
 
 test("rejects raw comments, doctypes, and expression-like prose", () => {
   for (const source of [
-    "@paragraph\n<!-- hidden -->\n",
-    "@paragraph\n<!doctype html>\n",
-    "@paragraph\n{component}\n",
-    "@paragraph\n{a+b}\n",
-    "@paragraph\n{foo()}\n",
-    "@paragraph\n{...props}\n",
-    "@paragraph\n${value}\n",
+    "<!-- hidden -->\n",
+    "<!doctype html>\n",
+    "{component}\n",
+    "{a+b}\n",
+    "{foo()}\n",
+    "{...props}\n",
+    "${value}\n",
     '@link href="{target}"\nBad href.\n'
   ]) {
     assert.throws(() => parseLessmark(source), /raw (HTML|expression)/);
@@ -298,10 +300,10 @@ test("rejects raw comments, doctypes, and expression-like prose", () => {
 
 test("caps deeply nested inline rendering and markdown export", () => {
   const nested = `${"{{strong:".repeat(140)}x${"}}".repeat(140)}`;
-  const errors = validateSource(`@paragraph\n${nested}\n`);
+  const errors = validateSource(`${nested}\n`);
   assert.equal(errors[0].code, "inline_nesting_too_deep");
   assert.throws(() => renderInline(nested), /Inline nesting too deep/);
-  assert.throws(() => toMarkdown(`@paragraph\n${nested}\n`), /Inline nesting too deep/);
+  assert.throws(() => toMarkdown(`${nested}\n`), /Inline nesting too deep/);
 });
 
 test("rejects attributes not defined by the block type", async () => {
@@ -661,16 +663,16 @@ test("exports docs blocks to Markdown without losing structure", async () => {
 });
 
 test("rejects unresolved inline local targets", () => {
-  const refErrors = validateSource("@paragraph\n{{ref:Missing|missing-target}}\n");
+  const refErrors = validateSource("{{ref:Missing|missing-target}}\n");
   assert.equal(refErrors[0].code, "unknown_inline_target");
   assert.match(refErrors[0].message, /missing-target/);
 
-  const footnoteErrors = validateSource("@paragraph\n{{footnote:missing-note}}\n");
+  const footnoteErrors = validateSource("{{footnote:missing-note}}\n");
   assert.equal(footnoteErrors[0].code, "unknown_inline_target");
   assert.match(footnoteErrors[0].message, /missing-note/);
 
   assert.doesNotThrow(() =>
-    parseLessmark("@decision id=\"known-target\"\nDone.\n\n@paragraph\n{{ref:Known|known-target}}\n\n@footnote id=\"known-note\"\nA note.\n\n@paragraph\n{{footnote:known-note}}\n")
+    parseLessmark("@decision id=\"known-target\"\nDone.\n\n{{ref:Known|known-target}}\n\n@footnote id=\"known-note\"\nA note.\n\n{{footnote:known-note}}\n")
   );
 });
 
@@ -725,7 +727,7 @@ test("renders and exports nested explicit inline functions", async () => {
 });
 
 test("renders literal inline braces through inline code", () => {
-  assert.equal(renderHtml("@paragraph\n{{code:{{name:value}}}}\n"), "<p><code>{{name:value}}</code></p>\n");
+  assert.equal(renderHtml("{{code:{{name:value}}}}\n"), "<p><code>{{name:value}}</code></p>\n");
 });
 
 test("renderer emits deterministic unique heading ids", () => {
@@ -735,21 +737,21 @@ test("renderer emits deterministic unique heading ids", () => {
 });
 
 test("rejects invalid inline local targets during render and export", () => {
-  assert.throws(() => renderHtml("@paragraph\n{{ref:Build|Build System}}\n"), /lowercase slug/);
-  assert.throws(() => renderHtml("@paragraph\n{{ref:Build| build-system}}\n"), /Unknown inline local target/);
-  assert.throws(() => renderHtml("@paragraph\n{{footnote:}}\n"), /lowercase slug/);
-  assert.throws(() => toMarkdown("@paragraph\n{{ref:Build|Build System}}\n"), /lowercase slug/);
-  assert.throws(() => toMarkdown("@paragraph\n{{footnote: strict-syntax}}\n"), /Unknown inline local target/);
+  assert.throws(() => renderHtml("{{ref:Build|Build System}}\n"), /lowercase slug/);
+  assert.throws(() => renderHtml("{{ref:Build| build-system}}\n"), /Unknown inline local target/);
+  assert.throws(() => renderHtml("{{footnote:}}\n"), /lowercase slug/);
+  assert.throws(() => toMarkdown("{{ref:Build|Build System}}\n"), /lowercase slug/);
+  assert.throws(() => toMarkdown("{{footnote: strict-syntax}}\n"), /Unknown inline local target/);
   assert.throws(() => toMarkdown("# {{ref:Build|Build System}}\n"), /lowercase slug/);
   assert.throws(() => toMarkdown('@callout kind="note" title="{{footnote: strict-syntax}}"\nBody.\n'), /Unknown inline local target/);
 });
 
 test("renderer rejects unclosed inline functions", () => {
-  assert.throws(() => renderHtml("@paragraph\n{{strong:open\n"), /Unclosed inline function/);
+  assert.throws(() => renderHtml("{{strong:open\n"), /Unclosed inline function/);
 });
 
 test("renderer rejects unknown inline functions", () => {
-  assert.throws(() => renderHtml("@paragraph\n{{frobnicate:value}}\n"), /Unknown inline function/);
+  assert.throws(() => renderHtml("{{frobnicate:value}}\n"), /Unknown inline function/);
 });
 
 test("exports literal code and example inline syntax without validating it", () => {
@@ -758,7 +760,7 @@ test("exports literal code and example inline syntax without validating it", () 
 });
 
 test("renderer rejects malformed docs functions and tables", () => {
-  assert.throws(() => renderHtml("@paragraph\n{{unknown:value}}\n"), /Unknown inline function/);
+  assert.throws(() => renderHtml("{{unknown:value}}\n"), /Unknown inline function/);
   assert.throws(() => parseLessmark('@table columns="A|B"\nOnly one cell\n'), /row cell count/);
   assert.throws(() => parseLessmark('@list kind="unordered"\nNo marker\n'), /item marker/);
   assert.throws(() => parseLessmark('@list kind="unordered"\n- Parent\n    - Child\n'), /skip levels/);

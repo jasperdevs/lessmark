@@ -141,6 +141,9 @@ function parseBlock(lines, startIndex, sourcePositions) {
 
   const normalized = normalizeBlockHeader(headerMatch[1], headerMatch[2], startIndex + 1);
   const name = normalized.name;
+  if (name === "paragraph") {
+    throw new LessmarkError("Plain prose is the only paragraph source syntax; escape leading @ or # with a backslash", startIndex + 1, 1);
+  }
   if (!CORE_BLOCKS.has(name)) {
     throw new LessmarkError(`Unknown typed block "${name}"`, startIndex + 1, 2);
   }

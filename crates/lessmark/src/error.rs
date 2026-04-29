@@ -59,6 +59,9 @@ impl ValidationError {
 }
 
 pub fn error_code_for_message(message: &str) -> &'static str {
+    if message.contains("paragraph source syntax") {
+        return "unsupported_source_syntax";
+    }
     if message.contains("Unknown typed block") {
         return "unknown_block";
     }

@@ -295,6 +295,8 @@ def _parse_block(lines: list[str], start_index: int, source_positions: bool) -> 
 
     normalized_name, normalized_attrs, normalized_rest = _normalize_block_header(match.group(1), match.group(2), start_index + 1)
     name = normalized_name
+    if name == "paragraph":
+        raise LessmarkError("Plain prose is the only paragraph source syntax; escape leading @ or # with a backslash", start_index + 1, 1)
     if name not in CORE_BLOCKS:
         raise LessmarkError(f'Unknown typed block "{name}"', start_index + 1, 2)
 
@@ -794,6 +796,8 @@ def _with_error_code(error: ValidationError) -> ValidationError:
 
 
 def error_code_for_message(message: str) -> str:
+    if "paragraph source syntax" in message:
+        return "unsupported_source_syntax"
     if "Unknown typed block" in message:
         return "unknown_block"
     if "does not allow attribute" in message:

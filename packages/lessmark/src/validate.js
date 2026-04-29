@@ -250,6 +250,7 @@ function validationError(message) {
 }
 
 export function errorCodeForMessage(message) {
+  if (/paragraph source syntax/.test(message)) return "unsupported_source_syntax";
   if (/Unknown typed block/.test(message)) return "unknown_block";
   if (/does not allow attribute/.test(message)) return "unknown_attribute";
   if (/requires /.test(message)) return "missing_required_attribute";

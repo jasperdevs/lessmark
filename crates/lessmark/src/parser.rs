@@ -149,6 +149,13 @@ fn parse_block(
     let (name, shorthand_attrs, rest) =
         normalize_block_header(raw_name, raw_rest, start_index + 1)?;
     let name = name.as_str();
+    if name == "paragraph" {
+        return Err(LessmarkError::new(
+            "Plain prose is the only paragraph source syntax; escape leading @ or # with a backslash",
+            start_index + 1,
+            1,
+        ));
+    }
     if !is_core_block(name) {
         return Err(LessmarkError::new(
             format!("Unknown typed block \"{}\"", name),

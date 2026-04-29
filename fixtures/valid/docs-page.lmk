@@ -13,7 +13,6 @@
 @decision id="renderer-contract"
 Docs rendering keeps local anchors stable.
 
-@paragraph
 Lessmark supports {{strong:explicit}} inline functions, {{mark:marked text}}, {{del:deleted text}}, {{ref:local references|build-system}}, and {{footnote:strict-syntax}}.
 
 @image src="assets/diagram.svg" alt="Build pipeline" caption="Static site output"

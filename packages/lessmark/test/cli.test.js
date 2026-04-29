@@ -119,8 +119,8 @@ test("CLI builds a directory of Lessmark pages", async () => {
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
     await writeFile(join(input, "assets", "diagram.svg"), "<svg></svg>\n", "utf8");
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@nav label="Home" href="index.html"\n\n@nav label="Guide" href="guide.html"\n\n# Home\n\n@paragraph\nBuilt page.\n\n@image src="assets/diagram.svg" alt="Diagram"\n', "utf8");
-    await writeFile(join(input, "guide.lessmark"), '@page title="Guide" output="guide.html"\n\n# Guide\n\n@paragraph\nAlias page.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@nav label="Home" href="index.html"\n\n@nav label="Guide" href="guide.html"\n\n# Home\n\nBuilt page.\n\n@image src="assets/diagram.svg" alt="Diagram"\n', "utf8");
+    await writeFile(join(input, "guide.lessmark"), '@page title="Guide" output="guide.html"\n\n# Guide\n\nAlias page.\n', "utf8");
     await exec(process.execPath, [cli, "build", "--strict", input, output]);
     const html = await readFile(join(output, "index.html"), "utf8");
     const guide = await readFile(join(output, "guide.html"), "utf8");
@@ -144,7 +144,7 @@ test("CLI build --strict rejects broken site references before writing", async (
     const output = join(temp, "out");
     await mkdir(input, { recursive: true });
     await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@nav label="Missing" href="missing.html"\n\n@link href="assets/missing.pdf"\nMissing asset.\n\n@image src="assets/missing.svg" alt="Missing"\n', "utf8");
-    await writeFile(join(input, "again.lmk"), '@page title="Again" output="index.html"\n\n@paragraph\nDuplicate output.\n', "utf8");
+    await writeFile(join(input, "again.lmk"), '@page title="Again" output="index.html"\n\nDuplicate output.\n', "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
       (error) => {
@@ -167,7 +167,7 @@ test("CLI build --strict rejects unsafe inline links before writing", async () =
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(input, { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@paragraph\n{{link:Docs|javascript:alert(1)}}\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n{{link:Docs|javascript:alert(1)}}\n', "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
       (error) => {
@@ -265,7 +265,7 @@ test("CLI build --strict rejects generated page and static asset output collisio
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="assets/index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="assets/index.html"\n\nHome.\n', "utf8");
     await writeFile(join(input, "assets", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
@@ -287,7 +287,7 @@ test("CLI build --strict rejects case-insensitive output collisions", async () =
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="assets/index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="assets/index.html"\n\nHome.\n', "utf8");
     await writeFile(join(input, "assets", "Index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await assert.rejects(
       exec(process.execPath, [cli, "build", "--strict", input, output]),
@@ -307,7 +307,7 @@ test("CLI build --strict rejects case-insensitive static asset collisions", asyn
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "assets"), { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@paragraph\nHome.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\nHome.\n', "utf8");
     await writeFile(join(input, "assets", "logo.svg"), "<svg></svg>\n", "utf8");
     await writeFile(join(input, "assets", "Logo.svg"), "<svg></svg>\n", "utf8");
     const rootEntries = await readdir(input);
@@ -334,7 +334,7 @@ test("CLI build --strict ignores nested output directory on rebuild", async () =
     const input = join(temp, "src");
     const output = join(input, "public");
     await mkdir(input, { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\n@paragraph\nGenerated page.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="index.html"\n\nGenerated page.\n', "utf8");
     await exec(process.execPath, [cli, "build", "--strict", input, output]);
     await exec(process.execPath, [cli, "build", "--strict", input, output]);
     const html = await readFile(join(output, "index.html"), "utf8");
@@ -350,7 +350,7 @@ test("CLI build without --strict preserves legacy page-over-asset behavior", asy
     const input = join(temp, "src");
     const output = join(temp, "out");
     await mkdir(join(input, "docs"), { recursive: true });
-    await writeFile(join(input, "index.lmk"), '@page title="Home" output="docs/index.html"\n\n@paragraph\nGenerated page.\n', "utf8");
+    await writeFile(join(input, "index.lmk"), '@page title="Home" output="docs/index.html"\n\nGenerated page.\n', "utf8");
     await writeFile(join(input, "docs", "index.html"), "<!doctype html>\n<title>asset</title>\n", "utf8");
     await exec(process.execPath, [cli, "build", input, output]);
     const html = await readFile(join(output, "docs", "index.html"), "utf8");

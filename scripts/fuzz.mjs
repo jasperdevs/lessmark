@@ -63,14 +63,14 @@ function validDocument(index) {
 
 const dangerousInputs = [
   "<script>alert(1)</script>\n",
-  "@paragraph\n<img src=x onerror=alert(1)>\n",
+  "<img src=x onerror=alert(1)>\n",
   "@link href=\"javascript:alert(1)\"\nBad.\n",
   "@image src=\"javascript:alert(1)\" alt=\"bad\"\n",
   "@file path=\"../secret.txt\"\nBad.\n",
   "@page output=\"../public/index.html\"\n",
   "@nav label=\"Bad\" href=\"//evil.example\"\n",
-  "@paragraph\n[ref]: https://example.com\n",
-  "@paragraph\n> hidden markdown quote\n"
+  "[ref]: https://example.com\n",
+  "> hidden markdown quote\n"
 ];
 
 for (let i = 0; i < iterations; i += 1) {

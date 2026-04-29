@@ -137,13 +137,13 @@ fn validation_errors_include_stable_codes() {
 #[test]
 fn rejects_raw_comments_doctypes_and_expression_like_prose() {
     for source in [
-        "@paragraph\n<!-- hidden -->\n",
-        "@paragraph\n<!doctype html>\n",
-        "@paragraph\n{component}\n",
-        "@paragraph\n{a+b}\n",
-        "@paragraph\n{foo()}\n",
-        "@paragraph\n{...props}\n",
-        "@paragraph\n${value}\n",
+        "<!-- hidden -->\n",
+        "<!doctype html>\n",
+        "{component}\n",
+        "{a+b}\n",
+        "{foo()}\n",
+        "{...props}\n",
+        "${value}\n",
         "@link href=\"{target}\"\nBad href.\n",
     ] {
         let error = parse_lessmark(source).expect_err("raw syntax should reject");
@@ -166,7 +166,7 @@ fn rejects_raw_comments_doctypes_and_expression_like_prose() {
 #[test]
 fn caps_deeply_nested_inline_validation() {
     let nested = format!("{}x{}", "{{strong:".repeat(140), "}}".repeat(140));
-    let errors = validate_source(&format!("@paragraph\n{}\n", nested));
+    let errors = validate_source(&format!("{}\n", nested));
     assert_eq!(errors[0].code, "inline_nesting_too_deep");
 }
 
@@ -209,7 +209,6 @@ fn formatter_preserves_indented_example_text() {
 fn canonicalizes_documented_human_authoring_conveniences() {
     let source = r#"# Project Context
 
-@paragraph
 Use **bold**, *emphasis*, `code`, `**literal**`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
 @list unordered
@@ -346,7 +345,7 @@ fn plain_top_level_prose_parses_as_paragraphs() {
     assert_eq!(value["children"][1]["name"], "paragraph");
     assert_eq!(value["children"][1]["text"], "nah");
     assert_eq!(
-        format_lessmark("@paragraph\nyo\n\nnah\n").expect("plain paragraph formats"),
+        format_lessmark("yo\n\nnah\n").expect("plain paragraph formats"),
         "yo\n\nnah\n"
     );
 }
@@ -360,6 +359,12 @@ fn rejects_removed_block_aliases_to_keep_syntax_one_way() {
             .message
             .contains("Unknown typed block"));
     }
+    let errors = validate_source("@paragraph\nbody\n");
+    assert_eq!(errors[0].code, "unsupported_source_syntax");
+    assert!(parse_lessmark("@paragraph\nbody\n")
+        .expect_err("explicit paragraph block should fail")
+        .message
+        .contains("Plain prose"));
 }
 
 #[test]
@@ -381,11 +386,11 @@ fn supports_escaped_leading_block_sigils_inside_prose() {
 #[test]
 fn rejects_legacy_markdown_block_syntax_inside_lessmark_prose() {
     for source in [
-        "@paragraph\n[docs]: https://example.com\n",
-        "@paragraph\n---\n",
-        "@paragraph\n===\n",
-        "@paragraph\n-*- \n",
-        "@paragraph\n> quoted text\n",
+        "[docs]: https://example.com\n",
+        "---\n",
+        "===\n",
+        "-*- \n",
+        "> quoted text\n",
         "- item\n",
         "* item\n",
         "+ item\n",
@@ -668,19 +673,19 @@ fn exports_docs_blocks_to_markdown() {
 
 #[test]
 fn rejects_unresolved_inline_local_targets() {
-    let ref_errors = validate_source("@paragraph\n{{ref:Missing|missing-target}}\n");
+    let ref_errors = validate_source("{{ref:Missing|missing-target}}\n");
     assert_eq!(ref_errors[0].code, "unknown_inline_target");
     assert!(ref_errors[0].message.contains("missing-target"));
 
-    let footnote_errors = validate_source("@paragraph\n{{footnote:missing-note}}\n");
+    let footnote_errors = validate_source("{{footnote:missing-note}}\n");
     assert_eq!(footnote_errors[0].code, "unknown_inline_target");
     assert!(footnote_errors[0].message.contains("missing-note"));
 
     parse_lessmark(
         "@decision id=\"known-target\"\nDone.\n\n\
-         @paragraph\n{{ref:Known|known-target}}\n\n\
+         {{ref:Known|known-target}}\n\n\
          @footnote id=\"known-note\"\nA note.\n\n\
-         @paragraph\n{{footnote:known-note}}\n",
+         {{footnote:known-note}}\n",
     )
     .expect("known inline local targets parse");
 }
@@ -688,8 +693,8 @@ fn rejects_unresolved_inline_local_targets() {
 #[test]
 fn rejects_invalid_inline_local_targets_during_markdown_export() {
     for source in [
-        "@paragraph\n{{ref:Build|Build System}}\n",
-        "@paragraph\n{{footnote:}}\n",
+        "{{ref:Build|Build System}}\n",
+        "{{footnote:}}\n",
         "# {{ref:Build|Build System}}\n",
     ] {
         let error = to_markdown(source).expect_err("invalid inline target rejects");
@@ -700,7 +705,7 @@ fn rejects_invalid_inline_local_targets_during_markdown_export() {
         );
     }
     for source in [
-        "@paragraph\n{{ref:Build| build-system}}\n",
+        "{{ref:Build| build-system}}\n",
         "@callout kind=\"note\" title=\"{{footnote: strict-syntax}}\"\nBody.\n",
     ] {
         let error = to_markdown(source).expect_err("unknown inline target rejects");

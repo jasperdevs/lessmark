@@ -54,7 +54,8 @@ const vscodeGrammar = readJson("editors/vscode/syntaxes/lessmark.tmLanguage.json
 const blockPattern = vscodeGrammar.repository.block.match;
 assert.equal(typeof blockPattern, "string", "VS Code grammar must define a block match pattern");
 const blockAlternates = blockPattern.match(/\^\@\(([^)]+)\)\\b/)?.[1].split("|") ?? [];
-for (const name of languageContract.blocks) {
+const sourceBlocks = languageContract.blocks.filter((name) => name !== "paragraph");
+for (const name of sourceBlocks) {
   assert.ok(blockAlternates.includes(name), `VS Code grammar is missing block @${name}`);
 }
 for (const alias of Object.keys(languageContract.syntaxPolicy.blockAliases)) {

@@ -150,12 +150,10 @@ pipe|escaped\\|value
   }
   sources.push(`# Deep Inline
 
-@paragraph
 ${nested}
 `);
   sources.push(`# Authoring Conveniences
 
-@paragraph
 Use **bold**, *emphasis*, \`code\`, \`**literal**\`, [Docs](https://example.com), [Decision](#storage-backend), [^note], ==marked==, and ~~gone~~.
 
 @list unordered

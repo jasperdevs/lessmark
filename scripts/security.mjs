@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { renderHtml, renderInline, validateSource } from "../packages/lessmark/src/index.js";
 
 const rejectedSources = [
-  "@paragraph\n<script>alert(1)</script>\n",
-  "@paragraph\n<IMG SRC=x onerror=alert(1)>\n",
+  "<script>alert(1)</script>\n",
+  "<IMG SRC=x onerror=alert(1)>\n",
   "@link href=\"javascript:alert(1)\"\nRun.\n",
   "@link href=\"data:text/html,evil\"\nRun.\n",
   "@image src=\"file:///etc/passwd\" alt=\"bad\"\n",

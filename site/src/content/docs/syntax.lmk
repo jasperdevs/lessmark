@@ -25,8 +25,8 @@ The formatter leaves a blank line after each heading.
 
 Plain text is the normal paragraph syntax. Separate paragraphs with a
 blank line. The parser records each one as a {{code:paragraph}} block.
-Use {{code:@paragraph}} only when prose must start with a reserved
-block sigil; {{code:lessmark format}} writes ordinary plain paragraphs.
+There is no explicit paragraph tag. If prose must start with a reserved
+sigil, escape the first character as {{code:\@}} or {{code:\#}}.
 
 Blank lines end prose blocks. For multiple paragraphs, write multiple
 plain paragraphs instead of hiding paragraph breaks inside one block.
@@ -34,6 +34,8 @@ plain paragraphs instead of hiding paragraph breaks inside one block.
 @code lang="lessmark"
   Plain prose. Use {{strong:bold}}, {{em:italic}}, and {{code:inline code}}
   inside any prose body.
+
+  \@mention and \#hashtag render as normal text.
 
 ## Inline syntax
 
