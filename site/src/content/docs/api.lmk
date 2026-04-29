@@ -1,7 +1,7 @@
 # API reference
 
 @summary
-Every export from the lessmark packages, with signatures and a short
+Common exports from the lessmark packages, with signatures and a short
 note. JavaScript, Python, and Rust packages implement the same parse and
 validate pipeline.
 
@@ -100,7 +100,8 @@ validate in one call.
 {{code:format_ast(ast: dict) -> str}}. Re-emit a tree as source.
 
 @api name="from_markdown"
-{{code:from_markdown(markdown: str) -> str}}. CommonMark to lessmark.
+{{code:from_markdown(markdown: str) -> str}}. Convert a safe Markdown
+subset to lessmark source on a best-effort basis.
 
 @api name="to_markdown"
 {{code:to_markdown(source: str) -> str}}. Lessmark to CommonMark.
@@ -150,7 +151,7 @@ Validate and re-emit a tree as source.
 
 @api name="from_markdown"
 {{code:from_markdown(markdown: &str) -> Result of String or LessmarkError}}.
-CommonMark to lessmark.
+Convert a safe Markdown subset to lessmark source on a best-effort basis.
 
 @api name="to_markdown"
 {{code:to_markdown(source: &str) -> Result of String or LessmarkError}}.

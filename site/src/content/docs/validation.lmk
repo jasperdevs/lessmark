@@ -11,7 +11,7 @@ flowchart LR
   Parse -->|grammar error| FailP["Reject with line and column"]
   Parse -->|ok| AST["AST"]
   AST --> Val["Validate"]
-  Val -->|rule error| FailV["Reject with code and location"]
+  Val -->|rule error| FailV["Reject with code and source data"]
   Val -->|ok| Out["Use the AST"]
 
 ## Same checks in every package
@@ -46,4 +46,5 @@ lessmark check --json notes.lmk
 
 @callout kind="warning"
 A failed check exits non-zero. CI should treat this as a build failure.
-The CLI prints a line:column pointer for each error.
+Most source errors include a line:column pointer. JSON output also
+includes stable error codes for tooling.

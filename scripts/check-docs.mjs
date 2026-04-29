@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, extname, join, relative, sep } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import * as jsExports from "../packages/lessmark/src/index.js";
 import { getCapabilities, parseLessmark, validateSource } from "../packages/lessmark/src/index.js";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -34,6 +35,7 @@ for (const contentDir of [docsDir, siteContentDir]) {
 
 checkReadmeCliExamples();
 checkReadmeCliBehavior();
+checkApiReference();
 checkStaleDocsText();
 
 console.log("docs ok");
@@ -118,6 +120,52 @@ function assertCliOk(args, stdoutPattern) {
   assert.match(result.stdout, stdoutPattern, `${args.slice(1).join(" ")} stdout mismatch`);
 }
 
+function checkApiReference() {
+  const apiSource = readFileSync(join(siteContentDir, "docs", "api.lmk"), "utf8");
+  assert.ok(!/Every export from the lessmark packages/.test(apiSource), "API docs must not claim to list every package export");
+  const sections = {
+    JavaScript: documentedApis(apiSource, "JavaScript", "Python"),
+    Python: documentedApis(apiSource, "Python", "Rust"),
+    Rust: documentedApis(apiSource, "Rust", "CLI")
+  };
+  assertDocumentedApisExist("JavaScript", sections.JavaScript, new Set(Object.keys(jsExports)));
+  assertDocumentedApisExist("Python", sections.Python, pythonExports());
+  assertDocumentedApisExist("Rust", sections.Rust, rustExports());
+}
+
+function documentedApis(source, startHeading, endHeading) {
+  const start = source.indexOf(`## ${startHeading}`);
+  const end = source.indexOf(`## ${endHeading}`);
+  assert.notEqual(start, -1, `Missing ${startHeading} API section`);
+  assert.notEqual(end, -1, `Missing ${endHeading} API section`);
+  return [...source.slice(start, end).matchAll(/^@api name="([^"]+)"/gm)].map((match) => match[1]);
+}
+
+function assertDocumentedApisExist(label, documented, actual) {
+  assert.ok(documented.length > 0, `${label} API section must document at least one export`);
+  for (const name of documented) {
+    assert.ok(actual.has(name), `${label} API docs list missing export: ${name}`);
+  }
+}
+
+function pythonExports() {
+  const source = readFileSync(join(root, "packages", "python", "src", "lessmark", "__init__.py"), "utf8");
+  return new Set([...source.matchAll(/"([^"]+)"/g)].map((match) => match[1]));
+}
+
+function rustExports() {
+  const source = readFileSync(join(root, "crates", "lessmark", "src", "lib.rs"), "utf8");
+  const exports = new Set();
+  for (const match of source.matchAll(/pub use [^:]+::(?:\{([^}]+)\}|([A-Za-z_][A-Za-z0-9_]*))/g)) {
+    const names = match[1] ? match[1].split(",") : [match[2]];
+    for (const name of names) {
+      const clean = name.trim();
+      if (clean) exports.add(clean);
+    }
+  }
+  return exports;
+}
+
 function checkStaleDocsText() {
   const checkedFiles = walk(root)
     .filter((file) => [".md", ".lmk"].includes(extname(file).toLowerCase()))
@@ -133,6 +181,9 @@ function checkStaleDocsText() {
     /CommonMark document/,
     /pre-1\.0/,
     /throwaway syntax/,
+    /Every export from the lessmark packages/,
+    /The CLI prints a line:column pointer for each error/,
+    /CommonMark to lessmark\./,
     /\bv0\b/,
     /ast-v0/,
     /language-v0/,
