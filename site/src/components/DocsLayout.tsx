@@ -26,6 +26,7 @@ const DOC_MARKS = {
   validation: PixelShield,
   render: PixelRender,
   phases: PixelLoop,
+  guarantees: PixelOk,
   ast: PixelOk,
   api: PixelApi,
   cli: PixelCli,

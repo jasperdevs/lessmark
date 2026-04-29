@@ -61,6 +61,10 @@ fn cli_check_json_reports_parse_errors() {
         .as_str()
         .unwrap()
         .contains("raw HTML"));
+    assert!(result["errors"][0]["hint"]
+        .as_str()
+        .unwrap()
+        .contains("Remove raw HTML"));
     assert_eq!(result["errors"][0]["line"], 2);
     assert_eq!(result["errors"][0]["column"], 1);
 }
@@ -80,6 +84,56 @@ fn cli_info_text_hides_internal_ast_label() {
     assert!(stdout.starts_with("Lessmark 0.1.5\n"));
     assert!(!stdout.contains("(v"));
     assert!(stdout.contains("Blocks: "));
+}
+
+#[test]
+fn cli_help_mentions_parse_positions() {
+    let output = Command::new(lessmark_bin())
+        .args(["--help"])
+        .output()
+        .expect("lessmark help runs");
+    assert!(output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("parse [--positions]"));
+}
+
+#[test]
+fn cli_parse_positions_and_init_docs() {
+    let fixture = repo_root().join("fixtures/valid/project-context.lmk");
+    let output = Command::new(lessmark_bin())
+        .args(["parse", "--positions", fixture.to_str().expect("utf8 path")])
+        .output()
+        .expect("lessmark command runs");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let ast: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("parse output is json");
+    assert_eq!(ast["children"][0]["position"]["start"]["line"], 1);
+
+    let temp = env::temp_dir().join(format!("lessmark-init-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&temp);
+    let docs = temp.join("docs");
+    let init = Command::new(lessmark_bin())
+        .args(["init", docs.to_str().expect("utf8 path")])
+        .output()
+        .expect("lessmark command runs");
+    assert!(
+        init.status.success(),
+        "{}",
+        String::from_utf8_lossy(&init.stderr)
+    );
+    assert!(fs::read_to_string(docs.join("index.lmk"))
+        .expect("read starter")
+        .contains("@summary"));
+    let second = Command::new(lessmark_bin())
+        .args(["init", docs.to_str().expect("utf8 path")])
+        .output()
+        .expect("lessmark command runs");
+    assert!(!second.status.success());
+    assert!(String::from_utf8_lossy(&second.stderr).contains("already exists"));
+    let _ = fs::remove_dir_all(&temp);
 }
 
 #[test]

@@ -22,6 +22,10 @@ async function read(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
+function withoutHints(errors) {
+  return errors.map(({ hint, ...error }) => error);
+}
+
 test("parses valid fixture into stable AST", async () => {
   const source = await read("fixtures/valid/project-context.lmk");
   const expected = JSON.parse(await read("fixtures/valid/project-context.ast.json"));
@@ -373,7 +377,9 @@ test("can include source positions without changing the default AST", async () =
 
 test("validateSource reports parse errors as data", async () => {
   const source = await read("fixtures/invalid/raw-html.lmk");
-  assert.deepEqual(validateSource(source), [
+  const errors = validateSource(source);
+  assert.match(errors[0].hint, /Remove raw HTML/);
+  assert.deepEqual(withoutHints(errors), [
     { code: "raw_html", message: "@summary contains raw HTML/JSX-like syntax", line: 2, column: 1 }
   ]);
 });
@@ -405,7 +411,7 @@ test("validates semantic attrs on direct AST input", () => {
       { type: "block", name: "link", attrs: { href: "javascript:alert(1)" }, text: "Bad link." }
     ]
   });
-  assert.deepEqual(errors, [
+  assert.deepEqual(withoutHints(errors), [
     { code: "validation_error", message: "@file path must be a relative project path" },
     { code: "validation_error", message: "@api name must be an identifier" },
     { code: "unsafe_link_or_path", message: "@link href must be http, https, mailto, or a safe relative path" }
@@ -420,7 +426,7 @@ test("rejects duplicate local anchor slugs on direct AST input", () => {
       { type: "block", name: "decision", attrs: { id: "build-system" }, text: "Collision." }
     ]
   });
-  assert.deepEqual(errors, [{ code: "duplicate_local_anchor", message: 'Duplicate local anchor slug "build-system"' }]);
+  assert.deepEqual(withoutHints(errors), [{ code: "duplicate_local_anchor", message: 'Duplicate local anchor slug "build-system"' }]);
 
   const renderedFootnoteErrors = validateAst({
     type: "document",
@@ -429,7 +435,7 @@ test("rejects duplicate local anchor slugs on direct AST input", () => {
       { type: "block", name: "footnote", attrs: { id: "build-system" }, text: "Collision." }
     ]
   });
-  assert.deepEqual(renderedFootnoteErrors, [{ code: "duplicate_local_anchor", message: 'Duplicate local anchor slug "fn-build-system"' }]);
+  assert.deepEqual(withoutHints(renderedFootnoteErrors), [{ code: "duplicate_local_anchor", message: 'Duplicate local anchor slug "fn-build-system"' }]);
 });
 
 test("rejects unknown local reference targets on direct AST input", () => {
@@ -440,7 +446,7 @@ test("rejects unknown local reference targets on direct AST input", () => {
       { type: "block", name: "reference", attrs: { target: "missing-section" }, text: "Bad target." }
     ]
   });
-  assert.deepEqual(errors, [{ code: "unknown_reference_target", message: 'Unknown local reference target "missing-section"' }]);
+  assert.deepEqual(withoutHints(errors), [{ code: "unknown_reference_target", message: 'Unknown local reference target "missing-section"' }]);
 });
 
 test("validates non-string attrs without treating present values as missing", () => {
@@ -451,7 +457,7 @@ test("validates non-string attrs without treating present values as missing", ()
       { type: "block", name: "task", attrs: { status: 1 }, text: "Bad status type." }
     ]
   });
-  assert.deepEqual(errors, [
+  assert.deepEqual(withoutHints(errors), [
     { code: "invalid_ast_value", message: 'Attribute "mood" must be a string' },
     { code: "unknown_attribute", message: '@summary does not allow attribute "mood"' },
     { code: "invalid_ast_value", message: 'Attribute "status" must be a string' }
@@ -464,7 +470,7 @@ test("validates exact AST shape", () => {
     children: [{ type: "heading", level: 7, text: "", extra: true }],
     extra: true
   });
-  assert.deepEqual(errors, [
+  assert.deepEqual(withoutHints(errors), [
     { code: "invalid_ast_shape", message: 'document has unknown property "extra"' },
     { code: "invalid_ast_shape", message: 'heading has unknown property "extra"' },
     { code: "validation_error", message: "heading level must be an integer from 1 to 6" },

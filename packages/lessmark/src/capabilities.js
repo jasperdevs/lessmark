@@ -32,9 +32,10 @@ export function getCapabilities() {
       diagramKind: [...DIAGRAM_KINDS]
     },
     cli: {
-      commands: ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "render", "build", "info"],
+      commands: ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "render", "build", "init", "info"],
       jsonCommands: ["check --json", "format --check --json", "info --json"],
       formatCheck: true,
+      sourcePositions: true,
       stdin: true,
       recursiveCheck: true,
       recursiveFormat: true,

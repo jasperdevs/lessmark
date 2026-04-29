@@ -14,6 +14,7 @@ The default AST stays compact. Use `parse_lessmark_with_positions` when a tool n
 
 ```sh
 lessmark parse file.lmk
+lessmark parse --positions file.lmk
 lessmark parse -
 lessmark check file.lmk
 lessmark check docs
@@ -25,7 +26,8 @@ lessmark from-markdown README.md
 lessmark from-markdown -
 lessmark to-markdown file.lmk
 lessmark to-markdown -
+lessmark init docs
 lessmark info --json
 ```
 
-Use `-` for stdin. `check`, `format --check`, and `fix --write` also accept directories.
+Use `-` for stdin. `check`, `format --check`, and `fix --write` also accept directories. `parse --positions` includes source ranges. `init` creates a starter `docs/index.lmk` without overwriting.

@@ -10,6 +10,7 @@ from .core import (
     format_lessmark,
     from_markdown,
     get_capabilities,
+    hint_for_code,
     parse_lessmark,
     to_markdown,
     validate_source,
@@ -25,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parse_parser = subparsers.add_parser("parse")
     parse_parser.add_argument("file")
+    parse_parser.add_argument("--positions", action="store_true")
 
     check_parser = subparsers.add_parser("check")
     check_parser.add_argument("file")
@@ -45,6 +47,9 @@ def main(argv: list[str] | None = None) -> int:
     info_parser = subparsers.add_parser("info")
     info_parser.add_argument("--json", action="store_true")
 
+    init_parser = subparsers.add_parser("init")
+    init_parser.add_argument("dir")
+
     args = parser.parse_args(argv)
 
     try:
@@ -60,8 +65,11 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "parse":
             source = _read_input(args.file)
-            print(json.dumps(parse_lessmark(source), indent=2))
+            print(json.dumps(parse_lessmark(source, source_positions=args.positions), indent=2))
             return 0
+
+        if args.command == "init":
+            return _init_docs(args.dir)
 
         if args.command == "check":
             return _check_target(args.file, args.json)
@@ -91,11 +99,13 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _json_error(error: LessmarkError) -> ValidationError:
-    return {"code": error_code_for_message(error.message), "message": error.message, "line": error.line, "column": error.column}
+    code = error_code_for_message(error.message)
+    return {"code": code, "message": error.message, "hint": hint_for_code(code), "line": error.line, "column": error.column}
 
 
 def _message_error(message: str) -> ValidationError:
-    return {"code": error_code_for_message(message), "message": message}
+    code = error_code_for_message(message)
+    return {"code": code, "message": message, "hint": hint_for_code(code)}
 
 
 def _read_input(file: str) -> str:
@@ -207,6 +217,33 @@ def _print_format_result(result: dict[str, object]) -> None:
         print(f"{result['file']}: needs formatting", file=sys.stderr)
     else:
         print(f"{result['file']}: formatted")
+
+
+INIT_DOCS_TEMPLATE = """# Project docs
+
+@page title="Project docs" output="index.html"
+
+@summary
+Replace this with a short description of the project.
+
+## Next steps
+
+@list kind="unordered"
+- Run {{code:lessmark check docs}} before committing.
+- Run {{code:lessmark format --check docs}} in CI.
+- Add decisions, constraints, tasks, and source-file ownership as the project grows.
+"""
+
+
+def _init_docs(dir: str) -> int:
+    root = Path(dir)
+    target = root / "index.lmk"
+    if target.exists():
+        raise ValueError(f"{target} already exists")
+    root.mkdir(parents=True, exist_ok=True)
+    target.write_text(INIT_DOCS_TEMPLATE, encoding="utf-8", newline="\n")
+    print(f"created {target}")
+    return 0
 
 
 if __name__ == "__main__":

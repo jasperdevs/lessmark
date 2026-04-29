@@ -12,6 +12,7 @@ and static-site builds are npm CLI features.
 
 @code lang="sh"
 lessmark parse file.lmk
+lessmark parse --positions file.lmk
 lessmark parse -
 lessmark check file.lmk
 lessmark check docs
@@ -25,6 +26,7 @@ lessmark from-markdown README.md
 lessmark from-markdown -
 lessmark to-markdown file.lmk
 lessmark to-markdown -
+lessmark init docs
 # npm package only:
 lessmark render --document docs/index.lmk
 lessmark build --strict docs public
@@ -34,6 +36,7 @@ lessmark info --json
 
 @list kind="unordered"
 - parse prints the JSON tree.
+- parse --positions includes one-based source ranges for tooling.
 - check validates source. With --json it returns stable error codes.
 - format prints canonical lessmark to stdout.
 - format --check returns a failure when the file is not canonical.
@@ -43,6 +46,7 @@ lessmark info --json
 - render --document produces a complete HTML document in the npm CLI.
 - build --strict walks a directory and writes a static site in the npm CLI.
 - build copies only public assets under assets/, public/, or static/.
+- init creates a starter docs/index.lmk without overwriting an existing file.
 - info --json reports the supported blocks, inline functions, and CLI features.
 
 ## Stdin and directories
@@ -57,12 +61,56 @@ cat README.md | lessmark from-markdown -
 lessmark check docs
 lessmark format --check --json docs
 lessmark fix --write docs
+lessmark init docs
 
 @list kind="unordered"
 - Stdin works for parse, check, format, from-markdown, to-markdown, and npm render.
 - Directory walking works for check, format --check, and fix --write.
 - Directory walking only reads .lmk and .lessmark files.
 - Hidden folders, build output, dist, node_modules, out, and target are skipped.
+
+## CI
+
+@summary
+Treat Lessmark like source code. Check validity and formatting before merge.
+
+@code lang="yaml"
+name: lessmark
+on: [push, pull_request]
+jobs:
+  lessmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g lessmark
+      - run: lessmark check docs
+      - run: lessmark format --check docs
+
+## Pre-commit
+
+@code lang="sh"
+#!/bin/sh
+lessmark check docs || exit 1
+lessmark format --check docs || exit 1
+
+## JSON diagnostics
+
+@code lang="json"
+{
+  "ok": false,
+  "errors": [
+    {
+      "code": "markdown_legacy_syntax",
+      "message": "Markdown list markers are not supported in Lessmark prose; use @list",
+      "hint": "Use the Lessmark block form instead of Markdown legacy syntax.",
+      "line": 4,
+      "column": 1
+    }
+  ]
+}
 
 ## Exit codes
 

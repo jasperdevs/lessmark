@@ -10,7 +10,7 @@ pub mod validate;
 pub const AST_SCHEMA_V0: &str = include_str!("../schemas/ast-v0.schema.json");
 
 pub use ast::{Document, Node, PositionPoint, PositionRange};
-pub use error::{error_code_for_message, LessmarkError, ValidationError};
+pub use error::{error_code_for_message, hint_for_code, LessmarkError, ValidationError};
 pub use format::{format_document, format_lessmark};
 pub use markdown::{from_markdown, to_markdown};
 pub use parser::{parse_lessmark, parse_lessmark_with_positions};

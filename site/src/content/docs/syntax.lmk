@@ -4,6 +4,9 @@
 Complete reference for lessmark. Every block, every inline function, with
 examples you can copy.
 
+For compatibility promises, diagnostics, source positions, and migration
+limits, see the {{link:Guarantees page|docs/guarantees}}.
+
 ## Document shape
 
 Plain prose is allowed at the top level and becomes a paragraph block in

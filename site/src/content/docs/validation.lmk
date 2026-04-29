@@ -29,6 +29,20 @@ remaining stable across versions.
 @code lang="sh"
 lessmark check --json notes.lmk
 
+@code lang="json"
+{
+  "ok": false,
+  "errors": [
+    {
+      "code": "raw_html",
+      "message": "@summary contains raw HTML/JSX-like syntax",
+      "hint": "Remove raw HTML/JSX and express structure with Lessmark blocks or safe renderer code.",
+      "line": 2,
+      "column": 1
+    }
+  ]
+}
+
 ## What validation checks
 
 @list kind="unordered"
@@ -47,4 +61,11 @@ lessmark check --json notes.lmk
 @callout kind="warning"
 A failed check exits non-zero. CI should treat this as a build failure.
 Most source errors include a line:column pointer. JSON output also
-includes stable error codes for tooling.
+includes stable error codes and hints for tooling.
+
+## No validation modes
+
+Lessmark does not have strict, compat, or lenient dialects. The parser
+has one language contract. Migration helpers can rewrite supported
+Markdown shapes into Lessmark, but Lessmark source is always validated
+against the same rules.

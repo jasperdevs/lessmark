@@ -7,6 +7,7 @@ import {
   formatLessmark,
   fromMarkdown,
   getCapabilities,
+  hintForCode,
   parseLessmark,
   renderHtml,
   toMarkdown,
@@ -40,6 +41,20 @@ const STATIC_ASSET_EXTS = new Set([
   ".xml"
 ]);
 const SKIP_STATIC_DIRS = new Set([".git", ".hg", ".svn", "build", "dist", "node_modules", "out", "target"]);
+const INIT_DOCS_TEMPLATE = `# Project docs
+
+@page title="Project docs" output="index.html"
+
+@summary
+Replace this with a short description of the project.
+
+## Next steps
+
+@list kind="unordered"
+- Run {{code:lessmark check docs}} before committing.
+- Run {{code:lessmark format --check docs}} in CI.
+- Add decisions, constraints, tasks, and source-file ownership as the project grows.
+`;
 
 if (!command || command === "help" || command === "--help" || command === "-h") {
   printHelp();
@@ -48,9 +63,10 @@ if (!command || command === "help" || command === "--help" || command === "-h") 
 
 try {
   if (command === "parse") {
-    const file = requireFile(args[1]);
+    const positions = args.includes("--positions");
+    const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--positions"));
     const source = await readInput(file);
-    console.log(JSON.stringify(parseLessmark(source), null, 2));
+    console.log(JSON.stringify(parseLessmark(source, { sourcePositions: positions }), null, 2));
   } else if (command === "check") {
     const json = args.includes("--json");
     const file = requireFile(args.find((arg, index) => index > 0 && arg !== "--json"));
@@ -84,6 +100,9 @@ try {
     const inputDir = requireFile(positional[0]);
     const outputDir = requireFile(positional[1]);
     await buildSite(inputDir, outputDir, { strict });
+  } else if (command === "init") {
+    const targetDir = requireFile(args[1]);
+    await initDocs(targetDir);
   } else if (command === "info") {
     if (args.includes("--json")) {
       console.log(JSON.stringify(getCapabilities(), null, 2));
@@ -446,11 +465,25 @@ function requireFile(file) {
   return file;
 }
 
+async function initDocs(targetDir) {
+  const target = join(targetDir, "index.lmk");
+  try {
+    await stat(target);
+    throw new Error(`${target} already exists`);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  await mkdir(targetDir, { recursive: true });
+  await writeFile(target, INIT_DOCS_TEMPLATE, "utf8");
+  console.log(`created ${target}`);
+}
+
 function printHelp() {
   console.log(`Lessmark CLI
 
 Usage:
   lessmark parse file.lmk
+  lessmark parse --positions file.lmk
   lessmark parse -
   lessmark check file.lmk
   lessmark check docs
@@ -470,6 +503,7 @@ Usage:
   lessmark render --document -
   lessmark build docs out
   lessmark build --strict input out
+  lessmark init docs
   lessmark info --json`);
 }
 
@@ -482,7 +516,8 @@ function formatError(error) {
 
 function toJsonError(error) {
   const message = error instanceof LessmarkError ? error.message : error.message ?? String(error);
-  const result = { code: errorCodeForMessage(message), message };
+  const code = errorCodeForMessage(message);
+  const result = { code, message, hint: hintForCode(code) };
   if (Number.isInteger(error.line)) result.line = error.line;
   if (Number.isInteger(error.column)) result.column = error.column;
   return result;

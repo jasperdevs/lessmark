@@ -165,10 +165,12 @@ The {{code:lessmark}} binary. Documented in full on the
 
 @list kind="unordered"
 - {{code:lessmark parse FILE}} or {{code:lessmark parse -}}: print the AST as JSON.
+- {{code:lessmark parse --positions FILE}}: include source ranges for editor and migration tooling.
 - {{code:lessmark check FILE}}, {{code:lessmark check DIR}}, or {{code:lessmark check -}}: parse and validate. Exits non-zero on failure.
 - {{code:lessmark format FILE}} or {{code:lessmark format -}}: print the canonical formatted source.
 - {{code:lessmark format --check DIR}}: fail when any file is not canonical.
 - {{code:lessmark fix --write DIR}}: format Lessmark files in place.
 - {{code:lessmark from-markdown FILE}}: convert a safe Markdown subset to lessmark for migration. It preserves common document shapes, not every Markdown token.
 - {{code:lessmark to-markdown FILE}}: convert lessmark to Markdown.
+- {{code:lessmark init DIR}}: create a starter {{code:index.lmk}} without overwriting an existing file.
 - {{code:lessmark info --json}}: package and contract version.

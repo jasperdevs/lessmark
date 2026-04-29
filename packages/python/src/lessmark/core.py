@@ -39,6 +39,7 @@ class DocumentNode(TypedDict):
 class ValidationMessage(TypedDict):
     code: str
     message: str
+    hint: str
 
 
 class ValidationError(ValidationMessage, total=False):
@@ -786,12 +787,16 @@ def _validation_error(error: LessmarkError) -> ValidationError:
 
 
 def _validation_message(message: str) -> ValidationError:
-    return {"code": error_code_for_message(message), "message": message}
+    code = error_code_for_message(message)
+    return {"code": code, "message": message, "hint": hint_for_code(code)}
 
 
 def _with_error_code(error: ValidationError) -> ValidationError:
     if "code" not in error:
-        error = {"code": error_code_for_message(error["message"]), **error}
+        code = error_code_for_message(error["message"])
+        error = {"code": code, "hint": hint_for_code(code), **error}
+    elif "hint" not in error:
+        error = {**error, "hint": hint_for_code(error["code"])}
     return error
 
 
@@ -868,6 +873,44 @@ def error_code_for_message(message: str) -> str:
     return "validation_error"
 
 
+def hint_for_code(code: str) -> str:
+    hints = {
+        "unsupported_source_syntax": "Use plain prose for paragraphs; escape a leading @ or # with a backslash when it is literal text.",
+        "unknown_block": "Use one of the documented @block names or move custom data into @metadata.",
+        "unknown_attribute": "Remove the attribute or use the documented attribute for this block.",
+        "missing_required_attribute": "Add the required attribute with a non-empty double-quoted value.",
+        "duplicate_attribute": "Keep one value for each attribute.",
+        "raw_html": "Remove raw HTML/JSX and express structure with Lessmark blocks or safe renderer code.",
+        "raw_expression": "Move expressions into literal @code, @example, @math, or @diagram blocks.",
+        "inline_nesting_too_deep": "Reduce nested inline functions.",
+        "markdown_legacy_syntax": "Use the Lessmark block form instead of Markdown legacy syntax.",
+        "loose_text": "Put text in plain paragraphs or inside a typed block body.",
+        "invalid_heading": "Use one to six # characters followed by one space and visible heading text.",
+        "closing_heading_marker": "Remove trailing closing # markers.",
+        "invalid_block_header": "Use @block followed by optional key=\"value\" attributes.",
+        "invalid_attribute_name": "Use lowercase attribute names made of letters, numbers, _ or -.",
+        "expected_attribute_equals": "Write attributes as key=\"value\".",
+        "unquoted_attribute": "Wrap attribute values in double quotes.",
+        "unsupported_escape": "Only escape special syntax where the docs allow it.",
+        "unterminated_syntax": "Close the inline function or quoted attribute before the end of the block.",
+        "unknown_inline_function": "Use a documented inline function such as strong, em, code, link, ref, or footnote.",
+        "invalid_inline_function": "Write inline functions as {{name:value}} or {{name:value|extra}}.",
+        "control_whitespace": "Keep attributes on one line without tabs or newlines.",
+        "unsafe_link_or_path": "Use http, https, mailto, or a safe relative project path.",
+        "invalid_slug": "Use lowercase words separated by hyphens.",
+        "unknown_reference_target": "Point the reference at an existing heading, @decision id, or @footnote id.",
+        "unknown_inline_target": "Point the inline reference at an existing heading, @decision id, or @footnote id.",
+        "duplicate_local_anchor": "Rename one heading or id so every local anchor is unique.",
+        "invalid_list_body": "Use one '- ' item per line and two spaces per nesting level.",
+        "invalid_table_body": "Make every row match the table column count and escape literal pipes as \\|.",
+        "invalid_position": "Use one-based positive line and column numbers.",
+        "invalid_ast_root": "Pass a document AST with type=\"document\" and a children array.",
+        "invalid_ast_shape": "Use only the documented AST properties.",
+        "invalid_ast_value": "Use string values for text and attributes.",
+    }
+    return hints.get(code, "Fix the source so it matches the Lessmark syntax and validation contract.")
+
+
 def get_capabilities() -> dict[str, object]:
     return {
         "language": "lessmark",
@@ -886,9 +929,10 @@ def get_capabilities() -> dict[str, object]:
             "diagramKind": ["mermaid", "graphviz", "plantuml"],
         },
         "cli": {
-            "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
+            "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "init", "info"],
             "jsonCommands": ["check --json", "format --check --json", "info --json"],
             "formatCheck": True,
+            "sourcePositions": True,
             "stdin": True,
             "recursiveCheck": True,
             "recursiveFormat": True,

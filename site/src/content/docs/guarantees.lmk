@@ -1,0 +1,85 @@
+# Guarantees
+
+@summary
+The public contract Lessmark implementations must follow.
+
+Lessmark is a source format first. A compatible implementation must parse
+the same source to the same AST, reject the same invalid source, format to
+the same canonical output, and keep rendering safe.
+
+## Language contract
+
+@list kind="unordered"
+- Source files use {{code:.lmk}} or {{code:.lessmark}}.
+- Plain prose is the only paragraph syntax.
+- Typed blocks use {{code:@block attr="value"}}.
+- The formatter owns the canonical source shape.
+- Raw HTML, JSX, expressions, source hooks, custom blocks, and private dialects are not part of the language.
+- Profiles validate expected block usage. They do not change syntax.
+
+## Diagnostic contract
+
+JSON validation errors are for tools, editors, CI, and agents. Each error
+has a stable shape.
+
+@code lang="json"
+{
+  "code": "markdown_legacy_syntax",
+  "message": "Markdown list markers are not supported in Lessmark prose; use @list",
+  "hint": "Use the Lessmark block form instead of Markdown legacy syntax.",
+  "line": 4,
+  "column": 1
+}
+
+@list kind="unordered"
+- {{code:code}} is the stable machine key.
+- {{code:message}} is short and human-readable.
+- {{code:hint}} says what to do next.
+- {{code:line}} and {{code:column}} are one-based when the parser can point at source.
+
+## Position contract
+
+The default AST stays compact. Tooling can request source ranges through
+the JavaScript sourcePositions option, Python source_positions option,
+Rust {{code:parse_lessmark_with_positions}}, or
+{{code:lessmark parse --positions}}. Positions are one-based and attach
+to headings and blocks.
+
+## Conformance contract
+
+An implementation is not Lessmark-compatible unless it passes the shared
+fixtures and contract checks.
+
+@list kind="unordered"
+- Valid fixtures must produce the same JSON AST.
+- Invalid fixtures must produce the same diagnostic JSON.
+- Formatting must be deterministic.
+- Markdown import and export must match the shared fixtures.
+- Schema and language contract copies must stay byte-identical.
+- Editor grammar block names must stay aligned with the language contract.
+
+## Migration contract
+
+Markdown import is a migration helper, not a promise to preserve every
+Markdown token.
+
+@table columns="Markdown source|Lessmark result|Guarantee"
+ATX headings|headings|preserved
+Paragraphs|plain paragraphs|preserved as prose
+Fenced code|@code, @math, or @diagram|preserved body text
+GFM task items|@task|status preserved
+Lists|@list|nested structure preserved for supported list forms
+Tables|@table|cell count validated
+Images|@image|safe src and alt preserved
+Blockquotes|@quote or @callout|common callout shape preserved
+Inline HTML|rejected|not supported
+Reference links|rewritten or rejected|not a Lessmark source feature
+Custom directives or components|rejected|not part of the language
+
+## Non-goals
+
+@list kind="unordered"
+- Be a drop-in renderer for every Markdown extension.
+- Add arbitrary custom tags, macros, includes, or source-level hooks.
+- Let renderers define what source syntax means.
+- Add alternate syntaxes for the same construct.

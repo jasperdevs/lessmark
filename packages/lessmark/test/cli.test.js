@@ -62,6 +62,7 @@ test("CLI check --json prints agent-readable errors", async () => {
       const result = JSON.parse(error.stdout);
       assert.equal(result.ok, false);
       assert.equal(result.errors[0].code, "raw_html");
+      assert.match(result.errors[0].hint, /Remove raw HTML/);
       assert.match(result.errors[0].message, /raw HTML/);
       assert.equal(result.errors[0].line, 2);
       assert.equal(result.errors[0].column, 1);
@@ -77,6 +78,8 @@ test("CLI info --json prints machine-readable capabilities", async () => {
   assert.equal(info.astVersion, "v0");
   assert.equal(info.cli.strictBuild, true);
   assert.equal(info.cli.formatCheck, true);
+  assert.equal(info.cli.sourcePositions, true);
+  assert.ok(info.cli.commands.includes("init"));
   assert.equal(info.syntaxPolicy.aliases, false);
   assert.ok(info.blocks.includes("summary"));
   assert.ok(info.inlineFunctions.includes("ref"));
@@ -192,6 +195,26 @@ test("CLI parse, format, convert, and render read stdin", async () => {
 
   const rendered = await execInput(["render", "--document", "-"], source);
   assert.match(rendered.stdout, /<!doctype html>/);
+});
+
+test("CLI parse --positions includes source ranges", async () => {
+  const { stdout } = await exec(process.execPath, [cli, "parse", "--positions", fixture]);
+  const ast = JSON.parse(stdout);
+  assert.deepEqual(ast.children[0].position.start, { line: 1, column: 1 });
+});
+
+test("CLI init creates a starter docs file without overwriting", async () => {
+  const temp = await mkdtemp(join(tmpdir(), "lessmark-init-"));
+  try {
+    const docs = join(temp, "docs");
+    const { stdout } = await exec(process.execPath, [cli, "init", docs]);
+    assert.match(stdout, /created/);
+    const source = await readFile(join(docs, "index.lmk"), "utf8");
+    assert.match(source, /@summary/);
+    await assert.rejects(exec(process.execPath, [cli, "init", docs]), /already exists/);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
 });
 
 test("CLI fix is a formatter alias", async () => {

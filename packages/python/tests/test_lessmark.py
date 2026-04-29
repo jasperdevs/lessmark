@@ -22,6 +22,10 @@ from lessmark.cli import main
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def without_hints(errors):
+    return [{key: value for key, value in error.items() if key != "hint"} for error in errors]
+
+
 class LessmarkPythonTests(unittest.TestCase):
     def test_parses_fixture_ast(self):
         source = (ROOT / "fixtures/valid/project-context.lmk").read_text(encoding="utf-8")
@@ -353,8 +357,9 @@ def f(): pass
 
     def test_validate_source_reports_parse_errors_as_data(self):
         errors = validate_source("@summary\nDo not use <script>alert(1)</script> here.\n")
+        self.assertIn("Remove raw HTML", errors[0]["hint"])
         self.assertEqual(
-            errors,
+            without_hints(errors),
             [{"code": "raw_html", "message": "@summary contains raw HTML/JSX-like syntax", "line": 2, "column": 1}],
         )
 
@@ -387,7 +392,7 @@ def f(): pass
             }
         )
         self.assertEqual(
-            errors,
+            without_hints(errors),
             [
                 {"code": "validation_error", "message": "@file path must be a relative project path"},
                 {"code": "validation_error", "message": "@api name must be an identifier"},
@@ -405,7 +410,7 @@ def f(): pass
                 ],
             }
         )
-        self.assertEqual(errors, [{"code": "duplicate_local_anchor", "message": 'Duplicate local anchor slug "build-system"'}])
+        self.assertEqual(without_hints(errors), [{"code": "duplicate_local_anchor", "message": 'Duplicate local anchor slug "build-system"'}])
         rendered_footnote_errors = validate_ast(
             {
                 "type": "document",
@@ -415,7 +420,7 @@ def f(): pass
                 ],
             }
         )
-        self.assertEqual(rendered_footnote_errors, [{"code": "duplicate_local_anchor", "message": 'Duplicate local anchor slug "fn-build-system"'}])
+        self.assertEqual(without_hints(rendered_footnote_errors), [{"code": "duplicate_local_anchor", "message": 'Duplicate local anchor slug "fn-build-system"'}])
 
     def test_rejects_unknown_local_reference_targets_on_direct_ast_input(self):
         errors = validate_ast(
@@ -427,7 +432,7 @@ def f(): pass
                 ],
             }
         )
-        self.assertEqual(errors, [{"code": "unknown_reference_target", "message": 'Unknown local reference target "missing-section"'}])
+        self.assertEqual(without_hints(errors), [{"code": "unknown_reference_target", "message": 'Unknown local reference target "missing-section"'}])
 
     def test_validates_non_string_attrs_without_treating_present_values_as_missing(self):
         errors = validate_ast(
@@ -440,7 +445,7 @@ def f(): pass
             }
         )
         self.assertEqual(
-            errors,
+            without_hints(errors),
             [
                 {"code": "invalid_ast_value", "message": 'Attribute "mood" must be a string'},
                 {"code": "unknown_attribute", "message": '@summary does not allow attribute "mood"'},
@@ -453,7 +458,7 @@ def f(): pass
             {"type": "document", "children": [{"type": "heading", "level": 7, "text": "", "extra": True}], "extra": True}
         )
         self.assertEqual(
-            errors,
+            without_hints(errors),
             [
                 {"code": "invalid_ast_shape", "message": 'document has unknown property "extra"'},
                 {"code": "invalid_ast_shape", "message": 'heading has unknown property "extra"'},
@@ -586,6 +591,7 @@ def f(): pass
         self.assertEqual(status, 1)
         self.assertFalse(result["ok"])
         self.assertEqual(result["errors"][0]["code"], "raw_html")
+        self.assertIn("Remove raw HTML", result["errors"][0]["hint"])
         self.assertIn("raw HTML", result["errors"][0]["message"])
         self.assertEqual(result["errors"][0]["line"], 2)
         self.assertEqual(result["errors"][0]["column"], 1)
@@ -732,15 +738,39 @@ def f(): pass
         finally:
             sys.stdin = old_stdin
 
+    def test_cli_parse_positions_and_init_docs(self):
+        output = StringIO()
+        path = ROOT / "fixtures/valid/project-context.lmk"
+        with redirect_stdout(output):
+            status = main(["parse", str(path), "--positions"])
+        self.assertEqual(status, 0)
+        self.assertEqual(json.loads(output.getvalue())["children"][0]["position"]["start"], {"line": 1, "column": 1})
+
+        with tempfile.TemporaryDirectory(prefix="lessmark-init-") as temp:
+            docs = Path(temp) / "docs"
+            output = StringIO()
+            with redirect_stdout(output):
+                status = main(["init", str(docs)])
+            self.assertEqual(status, 0)
+            self.assertIn("created", output.getvalue())
+            self.assertIn("@summary", (docs / "index.lmk").read_text(encoding="utf-8"))
+            error_output = StringIO()
+            with redirect_stderr(error_output):
+                status = main(["init", str(docs)])
+            self.assertEqual(status, 1)
+            self.assertIn("already exists", error_output.getvalue())
+
     def test_capabilities_and_cli_info_are_machine_readable(self):
         info = get_capabilities()
         self.assertEqual(info["language"], "lessmark")
         self.assertEqual(info["astVersion"], "v0")
         self.assertFalse(info["syntaxPolicy"]["aliases"])
         self.assertTrue(info["cli"]["formatCheck"])
+        self.assertTrue(info["cli"]["sourcePositions"])
         self.assertTrue(info["cli"]["stdin"])
         self.assertTrue(info["cli"]["recursiveCheck"])
         self.assertTrue(info["cli"]["recursiveFormat"])
+        self.assertIn("init", info["cli"]["commands"])
         self.assertIn("format --check --json", info["cli"]["jsonCommands"])
         self.assertIn("summary", info["blocks"])
 

@@ -183,6 +183,12 @@ fn cli_info_json_prints_machine_readable_capabilities() {
     assert_eq!(info["syntaxPolicy"]["aliases"], false);
     assert_eq!(info["cli"]["strictBuild"], false);
     assert_eq!(info["cli"]["formatCheck"], true);
+    assert_eq!(info["cli"]["sourcePositions"], true);
+    assert!(info["cli"]["commands"]
+        .as_array()
+        .expect("commands")
+        .iter()
+        .any(|command| command == "init"));
     assert!(info["blocks"]
         .as_array()
         .expect("blocks")

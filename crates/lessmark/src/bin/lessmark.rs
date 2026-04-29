@@ -1,5 +1,6 @@
 use lessmark::{
-    format_lessmark, from_markdown, parse_lessmark, to_markdown, validate_source, ValidationError,
+    format_lessmark, from_markdown, parse_lessmark, parse_lessmark_with_positions, to_markdown,
+    validate_source, ValidationError,
 };
 use serde_json::json;
 use std::env;
@@ -25,6 +26,7 @@ fn run(args: Vec<String>) -> i32 {
         "format" | "fix" => format_command(&args[1..]),
         "from-markdown" => from_markdown_command(&args[1..]),
         "to-markdown" => to_markdown_command(&args[1..]),
+        "init" => init_command(&args[1..]),
         "info" => info_command(&args[1..]),
         command => {
             eprintln!("Unknown command: {}", command);
@@ -80,9 +82,10 @@ fn info_command(args: &[String]) -> i32 {
             "diagramKind": ["mermaid", "graphviz", "plantuml"]
         },
         "cli": {
-            "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "info"],
+            "commands": ["parse", "check", "format", "fix", "from-markdown", "to-markdown", "init", "info"],
             "jsonCommands": ["check --json", "format --check --json", "info --json"],
             "formatCheck": true,
+            "sourcePositions": true,
             "stdin": true,
             "recursiveCheck": true,
             "recursiveFormat": true,
@@ -205,15 +208,21 @@ fn to_markdown_command(args: &[String]) -> i32 {
 }
 
 fn parse_command(args: &[String]) -> i32 {
+    let positions = args.iter().any(|arg| arg == "--positions");
     let Some(path) = first_path_arg(args) else {
-        eprintln!("Usage: lessmark parse <file.lmk|->");
+        eprintln!("Usage: lessmark parse [--positions] <file.lmk|->");
         return 1;
     };
     let source = match read_input(path) {
         Ok(source) => source,
         Err(status) => return status,
     };
-    match parse_lessmark(&source) {
+    let parsed = if positions {
+        parse_lessmark_with_positions(&source)
+    } else {
+        parse_lessmark(&source)
+    };
+    match parsed {
         Ok(document) => {
             println!(
                 "{}",
@@ -343,6 +352,44 @@ fn format_command(args: &[String]) -> i32 {
     if let Some(result) = results.first() {
         print!("{}", result.formatted);
     }
+    0
+}
+
+const INIT_DOCS_TEMPLATE: &str = r#"# Project docs
+
+@page title="Project docs" output="index.html"
+
+@summary
+Replace this with a short description of the project.
+
+## Next steps
+
+@list kind="unordered"
+- Run {{code:lessmark check docs}} before committing.
+- Run {{code:lessmark format --check docs}} in CI.
+- Add decisions, constraints, tasks, and source-file ownership as the project grows.
+"#;
+
+fn init_command(args: &[String]) -> i32 {
+    let Some(target_dir) = first_path_arg(args) else {
+        eprintln!("Usage: lessmark init <dir>");
+        return 1;
+    };
+    let root = PathBuf::from(target_dir);
+    let target = root.join("index.lmk");
+    if target.exists() {
+        eprintln!("lessmark: {} already exists", target.display());
+        return 1;
+    }
+    if let Err(error) = fs::create_dir_all(&root) {
+        eprintln!("lessmark: Failed to create {}: {}", root.display(), error);
+        return 1;
+    }
+    if let Err(error) = fs::write(&target, INIT_DOCS_TEMPLATE) {
+        eprintln!("lessmark: Failed to write {}: {}", target.display(), error);
+        return 1;
+    }
+    println!("created {}", target.display());
     0
 }
 
@@ -509,6 +556,6 @@ fn first_path_arg(args: &[String]) -> Option<&str> {
 
 fn print_help() {
     eprintln!(
-        "Usage: lessmark <parse|check|format|fix|from-markdown|to-markdown|info> [options] <file|dir|->"
+        "Usage: lessmark <parse|check|format|fix|from-markdown|to-markdown|init|info> [options] <file|dir|->\n  lessmark parse [--positions] <file.lmk|->"
     );
 }
