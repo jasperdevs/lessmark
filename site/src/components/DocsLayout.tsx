@@ -1,9 +1,37 @@
 import { NavLink } from "react-router-dom";
 import type { ReactNode } from "react";
 import { docs, uiText } from "@/lib/content";
-import { PixelDoc, PixelOk, PixelSpark } from "@/components/PixelIcons";
+import {
+  PixelApi,
+  PixelBlocks,
+  PixelCli,
+  PixelDoc,
+  PixelLoop,
+  PixelOk,
+  PixelQuestion,
+  PixelRender,
+  PixelShield,
+  PixelSpark,
+  PixelSwitch,
+  PixelWand,
+} from "@/components/PixelIcons";
 
 type Props = { children: ReactNode };
+
+const DOC_MARKS = {
+  "getting-started": PixelSpark,
+  switching: PixelSwitch,
+  syntax: PixelDoc,
+  blocks: PixelBlocks,
+  validation: PixelShield,
+  render: PixelRender,
+  phases: PixelLoop,
+  ast: PixelOk,
+  api: PixelApi,
+  cli: PixelCli,
+  shortcuts: PixelWand,
+  faq: PixelQuestion,
+};
 
 export function DocsLayout({ children }: Props) {
   return (
@@ -14,26 +42,26 @@ export function DocsLayout({ children }: Props) {
           {uiText["docs.sidebar-label"] || "Docs"}
         </div>
         <nav className="flex flex-wrap gap-x-4 gap-y-1 text-[14px] md:flex-col">
-          {docs.map((d, i) => {
-            const Mark = i % 3 === 0 ? PixelSpark : i % 3 === 1 ? PixelOk : PixelDoc;
+          {docs.map((d) => {
+            const Mark = DOC_MARKS[d.slug as keyof typeof DOC_MARKS] || PixelDoc;
             return (
-            <NavLink
-              key={d.slug}
-              to={`/docs/${d.slug}`}
-              className={({ isActive }) =>
-                `py-1 transition-colors ${
-                  isActive
-                    ? "text-fg font-semibold underline underline-offset-4 decoration-fg"
-                    : "text-fg-muted hover:text-fg hover:underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
-                }`
-              }
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Mark className="size-3.5" />
-                {d.title}
-              </span>
-            </NavLink>
-          );
+              <NavLink
+                key={d.slug}
+                to={`/docs/${d.slug}`}
+                className={({ isActive }) =>
+                  `py-1 transition-colors ${
+                    isActive
+                      ? "text-fg font-semibold underline underline-offset-4 decoration-fg"
+                      : "text-fg-muted hover:text-fg hover:underline underline-offset-4 decoration-fg-faint hover:decoration-fg"
+                  }`
+                }
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Mark className="size-3.5" />
+                  {d.title}
+                </span>
+              </NavLink>
+            );
           })}
         </nav>
       </aside>

@@ -1,7 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 import { parseLessmark, renderHtml } from "lessmark";
 import { ArrowRightIcon } from "@/components/Icons";
-import { PixelDoc, PixelHeart, PixelOk, PixelSpark, PixelWand } from "@/components/PixelIcons";
+import {
+  AstIcon,
+  PixelHeart,
+  PixelMonoDoc,
+  PixelMonoPlayground,
+  SourceIcon,
+  TerminalIcon,
+} from "@/components/PixelIcons";
 import { Link } from "react-router-dom";
 import { sourceId, playgroundDefault, uiText } from "@/lib/content";
 import { useLiveSource } from "@/lib/live-source";
@@ -106,13 +113,13 @@ export function Home() {
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[15px] text-fg-muted">
           <Link to="/docs/getting-started" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
             <span className="inline-flex items-center gap-1.5">
-              <PixelDoc className="size-4" />
+              <PixelMonoDoc className="size-4 text-current" />
               {text("home.docs-link", "getting started")}
             </span>
           </Link>
           <Link to="/playground" className="hover:text-fg transition-colors underline underline-offset-4 decoration-fg-faint hover:decoration-fg">
             <span className="inline-flex items-center gap-1.5">
-              <PixelWand className="size-4" />
+              <PixelMonoPlayground className="size-4 text-current" />
               {text("home.playground-link", "playground")}
             </span>
           </Link>
@@ -198,7 +205,7 @@ function ContentSection({ section }: { section: Section }) {
   );
 }
 
-const FEATURE_ICONS = [PixelDoc, PixelSpark, PixelOk];
+const FEATURE_ICONS = [SourceIcon, TerminalIcon, AstIcon];
 
 function FeatureTrio({ section }: { section: Section }) {
   const items = useMemo(

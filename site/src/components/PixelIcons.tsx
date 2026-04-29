@@ -78,6 +78,146 @@ export function PixelWand({ className }: Props) {
   );
 }
 
+export function PixelMonoDoc({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="document" shapeRendering="crispEdges">
+      <rect x="3" y="1" width="8" height="2" fill="currentColor" />
+      <rect x="3" y="3" width="2" height="11" fill="currentColor" />
+      <rect x="11" y="3" width="2" height="2" fill="currentColor" />
+      <rect x="13" y="5" width="1" height="9" fill="currentColor" />
+      <rect x="5" y="13" width="8" height="1" fill="currentColor" />
+      <rect x="6" y="6" width="5" height="1" fill="currentColor" />
+      <rect x="6" y="9" width="4" height="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function PixelMonoPlayground({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="playground" shapeRendering="crispEdges">
+      <rect x="2" y="4" width="12" height="8" fill="currentColor" />
+      <rect x="3" y="5" width="10" height="6" fill="var(--bg)" />
+      <rect x="4" y="7" width="4" height="2" fill="currentColor" />
+      <rect x="5" y="6" width="2" height="4" fill="currentColor" />
+      <rect x="10" y="6" width="2" height="2" fill="currentColor" />
+      <rect x="9" y="8" width="2" height="2" fill="currentColor" />
+      <rect x="6" y="12" width="4" height="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function PixelBlocks({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="blocks" shapeRendering="crispEdges">
+      <rect x="2" y="2" width="5" height="5" fill="#ffb000" />
+      <rect x="9" y="2" width="5" height="5" fill="#6d5dfc" />
+      <rect x="2" y="9" width="5" height="5" fill="#35c46b" />
+      <rect x="9" y="9" width="5" height="5" fill="#78b7ff" />
+      <rect x="4" y="4" width="1" height="1" fill="#fff2bd" />
+      <rect x="11" y="4" width="1" height="1" fill="#d8d2ff" />
+    </svg>
+  );
+}
+
+export function PixelApi({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="api" shapeRendering="crispEdges">
+      <rect x="1" y="4" width="3" height="2" fill="#78b7ff" />
+      <rect x="4" y="6" width="2" height="2" fill="#2f5d9f" />
+      <rect x="6" y="8" width="4" height="2" fill="#6d5dfc" />
+      <rect x="10" y="6" width="2" height="2" fill="#2f5d9f" />
+      <rect x="12" y="4" width="3" height="2" fill="#78b7ff" />
+      <rect x="1" y="10" width="3" height="2" fill="#78b7ff" />
+      <rect x="12" y="10" width="3" height="2" fill="#78b7ff" />
+    </svg>
+  );
+}
+
+export function PixelCli({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="cli" shapeRendering="crispEdges">
+      <rect x="2" y="3" width="12" height="10" fill="#2f5d9f" />
+      <rect x="3" y="5" width="10" height="7" fill="#111111" />
+      <rect x="3" y="4" width="10" height="1" fill="#35c46b" />
+      <rect x="4" y="7" width="2" height="1" fill="#f8f8f5" />
+      <rect x="6" y="8" width="1" height="1" fill="#f8f8f5" />
+      <rect x="8" y="10" width="4" height="1" fill="#f8f8f5" />
+    </svg>
+  );
+}
+
+export function PixelShield({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="validation" shapeRendering="crispEdges">
+      <rect x="4" y="2" width="8" height="2" fill="#219653" />
+      <rect x="3" y="4" width="10" height="4" fill="#35c46b" />
+      <rect x="4" y="8" width="8" height="3" fill="#27ae60" />
+      <rect x="6" y="11" width="4" height="2" fill="#1b6f3a" />
+      <rect x="6" y="6" width="2" height="2" fill="#f8f8f5" />
+      <rect x="8" y="8" width="2" height="1" fill="#f8f8f5" />
+      <rect x="10" y="5" width="1" height="3" fill="#f8f8f5" />
+    </svg>
+  );
+}
+
+export function PixelRender({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="render" shapeRendering="crispEdges">
+      <rect x="2" y="3" width="12" height="8" fill="#2f5d9f" />
+      <rect x="3" y="4" width="10" height="6" fill="#d8ecff" />
+      <rect x="5" y="12" width="6" height="1" fill="#2f5d9f" />
+      <rect x="7" y="11" width="2" height="1" fill="#2f5d9f" />
+      <rect x="5" y="6" width="2" height="2" fill="#ffb000" />
+      <rect x="8" y="6" width="3" height="1" fill="#2f5d9f" />
+      <rect x="8" y="8" width="2" height="1" fill="#2f5d9f" />
+    </svg>
+  );
+}
+
+export function PixelSwitch({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="switching" shapeRendering="crispEdges">
+      <rect x="3" y="4" width="8" height="2" fill="#78b7ff" />
+      <rect x="11" y="2" width="2" height="2" fill="#2f5d9f" />
+      <rect x="13" y="4" width="1" height="2" fill="#2f5d9f" />
+      <rect x="11" y="6" width="2" height="2" fill="#2f5d9f" />
+      <rect x="5" y="10" width="8" height="2" fill="#ffb000" />
+      <rect x="3" y="8" width="2" height="2" fill="#de7c00" />
+      <rect x="2" y="10" width="1" height="2" fill="#de7c00" />
+      <rect x="3" y="12" width="2" height="2" fill="#de7c00" />
+    </svg>
+  );
+}
+
+export function PixelLoop({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="phases" shapeRendering="crispEdges">
+      <rect x="4" y="3" width="6" height="2" fill="#6d5dfc" />
+      <rect x="10" y="4" width="2" height="2" fill="#6d5dfc" />
+      <rect x="12" y="6" width="1" height="3" fill="#6d5dfc" />
+      <rect x="10" y="9" width="2" height="2" fill="#35c46b" />
+      <rect x="5" y="11" width="6" height="2" fill="#35c46b" />
+      <rect x="3" y="9" width="2" height="2" fill="#35c46b" />
+      <rect x="2" y="6" width="1" height="3" fill="#35c46b" />
+      <rect x="4" y="5" width="2" height="1" fill="#6d5dfc" />
+    </svg>
+  );
+}
+
+export function PixelQuestion({ className }: Props) {
+  return (
+    <svg viewBox="0 0 16 16" className={className} role="img" aria-label="faq" shapeRendering="crispEdges">
+      <rect x="5" y="2" width="6" height="2" fill="#ffb000" />
+      <rect x="11" y="4" width="2" height="3" fill="#de7c00" />
+      <rect x="8" y="7" width="3" height="2" fill="#ffb000" />
+      <rect x="7" y="9" width="2" height="2" fill="#ffb000" />
+      <rect x="7" y="13" width="2" height="2" fill="#de7c00" />
+      <rect x="3" y="4" width="2" height="2" fill="#ffd166" />
+      <rect x="4" y="3" width="1" height="1" fill="#fff2bd" />
+    </svg>
+  );
+}
+
 function pixelIcon(grid: string) {
   const rows = grid.replace(/^\n|\n$/g, "").split("\n");
   const rects: Array<{ x: number; y: number }> = [];
