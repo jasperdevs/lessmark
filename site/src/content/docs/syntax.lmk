@@ -35,7 +35,7 @@ plain paragraphs instead of hiding paragraph breaks inside one block.
   Plain prose. Use {{strong:bold}}, {{em:italic}}, and {{code:inline code}}
   inside any prose body.
 
-  \@mention and \#hashtag render as normal text.
+  \@todo and \#internal-note render as normal text.
 
 ## Inline syntax
 

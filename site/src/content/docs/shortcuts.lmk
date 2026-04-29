@@ -21,7 +21,7 @@ plain prose|plain prose only|prose with full inline syntax
 
 @code lang="lessmark"
   Plain prose. Same paragraph rules.
-  \@mention starts with a literal at-sign.
+  \@todo starts with a literal at-sign.
 
   @list unordered
   - first

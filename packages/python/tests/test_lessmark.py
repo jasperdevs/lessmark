@@ -209,11 +209,11 @@ RFC-0042
             parse_lessmark("@paragraph\nbody\n")
 
     def test_supports_escaped_leading_block_sigils_inside_prose(self):
-        ast = parse_lessmark("\\@mention\n\\#hashtag\n")
+        ast = parse_lessmark("\\@todo\n\\#internal-note\n")
         self.assertEqual([(node["name"], node["text"]) for node in ast["children"]], [
-            ("paragraph", "@mention\n#hashtag"),
+            ("paragraph", "@todo\n#internal-note"),
         ])
-        source = "\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n"
+        source = "\\@todo\n\\#internal-note\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n"
         formatted = format_lessmark(source)
         self.assertEqual(formatted, source)
         self.assertEqual(parse_lessmark(formatted), parse_lessmark(source))

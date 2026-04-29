@@ -369,12 +369,12 @@ fn rejects_removed_block_aliases_to_keep_syntax_one_way() {
 
 #[test]
 fn supports_escaped_leading_block_sigils_inside_prose() {
-    let document = parse_lessmark("\\@mention\n\\#hashtag\n").expect("escaped sigils parse");
+    let document = parse_lessmark("\\@todo\n\\#internal-note\n").expect("escaped sigils parse");
     let value = serde_json::to_value(document).expect("document serializes");
     assert_eq!(value["children"][0]["name"], "paragraph");
-    assert_eq!(value["children"][0]["text"], "@mention\n#hashtag");
+    assert_eq!(value["children"][0]["text"], "@todo\n#internal-note");
 
-    let source = "\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n";
+    let source = "\\@todo\n\\#internal-note\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n";
     let formatted = format_lessmark(source).expect("escaped sigils format");
     assert_eq!(formatted, source);
     assert_eq!(

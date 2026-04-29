@@ -262,13 +262,13 @@ test("rejects removed block aliases to keep syntax one-way", () => {
 });
 
 test("supports escaped leading block sigils inside prose", () => {
-  const ast = parseLessmark("\\@mention\n\\#hashtag\n");
+  const ast = parseLessmark("\\@todo\n\\#internal-note\n");
   assert.deepEqual(ast.children.map((node) => [node.name, node.text]), [
-    ["paragraph", "@mention\n#hashtag"]
+    ["paragraph", "@todo\n#internal-note"]
   ]);
-  const formatted = formatLessmark("\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n");
-  assert.equal(formatted, "\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n");
-  assert.deepEqual(parseLessmark(formatted), parseLessmark("\\@mention\n\\#hashtag\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n"));
+  const formatted = formatLessmark("\\@todo\n\\#internal-note\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n");
+  assert.equal(formatted, "\\@todo\n\\#internal-note\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n");
+  assert.deepEqual(parseLessmark(formatted), parseLessmark("\\@todo\n\\#internal-note\n\n@summary\n\\@not-a-block\n\\#not-a-heading\n"));
 });
 
 test("rejects empty headings", async () => {
