@@ -11,12 +11,6 @@
 </p>
 
 <p align="center">
-  <img src="./assets/brand/pixel-file.svg" alt="" width="18" />
-  <img src="./assets/brand/pixel-check.svg" alt="" width="18" />
-  <img src="./assets/brand/pixel-spark.svg" alt="" width="18" />
-</p>
-
-<p align="center">
   <a href="https://github.com/jasperdevs/lessmark/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/github/actions/workflow/status/jasperdevs/lessmark/ci.yml?branch=main&style=flat-square"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=JasperDevs.lessmark-vscode"><img alt="VS Code" src="https://img.shields.io/visual-studio-marketplace/v/JasperDevs.lessmark-vscode?label=vscode&style=flat-square"></a>
   <a href="https://github.com/jasperdevs/lessmark/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/jasperdevs/lessmark?style=flat-square"></a>
@@ -43,6 +37,14 @@ Lessmark keeps the readable parts and removes the guesswork:
 | <img src="./assets/brand/pixel-x.svg" alt="" width="14" /> AST shape depends on the parser | <img src="./assets/brand/pixel-check.svg" alt="" width="14" /> Stable JSON AST across JavaScript, Python, and Rust |
 
 Use Markdown for casual prose. Use Lessmark when the file is part of a build, a parser, a validator, a site, or an agent workflow.
+
+<table>
+  <tr>
+    <td><img src="./assets/brand/pixel-agent.svg" alt="" width="22" /> Agent context</td>
+    <td><img src="./assets/brand/pixel-lock.svg" alt="" width="22" /> Safe rendering</td>
+    <td><img src="./assets/brand/pixel-tree.svg" alt="" width="22" /> Stable AST</td>
+  </tr>
+</table>
 
 ## <img src="./assets/brand/pixel-file.svg" alt="" width="18" /> Install
 
